@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120"
+     role="img" aria-labelledby="wam-coin-title wam-coin-desc">
+  <title id="wam-coin-title">WAM Coin — coin face</title>
+  <desc id="wam-coin-desc">A circular milled coin face bearing the WAM W.</desc>
+
+  <!--
+    Circular coin face.
+
+    Purpose-built for the places that will not accept a hexagon: exchange
+    listing artwork, wallet token lists, and market-data aggregators almost all
+    require a circular asset and will crop anything else badly.
+
+    The milled (reeded) edge is a single dashed circle rather than sixty drawn
+    ticks — one number changes the whole pattern, and there is no risk of the
+    ticks drifting out of even spacing. Circumference at r=54 is 339.3, so a
+    5.65 dash period gives exactly 60 reeds.
+
+    Still flat: three solid inks, no gradient, no bevel, no drop shadow. The
+    sense of relief comes from the darker W against the lighter field, which is
+    a real coin's actual logic — shadow in the struck recess.
+  -->
+
+  <circle cx="60" cy="60" r="58" fill="#A8761A"/>
+  <circle cx="60" cy="60" r="54" fill="none" stroke="#8A5F10" stroke-width="8"
+          stroke-dasharray="2.8 2.85"/>
+  <circle cx="60" cy="60" r="50" fill="#D9A63C"/>
+
+  <path d="M32 42 L46 82 L60 34 L74 82 L88 42"
+        fill="none" stroke="#6B4A0E" stroke-width="11"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

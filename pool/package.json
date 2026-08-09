@@ -1,0 +1,24 @@
+{
+  "name": "wam-stratum-pool",
+  "version": "1.0.0",
+  "description": "Stratum mining pool for WAM Coin (RandomX, PPLNS/PROP, consensus-enforced 5% treasury)",
+  "main": "server.js",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/rewards.test.js",
+    "build:native": "cd native && node-gyp rebuild",
+    "postinstall": "echo 'Next: build the RandomX addon with npm run build:native'"
+  },
+  "dependencies": {
+    "ioredis": "^5.4.1",
+    "node-addon-api": "^8.2.0"
+  },
+  "devDependencies": {
+    "node-gyp": "^10.2.0"
+  },
+  "keywords": ["wam", "wamcoin", "stratum", "mining", "pool", "randomx", "pplns"]
+}

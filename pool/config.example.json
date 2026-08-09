@@ -1,0 +1,92 @@
+{
+  "_comment": [
+    "Copy to config.json and edit. Every value below is an OPERATOR setting.",
+    "Consensus values (halving interval, the 5% treasury fee, block time) are NOT",
+    "here on purpose -- they live in lib/constants.js, mirrored from the C++ header,",
+    "and changing them would just make the pool disagree with the chain."
+  ],
+
+  "network": "mainnet",
+
+  "_poolAddress": "The pool's own wallet address. Every block reward (minus the consensus treasury output) is paid here first, then distributed from the wallet. MUST start with 'W' on mainnet.",
+  "poolAddress": "WCHANGEmeCHANGEmeCHANGEmeCHANGEmeXX",
+
+  "_coinbaseSignature": "Vanity string embedded in every block this pool mines. Keep it short: the whole scriptSig is capped at 100 bytes.",
+  "coinbaseSignature": "/WAM-Pool/",
+
+  "rewardMode": "pplns",
+  "_rewardMode": "'pplns' (hopping-resistant, recommended) or 'prop' (per-round).",
+
+  "poolFeePercent": 1.0,
+  "_poolFeePercent": "The OPERATOR's fee, taken after the chain's 5% treasury output. These are two entirely separate fees; miners see 5% + this.",
+
+  "pplnsMultiplier": 2,
+  "_pplnsMultiplier": "PPLNS window = multiplier x network difficulty. 2 is the industry norm.",
+
+  "minimumPayoutWam": 1.0,
+  "txFeeReserveWam": 0.01,
+  "paymentIntervalSec": 600,
+  "blockCheckIntervalSec": 60,
+  "coinbaseMaturity": 100,
+
+  "startDifficulty": 1000,
+  "varDiff": {
+    "targetTime": 15,
+    "retargetTime": 90,
+    "variancePercent": 30,
+    "minDiff": 100,
+    "maxDiff": 2000000,
+    "maxJump": 4
+  },
+
+  "ports": [
+    { "port": 3333, "difficulty": 500,    "description": "CPUs and small rigs" },
+    { "port": 3334, "difficulty": 10000,  "description": "servers and farms" },
+    { "port": 3335, "difficulty": 200000, "description": "large farms" }
+  ],
+  "bindAddress": "0.0.0.0",
+  "publicHost": "pool.wamcoin.org",
+
+  "maxConnections": 5000,
+  "maxMessagesPer10s": 240,
+  "banDurationMs": 600000,
+  "exposeMinerIps": false,
+
+  "blockRefreshInterval": 1000,
+  "jobRebroadcastTimeout": 55,
+  "maxJobHistory": 4,
+
+  "_randomxFullMemory": "false = light mode, 256 MiB, correct for a VERIFYING pool. true = 2 GiB per live seed; only useful if this process also mines.",
+  "randomxFullMemory": false,
+  "randomxVmCount": 4,
+
+  "apiPort": 8080,
+  "apiBind": "0.0.0.0",
+  "apiCacheMs": 3000,
+  "apiCorsOrigin": "*",
+  "hashrateWindowSec": 600,
+
+  "redis": {
+    "host": "127.0.0.1",
+    "port": 6379,
+    "db": 0
+  },
+  "redisPrefix": "wam",
+
+  "logLevel": "info",
+  "logFile": "logs/pool.log",
+
+  "daemons": [
+    {
+      "host": "127.0.0.1",
+      "port": 9556,
+      "user": "wamrpc",
+      "password": "CHANGE_ME",
+
+      "_wallet": "The wamd wallet that holds poolAddress. Required whenever the node has more than one wallet loaded: without it every payout RPC returns 'wallet file not specified' and miners are never paid, on a pool that otherwise looks perfectly healthy. The pool refuses to start unless this wallet owns poolAddress.",
+      "wallet": "pool",
+
+      "timeout": 15000
+    }
+  ]
+}

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WAM Network Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="/brand/wam-favicon.svg" type="image/svg+xml">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 120 120" width="40" height="40" aria-hidden="true">
+      <polygon points="85,16.7 110,60 85,103.3 35,103.3 10,60 35,16.7"
+               fill="#0B7C5C" stroke="#0B7C5C" stroke-width="10" stroke-linejoin="round"/>
+      <path d="M32 42 L46 82 L60 34 L74 82 L88 42" fill="none" stroke="#fff"
+            stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <h1>WAM Network</h1>
+      <p class="sub" id="chainLine">connecting to node…</p>
+    </div>
+  </div>
+  <div class="status" id="nodePill"><span class="dot"></span><span id="nodeText">…</span></div>
+</header>
+
+<div class="banner hidden" id="banner"></div>
+
+<main>
+
+  <section class="tiles">
+    <div class="tile">
+      <div class="label">Block height</div>
+      <div class="value" id="tHeight">—</div>
+      <div class="note" id="tHeightNote">&nbsp;</div>
+    </div>
+    <div class="tile">
+      <div class="label">Network hashrate</div>
+      <div class="value" id="tHashrate">—</div>
+      <div class="note" id="tDifficulty">&nbsp;</div>
+    </div>
+    <div class="tile">
+      <div class="label">Circulating supply</div>
+      <div class="value" id="tSupply">—</div>
+      <div class="note" id="tSupplyNote">&nbsp;</div>
+    </div>
+    <div class="tile">
+      <div class="label">Block reward</div>
+      <div class="value" id="tReward">—</div>
+      <div class="note" id="tRewardNote">&nbsp;</div>
+    </div>
+    <div class="tile">
+      <div class="label">Next halving</div>
+      <div class="value" id="tHalving">—</div>
+      <div class="note" id="tHalvingNote">&nbsp;</div>
+    </div>
+    <div class="tile">
+      <div class="label">Peers</div>
+      <div class="value" id="tPeers">—</div>
+      <div class="note" id="tMempool">&nbsp;</div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------- -->
+  <section class="split">
+
+    <div class="card">
+      <h2>Supply against the 22,000,000 cap</h2>
+      <div class="stackbar" id="supplyBar" role="img" aria-label="Supply breakdown">
+        <div class="seg mined"  id="segMined"></div>
+        <div class="seg vested" id="segVested"></div>
+        <div class="seg locked" id="segLocked"></div>
+        <div class="seg unmined" id="segUnmined"></div>
+      </div>
+      <table class="kv">
+        <tr><td><span class="sw mined"></span>Mined by the public</td><td class="num" id="sMined">—</td></tr>
+        <tr><td><span class="sw vested"></span>Founder — unlocked</td><td class="num" id="sVested">—</td></tr>
+        <tr><td><span class="sw locked"></span>Founder — time-locked</td><td class="num" id="sLocked">—</td></tr>
+        <tr><td><span class="sw unmined"></span>Not yet mined</td><td class="num" id="sUnmined">—</td></tr>
+        <tr class="total"><td>Maximum supply</td><td class="num" id="sMax">—</td></tr>
+      </table>
+      <p class="fine" id="supplySource">&nbsp;</p>
+    </div>
+
+    <div class="card">
+      <h2>Founder reserve vesting</h2>
+      <table class="data compact" id="vestTable">
+        <thead><tr><th>#</th><th>Amount</th><th>Unlocks</th><th>Status</th></tr></thead>
+        <tbody><tr><td colspan="4" class="empty">waiting for the node</td></tr></tbody>
+      </table>
+      <p class="fine">
+        Enforced by <code>OP_CHECKLOCKTIMEVERIFY</code> in the genesis block itself.
+        Verify independently with <code>wam-cli getblock &lt;genesis&gt; 2</code>.
+      </p>
+
+      <h2 class="mt">Treasury fee</h2>
+      <table class="kv">
+        <tr><td>Status</td><td class="num" id="trStatus">—</td></tr>
+        <tr><td>Share of subsidy</td><td class="num" id="trPercent">—</td></tr>
+        <tr><td>Ends at height</td><td class="num" id="trEnd">—</td></tr>
+        <tr><td>Blocks remaining</td><td class="num" id="trRemaining">—</td></tr>
+      </table>
+    </div>
+
+  </section>
+
+  <!-- ---------------------------------------------------------------- -->
+  <section class="split">
+
+    <div class="card">
+      <h2>RandomX epoch</h2>
+      <table class="kv">
+        <tr><td>Seed height</td><td class="num" id="rxSeedHeight">—</td></tr>
+        <tr><td>Seed hash</td><td class="num mono trunc" id="rxSeedHash">—</td></tr>
+        <tr><td>Epoch length</td><td class="num" id="rxEpoch">—</td></tr>
+        <tr><td>Next rotation</td><td class="num" id="rxRotation">—</td></tr>
+        <tr><td>Node RandomX memory</td><td class="num" id="rxMemory">—</td></tr>
+      </table>
+      <p class="fine">
+        On rotation every miner rebuilds its 2 GiB dataset. A brief hashrate dip is expected
+        and is not an incident.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Look up a block or transaction</h2>
+      <form class="lookup" id="searchForm">
+        <input type="text" id="searchInput" autocomplete="off" spellcheck="false"
+               placeholder="Block height, block hash, or txid">
+        <button type="submit">Search</button>
+      </form>
+      <div id="searchResult" class="result hidden"></div>
+
+      <h2 class="mt">Audit a block's treasury payment</h2>
+      <form class="lookup" id="auditForm">
+        <input type="text" id="auditInput" autocomplete="off" spellcheck="false"
+               placeholder="Block height or hash">
+        <button type="submit">Audit</button>
+      </form>
+      <div id="auditResult" class="result hidden"></div>
+    </div>
+
+  </section>
+
+  <!-- ---------------------------------------------------------------- -->
+  <section class="card">
+    <h2>Recent blocks</h2>
+    <div class="tablewrap">
+      <table class="data" id="blocksTable">
+        <thead><tr>
+          <th>Height</th><th>Age</th><th class="num">Txs</th><th class="num">Size</th>
+          <th class="num">Difficulty</th><th>Hash</th>
+        </tr></thead>
+        <tbody><tr><td colspan="6" class="empty">waiting for the node</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <span>WAM Coin &middot; 22,000,000 max supply &middot; 2-minute blocks &middot; RandomX &middot; DGWv3</span>
+  <span id="footerStatus"></span>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

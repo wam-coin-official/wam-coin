@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="32" height="32"
+     role="img" aria-label="WAM">
+
+  <!--
+    16-32px variant.
+
+    Small sizes are not the primary icon scaled down. Three changes:
+      1. the hexagon is enlarged to fill the tile (r=56, no optical margin) —
+         at 16px, whitespace is wasted pixels
+      2. the W stroke is thickened 11 -> 14 so it survives one-pixel rendering
+      3. the centre spire is shortened; at this size the extra height reads as
+         a rendering artefact rather than as intent
+
+    Ships as SVG. Rasterise to 16/32/48 PNG only if a target needs .ico.
+  -->
+
+  <polygon points="88,11 116,60 88,109 32,109 4,60 32,11"
+           fill="#0B7C5C" stroke="#0B7C5C" stroke-width="8" stroke-linejoin="round"/>
+
+  <path d="M30 42 L45 84 L60 38 L75 84 L90 42"
+        fill="none" stroke="#FFFFFF" stroke-width="14"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

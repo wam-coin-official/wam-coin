@@ -1,0 +1,365 @@
+#!/usr/bin/env node
+'use strict';
+// Copyright (c) 2026 The WAM Coin developers
+// Distributed under the MIT software license, see COPYING.
+//
+// ===========================================================================
+//  WAM Network Dashboard -- entry point
+// ===========================================================================
+//
+//      node server.js                      # reads config.json, or auto-detects
+//      node server.js --config my.json
+//      node server.js --port 8081
+//
+//  ZERO npm dependencies. Node 18+ and nothing else. This is the tool an
+//  operator opens when something is wrong, and "npm install failed" is not an
+//  acceptable answer at that moment.
+//
+//  If config.json is absent the server reads RPC credentials straight out of
+//  ~/.wam/wam.conf, which is what install.sh generates. In the normal case
+//  there is nothing to configure at all.
+
+const fs = require('fs');
+const http = require('http');
+const os = require('os');
+const path = require('path');
+
+const RpcClient = require('./lib/rpc');
+const Collector = require('./lib/collector');
+
+// ---------------------------------------------------------------------------
+// Tiny logger (no dependency)
+// ---------------------------------------------------------------------------
+
+const LEVELS = { debug: 0, info: 1, warn: 2, error: 3 };
+let logLevel = LEVELS.info;
+
+const log = {
+    _w(level, msg) {
+        if (LEVELS[level] < logLevel) return;
+        const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
+        const colour = { debug: '\x1b[90m', info: '\x1b[36m', warn: '\x1b[33m', error: '\x1b[31m' }[level];
+        const line = `${ts} [${level.toUpperCase().padEnd(5)}] ${msg}`;
+        console.log(process.stdout.isTTY ? `${colour}${line}\x1b[0m` : line);
+    },
+    debug(m) { this._w('debug', m); },
+    info(m) { this._w('info', m); },
+    warn(m) { this._w('warn', m); },
+    error(m) { this._w('error', m); }
+};
+
+// ---------------------------------------------------------------------------
+// Configuration
+// ---------------------------------------------------------------------------
+
+const DEFAULT_RPC_PORTS = { main: 9556, test: 19556, regtest: 29556 };
+
+/**
+ * Read a text file, dropping a UTF-8 byte-order mark if present.
+ *
+ * Notepad, PowerShell's `Out-File -Encoding utf8` and several Windows editors
+ * prepend a BOM. JSON.parse rejects it outright, and an ini parser silently
+ * mangles the first key instead -- which is worse, because the failure surfaces
+ * later as "wrong rpcuser" rather than as a parse error.
+ */
+function readTextFile(file) {
+    const text = fs.readFileSync(file, 'utf8');
+    return text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+}
+
+/**
+ * Parse an ini-style wam.conf. This is how the explorer works with no config
+ * of its own: install.sh already wrote credentials there, and duplicating them
+ * into a second file is one more thing to get out of sync.
+ */
+function readWamConf(confPath) {
+    if (!fs.existsSync(confPath)) return null;
+
+    const out = {};
+    for (const raw of readTextFile(confPath).split('\n')) {
+        const line = raw.trim();
+        if (!line || line.startsWith('#') || line.startsWith('[')) continue;
+        const eq = line.indexOf('=');
+        if (eq < 0) continue;
+        out[line.slice(0, eq).trim()] = line.slice(eq + 1).trim();
+    }
+
+    const network = out.regtest === '1' ? 'regtest' : out.testnet === '1' ? 'test' : 'main';
+
+    if (!out.rpcuser || !out.rpcpassword) return null;
+
+    return {
+        host: '127.0.0.1',
+        port: parseInt(out.rpcport, 10) || DEFAULT_RPC_PORTS[network],
+        user: out.rpcuser,
+        password: out.rpcpassword,
+        network,
+        source: confPath
+    };
+}
+
+function loadConfig(argv) {
+    const args = { config: null, port: null };
+    for (let i = 2; i < argv.length; i++) {
+        if (argv[i] === '--config' && argv[i + 1]) args.config = argv[++i];
+        else if (argv[i] === '--port' && argv[i + 1]) args.port = parseInt(argv[++i], 10);
+        else if (argv[i] === '--help' || argv[i] === '-h') args.help = true;
+    }
+
+    if (args.help) return { help: true };
+
+    const explicit = args.config || path.join(__dirname, 'config.json');
+    let cfg = {};
+
+    if (fs.existsSync(explicit)) {
+        try {
+            cfg = JSON.parse(readTextFile(explicit));
+            log.info(`configuration: ${explicit}`);
+        } catch (err) {
+            throw new Error(`${explicit} is not valid JSON: ${err.message}`);
+        }
+    }
+
+    // Fill any gap from wam.conf.
+    if (!cfg.rpc || !cfg.rpc.user || !cfg.rpc.password) {
+        const candidates = [
+            process.env.WAM_CONF,
+            path.join(os.homedir(), '.wam', 'wam.conf'),
+            path.join(os.homedir(), '.wamcoin', 'wam.conf'),
+            '/etc/wam/wam.conf'
+        ].filter(Boolean);
+
+        for (const c of candidates) {
+            const found = readWamConf(c);
+            if (found) {
+                cfg.rpc = { ...found, ...(cfg.rpc || {}) };
+                log.info(`RPC credentials auto-detected from ${found.source} ` +
+                         `(${found.network}, port ${found.port})`);
+                break;
+            }
+        }
+    }
+
+    if (!cfg.rpc || !cfg.rpc.user || !cfg.rpc.password) {
+        throw new Error(
+            'no RPC credentials found.\n' +
+            '  Either run install.sh (which writes ~/.wam/wam.conf), or copy\n' +
+            '  config.example.json to config.json and fill in rpcuser/rpcpassword.');
+    }
+
+    return {
+        rpc: {
+            host: cfg.rpc.host || '127.0.0.1',
+            port: cfg.rpc.port || DEFAULT_RPC_PORTS.main,
+            user: cfg.rpc.user,
+            password: cfg.rpc.password,
+            ssl: cfg.rpc.ssl === true,
+            timeout: cfg.rpc.timeout || 10000
+        },
+        port: args.port || cfg.port || 8081,
+        bind: cfg.bind || '127.0.0.1',
+        pollSeconds: cfg.pollSeconds || 10,
+        siteName: cfg.siteName || 'WAM Network',
+        logLevel: cfg.logLevel || 'info'
+    };
+}
+
+// ---------------------------------------------------------------------------
+// HTTP
+// ---------------------------------------------------------------------------
+
+const MIME = {
+    '.html': 'text/html; charset=utf-8',
+    '.css': 'text/css; charset=utf-8',
+    '.js': 'application/javascript; charset=utf-8',
+    '.svg': 'image/svg+xml',
+    '.json': 'application/json; charset=utf-8',
+    '.png': 'image/png',
+    '.ico': 'image/x-icon'
+};
+
+function serveStatic(root, pathname, res) {
+    const rel = pathname === '/' ? 'index.html' : pathname.slice(1);
+    const file = path.resolve(root, rel);
+
+    // Resolve first, then verify containment. This is the only check that
+    // actually holds against encoded traversal sequences.
+    if (!file.startsWith(path.resolve(root) + path.sep)) {
+        res.writeHead(403).end('forbidden');
+        return;
+    }
+
+    fs.readFile(file, (err, data) => {
+        if (err) {
+            res.writeHead(404, { 'Content-Type': 'text/plain' }).end('not found');
+            return;
+        }
+        res.writeHead(200, {
+            'Content-Type': MIME[path.extname(file)] || 'application/octet-stream',
+            'Cache-Control': 'no-cache'
+        });
+        res.end(data);
+    });
+}
+
+function json(res, status, body) {
+    const text = JSON.stringify(body);
+    res.writeHead(status, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Length': Buffer.byteLength(text)
+    });
+    res.end(text);
+}
+
+// ---------------------------------------------------------------------------
+
+async function main() {
+    let config;
+    try {
+        config = loadConfig(process.argv);
+    } catch (err) {
+        console.error(`\x1b[31merror:\x1b[0m ${err.message}\n`);
+        process.exit(1);
+    }
+
+    if (config.help) {
+        console.log(`
+WAM Network Dashboard
+
+  node server.js [--config FILE] [--port N]
+
+  With no configuration it reads RPC credentials from ~/.wam/wam.conf,
+  which install.sh writes. In the normal case there is nothing to set up.
+`);
+        return;
+    }
+
+    logLevel = LEVELS[config.logLevel] ?? LEVELS.info;
+
+    log.info('='.repeat(62));
+    log.info(' WAM Network Dashboard');
+    log.info('='.repeat(62));
+
+    const rpc = new RpcClient(config.rpc);
+    const collector = new Collector(rpc, log, { pollSeconds: config.pollSeconds });
+
+    // Probe once so startup says something useful either way, but do NOT refuse
+    // to start: the dashboard's job includes showing that the node is down.
+    try {
+        const info = await rpc.call('getblockchaininfo');
+        log.info(`connected to wamd -- chain=${info.chain} blocks=${info.blocks} ` +
+                 `difficulty=${info.difficulty}`);
+    } catch (err) {
+        log.warn(`wamd not reachable yet: ${err.message}`);
+        log.warn('the dashboard will start anyway and reconnect automatically.');
+    }
+
+    await collector.start();
+
+    const webRoot = path.join(__dirname, 'web');
+    const brandRoot = path.join(__dirname, '..', 'brand');
+
+    const server = http.createServer(async (req, res) => {
+        // WHATWG URL, not the legacy url.parse(): Node deprecated the latter
+        // precisely because its non-standard parsing has produced path-handling
+        // CVEs. The base is a throwaway -- only the path and query are used.
+        let parsed;
+        try {
+            parsed = new URL(req.url, 'http://localhost');
+        } catch {
+            return json(res, 400, { error: 'malformed request URL' });
+        }
+        const pathname = parsed.pathname.replace(/\/+$/, '') || '/';
+        const q = (name) => parsed.searchParams.get(name);
+
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Referrer-Policy', 'no-referrer');
+
+        if (req.method !== 'GET' && req.method !== 'HEAD') {
+            return json(res, 405, { error: 'only GET is supported' });
+        }
+
+        try {
+            switch (true) {
+            case pathname === '/api/status':
+                return json(res, 200, {
+                    ...collector.get(),
+                    siteName: config.siteName,
+                    serverUptimeSec: Math.round(process.uptime())
+                });
+
+            case pathname === '/api/blocks':
+                return json(res, 200, { blocks: collector.get().blocks });
+
+            case pathname === '/api/search': {
+                if (!q('q')) return json(res, 400, { error: 'q is required' });
+                try {
+                    return json(res, 200, await collector.lookup(q('q')));
+                } catch (err) {
+                    return json(res, 404, { error: err.message });
+                }
+            }
+
+            case pathname === '/api/audit': {
+                if (!q('block')) return json(res, 400, { error: 'block is required' });
+                try {
+                    return json(res, 200, await collector.auditBlock(q('block')));
+                } catch (err) {
+                    return json(res, 400, { error: err.message });
+                }
+            }
+
+            case pathname === '/api/health': {
+                const s = collector.get();
+                return json(res, s.nodeOnline ? 200 : 503, {
+                    ok: s.nodeOnline,
+                    error: s.error,
+                    staleSeconds: s.staleSeconds,
+                    height: s.chain ? s.chain.blocks : null
+                });
+            }
+
+            // Serve the real brand assets rather than a second copy that can
+            // drift away from brand/.
+            case pathname.startsWith('/brand/'):
+                return serveStatic(brandRoot, pathname.replace('/brand', ''), res);
+
+            default:
+                return serveStatic(webRoot, pathname, res);
+            }
+        } catch (err) {
+            log.error(`${pathname}: ${err.message}`);
+            return json(res, 500, { error: 'internal error' });
+        }
+    });
+
+    server.on('error', (err) => {
+        log.error(`listen failed: ${err.message}`);
+        if (err.code === 'EADDRINUSE') {
+            log.error(`port ${config.port} is already in use -- try --port ${config.port + 1}`);
+        }
+        process.exit(1);
+    });
+
+    server.listen(config.port, config.bind, () => {
+        log.info(`dashboard ready on http://${config.bind}:${config.port}/`);
+        if (config.bind === '127.0.0.1') {
+            log.info('bound to localhost only. To expose it, set "bind": "0.0.0.0" in ' +
+                     'config.json -- and put TLS in front of it first.');
+        }
+    });
+
+    const shutdown = (sig) => {
+        log.info(`${sig} received, shutting down`);
+        collector.stop();
+        server.close(() => process.exit(0));
+        setTimeout(() => process.exit(0), 3000).unref();
+    };
+    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+}
+
+main().catch((err) => {
+    console.error(err.stack || err.message);
+    process.exit(1);
+});

@@ -1,0 +1,15 @@
+[Unit]
+Description=WAM Coin stratum pool (testnet)
+After=network.target wamd-testnet.service
+Wants=wamd-testnet.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/grgo/wam/pool
+ExecStart=/usr/bin/node /home/grgo/wam/pool/server.js --config /home/grgo/wam/pool/config.testnet.json
+Restart=always
+RestartSec=5
+TimeoutStopSec=60
+
+[Install]
+WantedBy=default.target

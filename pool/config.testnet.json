@@ -1,0 +1,85 @@
+{
+  "_comment": [
+    "Testnet pool. Runs alongside the regtest pool on different ports and a",
+    "different Redis database, so the two never mix accounting.",
+    "",
+    "The difficulty numbers here are the interesting part. WAM measures share",
+    "difficulty on the same scale as chain difficulty (see lib/constants.js),",
+    "and testnet starts at the proof-of-work limit, 0.000244. A share of",
+    "difficulty 1 would cost 2^32 hashes -- about three days on a laptop -- so",
+    "startDifficulty and minDiff have to sit far below 1 or a CPU miner would",
+    "connect, hash correctly, and never submit anything."
+  ],
+
+  "network": "testnet",
+  "poolAddress": "twam1q3rzkye9fxxyelxq3thca59f5245cer69pq5mkm",
+  "coinbaseSignature": "/WAM-Pool/",
+
+  "rewardMode": "pplns",
+  "poolFeePercent": 1.0,
+  "pplnsMultiplier": 2,
+  "minimumPayoutWam": 1.0,
+  "txFeeReserveWam": 0.01,
+  "paymentIntervalSec": 300,
+  "blockCheckIntervalSec": 60,
+  "coinbaseMaturity": 100,
+
+  "startDifficulty": 0.0001,
+  "varDiff": {
+    "targetTime": 15,
+    "retargetTime": 60,
+    "variancePercent": 40,
+    "minDiff": 0.000001,
+    "maxDiff": 1000,
+    "maxJump": 4
+  },
+
+  "ports": [
+    {
+      "port": 3334,
+      "difficulty": 0.0001,
+      "description": "testnet CPU port"
+    }
+  ],
+  "bindAddress": "0.0.0.0",
+  "publicHost": "127.0.0.1",
+
+  "maxConnections": 5000,
+  "maxMessagesPer10s": 240,
+  "banDurationMs": 600000,
+  "exposeMinerIps": false,
+
+  "blockRefreshInterval": 1000,
+  "jobRebroadcastTimeout": 55,
+  "maxJobHistory": 4,
+
+  "randomxFullMemory": false,
+  "randomxVmCount": 4,
+
+  "apiPort": 8082,
+  "apiBind": "0.0.0.0",
+  "apiCacheMs": 3000,
+  "apiCorsOrigin": "*",
+  "hashrateWindowSec": 600,
+
+  "redis": {
+    "host": "127.0.0.1",
+    "port": 6379,
+    "db": 1
+  },
+  "redisPrefix": "wamtn",
+
+  "logLevel": "info",
+  "logFile": "logs/pool-testnet.log",
+
+  "daemons": [
+    {
+      "host": "127.0.0.1",
+      "port": 19556,
+      "user": "t",
+      "password": "t",
+      "wallet": "pool",
+      "timeout": 15000
+    }
+  ]
+}

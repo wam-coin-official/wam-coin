@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120"
+     role="img" aria-labelledby="wam-mono-title wam-mono-desc">
+  <title id="wam-mono-title">WAM Coin — monochrome</title>
+  <desc id="wam-mono-desc">The WAM hexagon mark in a single colour, with the W knocked out.</desc>
+
+  <!--
+    Single-colour variant. The W is KNOCKED OUT of the block rather than drawn
+    on top, so the mark is one solid shape in one ink: correct for embossing,
+    engraving, stamps, screen printing, and any single-plate process.
+
+    `fill="currentColor"` means dropping this inline into HTML inherits the
+    surrounding text colour — one file covers light and dark themes.
+
+    A mask is used instead of a hand-traced outline so that this variant and the
+    primary icon can never drift apart: both reference the identical W path.
+  -->
+
+  <defs>
+    <mask id="wam-knockout">
+      <rect x="0" y="0" width="120" height="120" fill="#000"/>
+      <polygon points="85,16.7 110,60 85,103.3 35,103.3 10,60 35,16.7"
+               fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/>
+      <path d="M32 42 L46 82 L60 34 L74 82 L88 42"
+            fill="none" stroke="#000" stroke-width="11"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+
+  <rect x="0" y="0" width="120" height="120" fill="currentColor" mask="url(#wam-knockout)"/>
+</svg>

@@ -1,0 +1,26 @@
+{
+  "_comment": [
+    "OPTIONAL. If this file is absent the dashboard reads RPC credentials",
+    "straight out of ~/.wam/wam.conf, which install.sh generates. In the normal",
+    "case there is nothing to configure -- just run `node server.js`.",
+    "Copy to config.json only if you need to override something."
+  ],
+
+  "port": 8081,
+
+  "_bind": "127.0.0.1 keeps the dashboard local. Change to 0.0.0.0 ONLY behind a TLS reverse proxy.",
+  "bind": "127.0.0.1",
+
+  "pollSeconds": 10,
+  "siteName": "WAM Network",
+  "logLevel": "info",
+
+  "rpc": {
+    "host": "127.0.0.1",
+    "port": 9556,
+    "user": "wamrpc",
+    "password": "",
+    "ssl": false,
+    "timeout": 10000
+  }
+}

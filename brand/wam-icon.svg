@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120"
+     role="img" aria-labelledby="wam-icon-title wam-icon-desc">
+  <title id="wam-icon-title">WAM Coin</title>
+  <desc id="wam-icon-desc">A hexagonal block containing a W whose central peak rises above its arms.</desc>
+
+  <!--
+    WAM Coin primary icon.
+
+    Deliberately FLAT and two-tone. A logo that depends on a gradient fails the
+    moment it is embroidered, foil-stamped, faxed to a regulator, or rendered as
+    a 16px favicon. Everything here survives those.
+
+    Geometry:
+      hexagon  regular, flat-topped, r=50 about (60,60) — the block motif,
+               and a silhouette distinct from the circle-saturated crypto space
+      W        symmetric, but with the centre vertex rising ABOVE the two arms.
+               That single decision is what stops it being a generic letter W:
+               it reads as upward motion while staying perfectly balanced, which
+               is the tone a currency wants (confidence, not startup energy).
+
+    The rounded joins come from stroking the polygon with its own fill colour —
+    no hand-computed corner arcs to drift out of sync between variants.
+  -->
+
+  <polygon points="85,16.7 110,60 85,103.3 35,103.3 10,60 35,16.7"
+           fill="#0B7C5C" stroke="#0B7C5C" stroke-width="10" stroke-linejoin="round"/>
+
+  <path d="M32 42 L46 82 L60 34 L74 82 L88 42"
+        fill="none" stroke="#FFFFFF" stroke-width="11"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

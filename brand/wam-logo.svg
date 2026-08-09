@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 120" width="300" height="120"
+     role="img" aria-labelledby="wam-logo-title wam-logo-desc">
+  <title id="wam-logo-title">WAM Coin</title>
+  <desc id="wam-logo-desc">The WAM hexagon mark beside the wordmark W A M.</desc>
+
+  <!--
+    Horizontal lockup: mark + wordmark.
+
+    The wordmark is DRAWN, not typeset. There is no <text> element and no font
+    dependency anywhere in this file, which matters for three reasons:
+      - it renders identically on a machine that has never heard of the font
+      - it cannot be silently substituted in a PDF pipeline
+      - the letterforms use the icon's exact stroke weight, cap style and join
+        style, so mark and wordmark read as one system rather than as a logo
+        that happened to be placed next to some type
+
+    The W of the wordmark repeats the icon's raised centre vertex, at the same
+    1:6 proportion. That is the thread tying the two halves together.
+
+    Clear space: keep at least the height of the hexagon (h) free on every side.
+    Minimum width: 120px. Below that, use wam-icon.svg alone.
+  -->
+
+  <!-- mark -->
+  <g transform="translate(0,12) scale(0.8)">
+    <polygon points="85,16.7 110,60 85,103.3 35,103.3 10,60 35,16.7"
+             fill="#0B7C5C" stroke="#0B7C5C" stroke-width="10" stroke-linejoin="round"/>
+    <path d="M32 42 L46 82 L60 34 L74 82 L88 42"
+          fill="none" stroke="#FFFFFF" stroke-width="11"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- wordmark -->
+  <g transform="translate(122,38) scale(1.29)"
+     fill="none" stroke="#0B2C22" stroke-width="8"
+     stroke-linecap="round" stroke-linejoin="round">
+    <!-- W: centre vertex raised, echoing the mark -->
+    <path d="M0 5.7 L11 34 L23 0 L35 34 L46 5.7"/>
+    <!-- A -->
+    <path d="M58 34 L72 0 L86 34"/>
+    <path d="M63 23 L81 23"/>
+    <!-- M -->
+    <path d="M98 34 L98 0 L112 20 L126 0 L126 34"/>
+  </g>
+</svg>

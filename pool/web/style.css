@@ -1,0 +1,227 @@
+/* WAM Coin pool dashboard
+   Copyright (c) 2026 The WAM Coin developers -- MIT
+   No frameworks, no web fonts, no external requests. A pool dashboard is the
+   one page that must still render when everything else is on fire. */
+
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --line: #e2e5ea;
+  --text: #12151a;
+  --muted: #656d7a;
+  --accent: #0b7c5c;
+  --miner: #0b7c5c;
+  --poolfee: #c98a17;
+  --treasury: #3563b0;
+  --danger: #c0392b;
+  --ok: #159c62;
+  --radius: 10px;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1116;
+    --panel: #161b22;
+    --line: #262d38;
+    --text: #e6e9ee;
+    --muted: #8b95a5;
+    --accent: #2ea87c;
+    --miner: #2ea87c;
+    --poolfee: #e0a63c;
+    --treasury: #5b8ddb;
+    --danger: #e56a5a;
+    --ok: #2ea87c;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------------------------------------------------------------- header */
+
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+  padding: 16px 24px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand { display: flex; align-items: center; gap: 12px; }
+
+.mark {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: var(--accent); color: #fff;
+  display: grid; place-items: center;
+  font-weight: 700; font-size: 20px;
+}
+
+.topbar h1 { margin: 0; font-size: 17px; font-weight: 650; letter-spacing: -0.01em; }
+.sub { margin: 0; font-size: 12.5px; color: var(--muted); }
+
+.status {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--muted);
+  padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px;
+}
+.status .dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--muted);
+}
+.status.ok .dot { background: var(--ok); }
+.status.bad .dot { background: var(--danger); }
+.status.bad { color: var(--danger); border-color: var(--danger); }
+
+/* ----------------------------------------------------------------- layout */
+
+main {
+  max-width: 1180px; margin: 0 auto;
+  padding: 24px; display: grid; gap: 20px;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+
+.card h2 {
+  margin: 0 0 14px; font-size: 14px; font-weight: 650;
+  letter-spacing: 0.02em; text-transform: uppercase; color: var(--muted);
+}
+.card h2.mt { margin-top: 24px; }
+.count { color: var(--muted); font-weight: 400; text-transform: none; }
+
+.split { display: grid; gap: 20px; grid-template-columns: 1fr 1fr; }
+@media (max-width: 860px) { .split { grid-template-columns: 1fr; } }
+
+/* ------------------------------------------------------------------ tiles */
+
+.tiles {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.tile {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.tile .label {
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--muted); margin-bottom: 6px;
+}
+.tile .value {
+  font-size: 22px; font-weight: 640; font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.tile .note { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+/* ------------------------------------------------------------ reward bar */
+
+.rewardbar {
+  display: flex; height: 26px; border-radius: 6px; overflow: hidden;
+  border: 1px solid var(--line); margin-bottom: 14px;
+}
+.seg { height: 100%; transition: width .4s ease; }
+.seg.miner { background: var(--miner); }
+.seg.poolfee { background: var(--poolfee); }
+.seg.treasury { background: var(--treasury); }
+
+.swatch {
+  display: inline-block; width: 10px; height: 10px; border-radius: 3px;
+  margin-right: 8px; vertical-align: baseline;
+}
+.swatch.miner { background: var(--miner); }
+.swatch.poolfee { background: var(--poolfee); }
+.swatch.treasury { background: var(--treasury); }
+
+/* ----------------------------------------------------------------- tables */
+
+table { border-collapse: collapse; width: 100%; }
+
+.kv td, .kv th {
+  padding: 7px 0; border-bottom: 1px solid var(--line);
+  font-size: 13.5px; text-align: left;
+}
+.kv th { color: var(--muted); font-weight: 600; font-size: 12px; }
+.kv tr:last-child td { border-bottom: none; }
+.kv .total td { font-weight: 650; border-top: 1px solid var(--line); }
+
+.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); }
+
+.tablewrap { overflow-x: auto; }
+
+.data { font-size: 13px; min-width: 560px; }
+.data th {
+  text-align: left; padding: 8px 10px; color: var(--muted);
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--line); white-space: nowrap;
+}
+.data th.num { text-align: right; }
+.data td {
+  padding: 9px 10px; border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.data tr:last-child td { border-bottom: none; }
+.data td.empty {
+  text-align: center; color: var(--muted); padding: 22px; font-style: italic;
+}
+.mono { font-family: var(--mono); font-size: 12px; }
+.trunc { max-width: 200px; overflow: hidden; text-overflow: ellipsis; display: inline-block;
+         vertical-align: bottom; }
+
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 600;
+}
+.badge.confirmed { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+.badge.pending   { background: color-mix(in srgb, var(--poolfee) 20%, transparent); color: var(--poolfee); }
+.badge.orphaned  { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+
+/* ----------------------------------------------------------------- lookup */
+
+.lookup { display: flex; gap: 10px; flex-wrap: wrap; }
+.lookup input {
+  flex: 1 1 320px; padding: 10px 12px; font-family: var(--mono); font-size: 13px;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--bg); color: var(--text);
+}
+.lookup input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.lookup button {
+  padding: 10px 18px; border: none; border-radius: 8px;
+  background: var(--accent); color: #fff; font-size: 14px; font-weight: 600;
+  cursor: pointer;
+}
+.lookup button:hover { filter: brightness(1.08); }
+
+.minerResult { margin-top: 16px; }
+.minerResult.hidden { display: none; }
+.minerResult .err { color: var(--danger); }
+
+/* ------------------------------------------------------------------- misc */
+
+.code {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+  padding: 12px; font-family: var(--mono); font-size: 12px;
+  overflow-x: auto; margin: 12px 0 0; white-space: pre;
+}
+
+.fineprint { font-size: 12px; color: var(--muted); margin: 12px 0 0; }
+.fineprint code { font-family: var(--mono); font-size: 11.5px; }
+
+footer {
+  max-width: 1180px; margin: 0 auto; padding: 20px 24px 40px;
+  display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  color: var(--muted); font-size: 12px;
+  border-top: 1px solid var(--line);
+}

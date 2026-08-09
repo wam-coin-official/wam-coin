@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WAM Coin Mining Pool</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>⛏</text></svg>">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="mark">W</span>
+    <div>
+      <h1>WAM Coin Pool</h1>
+      <p class="sub" id="chainLabel">connecting…</p>
+    </div>
+  </div>
+  <div class="status" id="healthPill"><span class="dot"></span><span id="healthText">…</span></div>
+</header>
+
+<main>
+
+  <!-- ---------------------------------------------------------------- -->
+  <section class="tiles" aria-label="Pool summary">
+    <div class="tile">
+      <div class="label">Pool hashrate</div>
+      <div class="value" id="poolHashrate">—</div>
+      <div class="note" id="poolShare">&nbsp;</div>
+    </div>
+    <div class="tile">
+      <div class="label">Miners / workers</div>
+      <div class="value" id="minerCount">—</div>
+      <div class="note" id="workerCount">&nbsp;</div>
+    </div>
+    <div class="tile">
+      <div class="label">Network hashrate</div>
+      <div class="value" id="netHashrate">—</div>
+      <div class="note" id="netDifficulty">&nbsp;</div>
+    </div>
+    <div class="tile">
+      <div class="label">Block height</div>
+      <div class="value" id="blockHeight">—</div>
+      <div class="note" id="halvingNote">&nbsp;</div>
+    </div>
+    <div class="tile">
+      <div class="label">Blocks found</div>
+      <div class="value" id="blocksFound">—</div>
+      <div class="note" id="blocksPending">&nbsp;</div>
+    </div>
+    <div class="tile">
+      <div class="label">Est. time to block</div>
+      <div class="value" id="ttb">—</div>
+      <div class="note">at current pool share</div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------- -->
+  <section class="split">
+
+    <div class="card">
+      <h2>Block reward split</h2>
+      <div class="rewardbar" id="rewardBar" role="img" aria-label="Reward distribution">
+        <div class="seg miner"    id="segMiner"></div>
+        <div class="seg poolfee"  id="segPool"></div>
+        <div class="seg treasury" id="segTreasury"></div>
+      </div>
+      <table class="kv">
+        <tr><td><span class="swatch miner"></span>To miners</td>
+            <td class="num" id="rwMiner">—</td></tr>
+        <tr><td><span class="swatch poolfee"></span>Pool fee</td>
+            <td class="num" id="rwPool">—</td></tr>
+        <tr><td><span class="swatch treasury"></span>Treasury (consensus)</td>
+            <td class="num" id="rwTreasury">—</td></tr>
+        <tr class="total"><td>Block subsidy</td><td class="num" id="rwTotal">—</td></tr>
+      </table>
+      <p class="fineprint" id="treasurySunset">&nbsp;</p>
+      <p class="fineprint">
+        The 5% treasury output is created by the coinbase transaction and enforced
+        by consensus rule WAM-1. The pool never holds it and never distributes it.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Connect a miner</h2>
+      <table class="kv" id="portTable">
+        <tr><th>Port</th><th>Start diff</th><th>For</th></tr>
+      </table>
+      <pre class="code" id="connectCmd">…</pre>
+      <p class="fineprint">
+        Authorize with <code>&lt;your W… address&gt;.&lt;worker name&gt;</code> as the
+        username. Any password works.
+      </p>
+
+      <h2 class="mt">RandomX epoch</h2>
+      <table class="kv">
+        <tr><td>Current seed height</td><td class="num" id="seedHeight">—</td></tr>
+        <tr><td>Next rotation in</td><td class="num" id="seedRotate">—</td></tr>
+      </table>
+      <p class="fineprint">
+        On rotation every miner rebuilds its dataset; a short hashrate dip is normal.
+      </p>
+    </div>
+
+  </section>
+
+  <!-- ---------------------------------------------------------------- -->
+  <section class="card">
+    <h2>Your stats</h2>
+    <form class="lookup" id="lookupForm">
+      <input type="text" id="addressInput" placeholder="Paste your WAM address (starts with W)"
+             autocomplete="off" spellcheck="false">
+      <button type="submit">Look up</button>
+    </form>
+    <div id="minerResult" class="minerResult hidden"></div>
+  </section>
+
+  <!-- ---------------------------------------------------------------- -->
+  <section class="card">
+    <h2>Connected miners <span class="count" id="connectedCount"></span></h2>
+    <div class="tablewrap">
+      <table class="data" id="minersTable">
+        <thead><tr>
+          <th>Worker</th><th>Client</th><th class="num">Difficulty</th>
+          <th class="num">Valid</th><th class="num">Invalid</th><th class="num">Connected</th>
+        </tr></thead>
+        <tbody><tr><td colspan="6" class="empty">no miners connected</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------- -->
+  <section class="card">
+    <h2>Recent blocks</h2>
+    <div class="tablewrap">
+      <table class="data" id="blocksTable">
+        <thead><tr>
+          <th>Height</th><th>Status</th><th>Found by</th><th>When</th>
+          <th class="num">To miners</th><th class="num">Treasury</th><th class="num">Workers</th>
+        </tr></thead>
+        <tbody><tr><td colspan="7" class="empty">no blocks yet</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------- -->
+  <section class="card">
+    <h2>Recent payouts</h2>
+    <div class="tablewrap">
+      <table class="data" id="paymentsTable">
+        <thead><tr>
+          <th>When</th><th>Transaction</th><th class="num">Recipients</th><th class="num">Total</th>
+        </tr></thead>
+        <tbody><tr><td colspan="4" class="empty">no payouts yet</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <span>WAM Coin &middot; 22,000,000 max supply &middot; 2-minute blocks &middot; RandomX &middot; DGWv3</span>
+  <span id="updatedAt"></span>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
