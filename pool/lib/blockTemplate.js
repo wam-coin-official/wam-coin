@@ -143,8 +143,27 @@ class BlockTemplate {
         // What the pool actually has to share out among miners.
         this.distributableValue = this.coinbaseValue - this.devFeeAmount;
 
-        if (this.distributableValue <= 0) {
-            throw new Error('nothing left to distribute after the treasury output');
+        // Zero is legal, and eventually it is the normal case.
+        //
+        // After height 6,600,000 the subsidy is exactly zero and miners are
+        // paid entirely from transaction fees; in a block with an empty
+        // mempool there is nothing to distribute at all. That block is still
+        // valid, still extends the chain, and still has to be mined -- a pool
+        // that refuses to build a template for it stops working permanently at
+        // the end of the emission schedule.
+        //
+        // This was not a hypothetical. regtest halves every 150 blocks, so it
+        // reached the end of its schedule at height 4,950 during testing, and
+        // the pool refused to start with "nothing left to distribute". On
+        // mainnet the same line would have fired in about twenty-five years.
+        //
+        // Negative is a different matter: it means the daemon reported a
+        // treasury share larger than the whole coinbase, which is nonsense and
+        // must not be built on.
+        if (this.distributableValue < 0) {
+            throw new Error(
+                `the treasury output (${this.devFeeAmount}) exceeds the entire ` +
+                `coinbase (${this.coinbaseValue}). Refusing to build a template.`);
         }
     }
 

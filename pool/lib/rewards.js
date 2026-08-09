@@ -140,8 +140,18 @@ function computeBlockRewards(args) {
         devFeeAmount = null
     } = args;
 
-    if (!Number.isFinite(blockValue) || blockValue <= 0) {
-        throw new Error(`blockValue must be a positive number of base units, got ${blockValue}`);
+    // Zero is legal. Past the end of the emission schedule the subsidy is
+    // exactly zero, and a block mined from an empty mempool distributes
+    // nothing at all. Everyone is paid nothing, which is arithmetically fine
+    // and is the correct answer; PPLNS shares live in a rolling window and are
+    // not consumed by the round, so nobody loses credit for it either.
+    //
+    // Rejecting it means the pool stops accounting for blocks the moment the
+    // subsidy runs out -- at height 6,600,000 on mainnet, and at height 4,950
+    // on regtest, which is where this was found.
+    if (!Number.isFinite(blockValue) || blockValue < 0) {
+        throw new Error(
+            `blockValue must be a non-negative number of base units, got ${blockValue}`);
     }
 
     // Guard against the single most damaging misuse of this function: handing

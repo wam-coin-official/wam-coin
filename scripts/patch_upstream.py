@@ -613,6 +613,77 @@ def build_changes() -> list[Change]:
 
     # -----------------------------------------------------------------------
     changes.append(Change(
+        id="WAM-021",
+        title="The node's identity: user agent, version, copyright, source URL",
+        rationale=("A WAM node introduced itself to every peer on the network as "
+                   "'Satoshi', reported Bitcoin Core's version number, and told anyone "
+                   "who ran --version that the source lives at github.com/bitcoin/"
+                   "bitcoin. Each of these is a statement the software makes about "
+                   "itself, unprompted, to strangers."),
+        edits=[
+            Edit(
+                file="src/clientversion.cpp",
+                description="the P2P user agent: Satoshi -> WAM",
+                marker='CLIENT_NAME("WAM")',
+                anchor='const std::string CLIENT_NAME("Satoshi");',
+                replacement=(
+                    '// WAM_CLIENT_NAME\n'
+                    '//\n'
+                    '// This is the user agent every peer sees: "/Satoshi:28.1.0/" until now.\n'
+                    '// It reaches connection logs, network crawlers, peer-count sites and\n'
+                    '// the addr messages that propagate across the network -- the single\n'
+                    '// most widely repeated statement the software makes about itself.\n'
+                    'const std::string CLIENT_NAME("WAM");'),
+            ),
+            Edit(
+                file="src/clientversion.cpp",
+                description="point --version at this project's source, not Bitcoin's",
+                marker="github.com/wam-coin-official/wam-coin",
+                anchor='    const std::string URL_SOURCE_CODE = "<https://github.com/bitcoin/bitcoin>";',
+                replacement=(
+                    '    // Telling a user the source is at bitcoin/bitcoin is not modesty,\n'
+                    '    // it is wrong: the binary they are holding is not built from there.\n'
+                    '    // Bitcoin Core keeps its credit in the copyright line above, which\n'
+                    '    // CopyrightHolders() adds automatically for any fork.\n'
+                    '    const std::string URL_SOURCE_CODE = "<https://github.com/wam-coin-official/wam-coin>";'),
+            ),
+            Edit(
+                file="configure.ac",
+                description="version 28.1.0 -> 0.1.0",
+                marker="define(_CLIENT_VERSION_MAJOR, 0)",
+                anchor=("define(_CLIENT_VERSION_MAJOR, 28)\n"
+                        "define(_CLIENT_VERSION_MINOR, 1)\n"
+                        "define(_CLIENT_VERSION_BUILD, 0)"),
+                replacement=(
+                    "dnl WAM_CLIENT_VERSION -- this is WAM's first release, not Bitcoin\n"
+                    "dnl Core's twenty-eighth. Reporting 28.1.0 told every peer and every\n"
+                    "dnl user a version number that belongs to different software.\n"
+                    "dnl\n"
+                    "dnl Safe to lower: the wallet's TOO_NEW check compares its stored\n"
+                    "dnl minversion against FEATURE_LATEST, a separate compile-time\n"
+                    "dnl constant, not against CLIENT_VERSION. CLIENT_VERSION is recorded\n"
+                    "dnl in the wallet only as metadata.\n"
+                    "define(_CLIENT_VERSION_MAJOR, 0)\n"
+                    "define(_CLIENT_VERSION_MINOR, 1)\n"
+                    "define(_CLIENT_VERSION_BUILD, 0)"),
+            ),
+            Edit(
+                file="configure.ac",
+                description="copyright holders: WAM Coin, with Bitcoin Core kept",
+                marker="_COPYRIGHT_HOLDERS_SUBSTITUTION,[[WAM Coin]]",
+                anchor="define(_COPYRIGHT_HOLDERS_SUBSTITUTION,[[Bitcoin Core]])",
+                replacement=(
+                    "dnl CopyrightHolders() in clientversion.cpp appends \"The Bitcoin Core\n"
+                    "dnl developers\" automatically whenever this substitution does not\n"
+                    "dnl already contain it -- upstream wrote that branch for forks. So the\n"
+                    "dnl output credits both, which is the accurate answer: WAM wrote the\n"
+                    "dnl consensus changes, Bitcoin Core wrote almost everything else.\n"
+                    "define(_COPYRIGHT_HOLDERS_SUBSTITUTION,[[WAM Coin]])"),
+            ),
+        ]))
+
+    # -----------------------------------------------------------------------
+    changes.append(Change(
         id="WAM-020",
         title="Denominate the GUI in WAM rather than BTC",
         rationale=("Every amount in the wallet -- balances, the send form, the "
