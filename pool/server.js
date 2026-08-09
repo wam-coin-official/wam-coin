@@ -217,6 +217,32 @@ async function main() {
                  `holds the pool address`);
     }
 
+    // ---- 3c. the RandomX epoch, from the chain ----------------------------
+    // The epoch length differs per network -- 2048/64 on mainnet, 256/16 on
+    // testnet, 64/4 on regtest -- and the pool has no business assuming which
+    // one it is talking to. It used the mainnet constants everywhere, so on
+    // testnet its "next rotation" countdown was out by 1,840 blocks.
+    //
+    // The seed itself already comes from getblocktemplate and was never at
+    // risk. This is the countdown, the dashboard, and the drift warning.
+    {
+        const rx = await daemon.cmd('getrandomxinfo', []).catch(() => null);
+
+        if (rx && Number.isInteger(rx.epoch_blocks) && Number.isInteger(rx.epoch_lag)) {
+            if (rx.epoch_blocks !== config.randomxEpochBlocks ||
+                rx.epoch_lag !== config.randomxEpochLag) {
+                log.info(`randomx epoch   : ${rx.epoch_blocks} blocks, ${rx.epoch_lag} lag ` +
+                         `(from the chain, not lib/constants.js)`);
+            }
+            config.randomxEpochBlocks = rx.epoch_blocks;
+            config.randomxEpochLag = rx.epoch_lag;
+        } else {
+            log.warn('getrandomxinfo is unavailable; falling back to the epoch in ' +
+                     'lib/constants.js. The rotation countdown may be wrong on a ' +
+                     'network that does not use the mainnet epoch.');
+        }
+    }
+
     // ---- 4/5. job manager (self-tests RandomX, pulls the first template) --
     const jobManager = new JobManager(daemon, config, logger.scope('jobs'));
 

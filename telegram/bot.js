@@ -394,11 +394,25 @@ async function main() {
             return;
         }
 
-        for (const text of result.messages) {
-            if (args.dry) {
+        // A dry run must not touch the state file. It did once, and the effect
+        // was exactly the wrong shape: the operator tested the bot, saw the
+        // message it *would* send, and then the real run announced nothing --
+        // because the test had already marked it as announced.
+        //
+        // A rehearsal that changes the thing it is rehearsing is not a
+        // rehearsal.
+        if (args.dry) {
+            for (const text of result.messages) {
                 console.log('\n---8<---\n' + text + '\n--->8---\n');
-                continue;
             }
+            if (result.messages.length === 0) {
+                log(`height ${result.snapshot.height}, nothing to announce`);
+            }
+            log('dry run: the state file was not written');
+            return;
+        }
+
+        for (const text of result.messages) {
             try {
                 await tg.send(text);
                 log(`sent (${text.split('\n')[0].replace(/<[^>]+>/g, '')})`);

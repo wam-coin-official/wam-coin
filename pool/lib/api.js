@@ -258,8 +258,15 @@ class ApiServer {
             minerSubsidy: subsidy - treasurySubsidy,
             treasurySubsidy,
             treasuryActive,
-            treasuryLastHeight: DEVFEE_LAST_HEIGHT,
-            blocksUntilTreasuryEnds: Math.max(0, DEVFEE_LAST_HEIGHT - height),
+            // From the chain where it says so. It happens to agree with
+            // DEVFEE_LAST_HEIGHT today, and the whole lesson of this file is
+            // that "happens to agree" is not a property you can rely on.
+            treasuryLastHeight: fromNode('treasury') && supply.treasury.last_height !== undefined
+                ? supply.treasury.last_height : DEVFEE_LAST_HEIGHT,
+            blocksUntilTreasuryEnds: fromNode('treasury') &&
+                                     supply.treasury.blocks_remaining !== undefined
+                ? supply.treasury.blocks_remaining
+                : Math.max(0, DEVFEE_LAST_HEIGHT - height),
             halvingEpoch: halvings,
             nextHalvingHeight,
             blocksUntilHalving: nextHalvingHeight - height,
