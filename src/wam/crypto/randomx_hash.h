@@ -55,8 +55,16 @@ static constexpr size_t RANDOMX_INPUT_SIZE = 80;
  * Height whose block hash seeds the RandomX key for a block at `nHeight`.
  * Returns 0 for every height inside the bootstrap epoch, in which case the
  * caller must use GetRandomXBootstrapSeed() rather than a block hash.
+ *
+ * The epoch length and lag come from consensus, not from the compile-time
+ * constants. They differ per network -- 2048/64 on mainnet, 256/16 on testnet,
+ * 64/4 on regtest -- and this function read the mainnet constants regardless
+ * until 2026-08-09. The consequence was not a wrong chain: it was a chain that
+ * behaved one way while `getrandomxinfo` reported another, and a regtest that
+ * needed 2,112 blocks to exercise a rotation the parameters said would happen
+ * at 68.
  */
-int GetRandomXSeedHeight(int nHeight);
+int GetRandomXSeedHeight(int nHeight, const Consensus::Params& params);
 
 /**
  * The fixed epoch-0 key: SHA256(WAM_RANDOMX_BOOTSTRAP_KEY).

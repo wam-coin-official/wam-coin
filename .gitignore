@@ -7,6 +7,9 @@ founder*.txt
 wallet.dat
 pool/config.json
 explorer/config.json
+telegram/config.json
+telegram/config.*.json
+telegram/state.json
 **/.env
 
 # ---------------------------------------------------------------------------

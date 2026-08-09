@@ -1,0 +1,19 @@
+[Unit]
+Description=WAM Coin announcement bot (Telegram)
+After=network.target wamd.service
+Wants=wamd.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/grgo/wam
+ExecStart=/usr/bin/node /home/grgo/wam/telegram/bot.js --config /home/grgo/wam/telegram/config.json
+Restart=always
+RestartSec=30
+
+# The node being briefly unreachable is normal during a restart, and the bot
+# handles it by skipping a tick. Backing off further than this would mean an
+# outage goes unannounced for as long as the outage lasts.
+StartLimitIntervalSec=0
+
+[Install]
+WantedBy=default.target

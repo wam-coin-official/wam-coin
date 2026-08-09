@@ -201,13 +201,30 @@ std::shared_ptr<RandomXContext> GetContext(const uint256& seed) EXCLUSIVE_LOCKS_
 // Public API
 // ---------------------------------------------------------------------------
 
-int GetRandomXSeedHeight(int nHeight)
+int GetRandomXSeedHeight(int nHeight, const Consensus::Params& params)
 {
-    // Everything inside the first epoch (plus the lag) is seeded by genesis.
-    if (nHeight <= WAM_RANDOMX_EPOCH_LAG) return 0;
+    // From consensus, not from wam-params.h. chainparams.cpp deliberately sets
+    // a shorter epoch on the test networks -- 256/16 on testnet, 64/4 on
+    // regtest -- so that a key rotation, the most disruptive scheduled event
+    // this chain has, can be reached in minutes instead of days.
+    //
+    // Reading the mainnet constants here threw that away. Mainnet behaved
+    // correctly by coincidence, since its parameters are the constants; the
+    // test networks silently used 2048/64, and getrandomxinfo reported an
+    // epoch length the node did not use. Exercising a rotation on regtest cost
+    // 2,112 blocks instead of the 68 the parameters promised.
+    const int nEpoch = params.nRandomXEpochBlocks;
+    const int nLag   = params.nRandomXEpochLag;
 
-    const int nLagged = nHeight - WAM_RANDOMX_EPOCH_LAG;
-    return (nLagged / WAM_RANDOMX_EPOCH_BLOCKS) * WAM_RANDOMX_EPOCH_BLOCKS;
+    // A chain configured with nonsense must stop, not quietly pick another
+    // rule. These come from chainparams and can only be wrong at compile time.
+    assert(nEpoch > 0 && nLag >= 0 && nLag < nEpoch);
+
+    // Everything inside the first epoch (plus the lag) is seeded by genesis.
+    if (nHeight <= nLag) return 0;
+
+    const int nLagged = nHeight - nLag;
+    return (nLagged / nEpoch) * nEpoch;
 }
 
 uint256 GetRandomXBootstrapSeed()
@@ -226,7 +243,7 @@ uint256 GetRandomXSeedHash(const CBlockIndex* pindexPrev, const Consensus::Param
 {
     // The block being built sits one above pindexPrev.
     const int nHeight = (pindexPrev == nullptr) ? 0 : pindexPrev->nHeight + 1;
-    const int nSeedHeight = GetRandomXSeedHeight(nHeight);
+    const int nSeedHeight = GetRandomXSeedHeight(nHeight, params);
 
     // Bootstrap epoch: no block is buried deeply enough to be a safe seed yet.
     if (pindexPrev == nullptr || nSeedHeight == 0) {

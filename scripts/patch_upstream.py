@@ -463,7 +463,8 @@ def build_changes() -> list[Change]:
                 "        const uint256 seed = wam::GetRandomXSeedHash(pindexPrev, consensusParams);\n"
                 '        result.pushKV("randomx_seedhash", seed.GetHex());\n'
                 '        result.pushKV("randomx_seedheight",\n'
-                "                      wam::GetRandomXSeedHeight(pindexPrev->nHeight + 1));\n"
+                "                      wam::GetRandomXSeedHeight(pindexPrev->nHeight + 1,\n"
+                "                                                consensusParams));\n"
                 "    }"),
         ),
             Edit(

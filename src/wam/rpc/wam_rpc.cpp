@@ -293,14 +293,14 @@ static RPCHelpMan getrandomxinfo()
             const int height = tip ? tip->nHeight : 0;
             const int nextHeight = height + 1;
 
-            const int seedHeight = wam::GetRandomXSeedHeight(nextHeight);
+            const int seedHeight = wam::GetRandomXSeedHeight(nextHeight, consensus);
             const uint256 seed = wam::GetRandomXSeedHash(tip, consensus);
 
             // Walk forward to the first height whose seed differs.
             int rotation = 0;
             for (int h = nextHeight + 1; h <= nextHeight + consensus.nRandomXEpochBlocks
                                               + consensus.nRandomXEpochLag + 1; ++h) {
-                if (wam::GetRandomXSeedHeight(h) != seedHeight) {
+                if (wam::GetRandomXSeedHeight(h, consensus) != seedHeight) {
                     rotation = h - nextHeight;
                     break;
                 }
