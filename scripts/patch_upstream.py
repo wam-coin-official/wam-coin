@@ -606,7 +606,8 @@ def build_changes() -> list[Change]:
                         "[https://github.com/bitcoin/bitcoin/issues],[bitcoin],[https://bitcoincore.org/])"),
                 replacement=("AC_INIT([WAM Coin],m4_join([.], _CLIENT_VERSION_MAJOR, _CLIENT_VERSION_MINOR, "
                              "_CLIENT_VERSION_BUILD)m4_if(_CLIENT_VERSION_RC, [0], [], [rc]_CLIENT_VERSION_RC),"
-                             "[wam.coin.official@proton.me],[wam],[https://wamcoin.org/])"),
+                             "[https://github.com/wam-coin-official/wam-coin/issues],"
+                             "[wam],[https://wamcoin.org/])"),
             ),
         ]))
 

@@ -84,7 +84,7 @@ repository" and "a chain" is still ahead.
 ## Quick start
 
 ```bash
-git clone <this-repo> wam-blockchain-core && cd wam-blockchain-core
+git clone https://github.com/wam-coin-official/wam-coin.git && cd wam-coin
 ./install.sh --network regtest
 ```
 
