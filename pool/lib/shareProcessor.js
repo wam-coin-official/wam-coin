@@ -327,26 +327,73 @@ class ShareProcessor extends EventEmitter {
 
         if (due.length === 0) return;
 
+        // ---- cap the batch --------------------------------------------------
+        //
+        // One sendmany per payment round works until the pool succeeds. A
+        // transaction carrying thousands of outputs stops being relayed: a
+        // P2WPKH output is 31 bytes plus overhead, so somewhere around three
+        // thousand miners the transaction passes 100 kB and every node drops
+        // it as non-standard. The pool would then retry the same oversized
+        // payment every round, forever, and nobody would be paid at all.
+        //
+        // Whatever does not fit stays in `balances` untouched and goes out in
+        // the next round. Raised by an external reviewer, 2026-08-09.
+        const maxRecipients = this.config.maxPaymentRecipients || 200;
+        const maxPerBatch = Math.round(
+            (this.config.maxWamPerPaymentBatch || 100000) * COIN);
+
+        const batch = [];
+        let batchTotal = 0;
+
+        for (const [address, amount] of due) {
+            if (batch.length >= maxRecipients) break;
+
+            if (batchTotal + amount > maxPerBatch) {
+                // A single balance larger than the whole cap would otherwise
+                // block the queue for ever. Pay what the cap allows; the
+                // remainder is still owed and still recorded.
+                if (batch.length === 0) {
+                    this.log.warn(
+                        `${address} is owed ${(amount / COIN).toFixed(8)} WAM, more than the ` +
+                        `${(maxPerBatch / COIN).toFixed(8)} WAM batch cap. Paying the cap now, ` +
+                        'the rest next round.');
+                    batch.push([address, maxPerBatch]);
+                    batchTotal = maxPerBatch;
+                }
+                break;
+            }
+
+            batch.push([address, amount]);
+            batchTotal += amount;
+        }
+
+        if (batch.length < due.length) {
+            this.log.info(
+                `payment split: ${batch.length} of ${due.length} miners this round ` +
+                `(${(batchTotal / COIN).toFixed(8)} WAM). The rest keep their balances ` +
+                'and are paid next run.');
+        }
+
         // Never attempt a payment the wallet cannot cover: a partially failed
         // sendmany is far harder to reconcile than a postponed one.
         const walletBalance = Math.round((await this.daemon.getBalance()) * COIN);
-        const total = due.reduce((sum, [, a]) => sum + a, 0);
         const reserve = Math.round((this.config.txFeeReserveWam || 0.01) * COIN);
 
-        if (walletBalance < total + reserve) {
+        if (walletBalance < batchTotal + reserve) {
             this.log.warn(
                 `payment run postponed: wallet holds ${(walletBalance / COIN).toFixed(8)} WAM ` +
-                `but ${((total + reserve) / COIN).toFixed(8)} WAM is due. ` +
+                `but ${((batchTotal + reserve) / COIN).toFixed(8)} WAM is due in this batch. ` +
                 'This is normal if blocks are still maturing.');
             return;
         }
 
         const sendMany = {};
-        for (const [address, amount] of due) {
+        for (const [address, amount] of batch) {
             sendMany[address] = Number((amount / COIN).toFixed(8));
         }
 
-        this.log.info(`paying ${due.length} miners a total of ${(total / COIN).toFixed(8)} WAM`);
+        this.log.info(`paying ${batch.length} miners a total of ` +
+                      `${(batchTotal / COIN).toFixed(8)} WAM`);
 
         let txid;
         try {
@@ -358,20 +405,27 @@ class ShareProcessor extends EventEmitter {
 
         // Only now is it safe to clear balances. Doing it before the RPC
         // returned would lose every miner's money if the call failed.
+        // Deduct exactly what was sent, not what was owed. For a balance that
+        // hit the cap those differ, and the difference is the miner's money.
         const pipe = this.redis.pipeline();
-        for (const [address, amount] of due) {
+        for (const [address, amount] of batch) {
             pipe.hincrby(this.k('balances'), address, -amount);
             pipe.hincrby(this.k('paid'), address, amount);
         }
         pipe.lpush(this.k('payments'), JSON.stringify({
-            txid, time: Date.now(), total, recipients: due.length,
-            payouts: Object.fromEntries(due)
+            txid, time: Date.now(), total: batchTotal, recipients: batch.length,
+            payouts: Object.fromEntries(batch)
         }));
         pipe.ltrim(this.k('payments'), 0, 999);
         await pipe.exec();
 
         this.log.info(`payment sent, txid ${txid}`);
-        this.emit('payment', { txid, total, recipients: due.length });
+        this.emit('payment', {
+            txid,
+            total: batchTotal,
+            recipients: batch.length,
+            deferred: due.length - batch.length
+        });
     }
 
     // -----------------------------------------------------------------------

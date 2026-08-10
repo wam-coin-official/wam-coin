@@ -62,6 +62,26 @@ function loadConfig(file) {
     if (!fs.existsSync(file)) {
         throw new Error(`config not found: ${file}\nCopy config.example.json and edit it.`);
     }
+
+    // This file holds a bot token, which is a password for the announcement
+    // channel. setup.sh writes it 0600, but a config copied by hand, restored
+    // from a backup, or dropped in by an editor arrives with whatever umask
+    // was in force -- usually world-readable.
+    //
+    // Refusing to start is deliberate. A warning printed at boot is read once
+    // and then scrolls away for months. Raised by an external reviewer,
+    // 2026-08-09.
+    if (process.platform !== 'win32') {
+        const mode = fs.statSync(file).mode & 0o777;
+        if (mode & 0o077) {
+            throw new Error(
+                `${file} is mode ${mode.toString(8).padStart(3, '0')}: readable by ` +
+                'other users on this machine.\n' +
+                'It contains the bot token, which is the password to your channel.\n' +
+                `Fix it with:  chmod 600 ${file}`);
+        }
+    }
+
     const cfg = JSON.parse(fs.readFileSync(file, 'utf8'));
 
     for (const key of ['telegram', 'node']) {
@@ -173,10 +193,29 @@ async function snapshot(rpc) {
 // Messages
 // ---------------------------------------------------------------------------
 
+/**
+ * Which chain these numbers describe.
+ *
+ * Not decoration. A channel published before launch shows testnet figures, and
+ * a reader who assumes they are mainnet concludes the coin is already live at
+ * height 198. Every message says which chain it came from, and anything that
+ * is not mainnet says so loudly enough that it cannot be skimmed past.
+ */
+function networkLabel(chainName) {
+    switch (chainName) {
+    case 'main':    return null;                          // no banner needed
+    case 'test':    return '🧪 <b>TESTNET</b> — coins here have no value';
+    case 'regtest': return '🔧 <b>REGTEST</b> — a private test chain';
+    default:        return `⚠️ <b>${Telegram.escape(String(chainName).toUpperCase())}</b>`;
+    }
+}
+
 function heartbeat(s, cfg) {
     const sup = s.supply || {};
+    const banner = networkLabel(s.chainName);
     const lines = [
         `🟢 <b>WAM Network</b>`,
+        ...(banner ? [banner] : []),
         ``,
         `<b>Height</b>        ${num(s.height)}`,
         `<b>Hashrate</b>      ${hashrate(s.hashrate)}`
@@ -392,6 +431,18 @@ async function main() {
         } catch (err) {
             log(`could not read the node: ${err.message}`);
             return;
+        }
+
+        // Every event message carries the chain banner, not just the
+        // heartbeat. A halving announcement is the message most likely to be
+        // screenshotted and forwarded, and it is the one where "which chain?"
+        // matters most. The heartbeat adds its own, so it is skipped here.
+        {
+            const banner = networkLabel(result.snapshot.chainName);
+            if (banner) {
+                result.messages = result.messages.map(
+                    (m) => (m.includes(banner) ? m : `${banner}\n\n${m}`));
+            }
         }
 
         // A dry run must not touch the state file. It did once, and the effect

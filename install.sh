@@ -111,6 +111,36 @@ else
         log "installing redis-server"
         sudo apt-get install -y -qq redis-server
         sudo systemctl enable --now redis-server
+
+        # Redis holds every miner's balance and, out of the box, answers
+        # anybody who asks. Binding it to localhost is not a defence: every
+        # process and every user on this host is local, and the commonest
+        # Redis incident in the wild is an operator widening `bind` later and
+        # forgetting that nothing else was ever in the way.
+        #
+        # Generated here rather than left to the operator, because a step that
+        # can be skipped is a step that will be.
+        if ! sudo grep -qE '^requirepass +\S' /etc/redis/redis.conf 2>/dev/null; then
+            log "securing redis with a generated password"
+            WAM_REDIS_PASS="$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 40)"
+
+            # Delete before appending: appending alone leaves one dead line per
+            # run, and the file quietly grows every time this script is used.
+            sudo sed -i '/^requirepass /d' /etc/redis/redis.conf
+            printf 'requirepass %s\n' "$WAM_REDIS_PASS" | sudo tee -a /etc/redis/redis.conf >/dev/null
+            sudo chmod 640 /etc/redis/redis.conf
+            sudo systemctl restart redis-server
+            sleep 2
+
+            if redis-cli ping 2>&1 | grep -q NOAUTH; then
+                ok "redis now refuses unauthenticated clients"
+            else
+                die "redis still answers without a password; refusing to continue"
+            fi
+            export WAM_REDIS_PASS
+        else
+            log "redis already has a password; leaving it alone"
+        fi
     fi
     ok "dependencies installed"
 fi
@@ -309,21 +339,36 @@ node test/rewards.test.js || die "the pool tests failed"
 if [ ! -f config.json ]; then
     cp config.example.json config.json
 
-    # Wire in the RPC password we just generated so the pool works out of the box.
-    if [ -n "${RPC_PASS:-}" ]; then
-        python3 - "$PWD/config.json" "$RPC_PASS" "$NETWORK" <<'PY'
+    # Wire in the passwords we just generated so the pool works out of the box.
+    # The pool refuses to start without a Redis password, so leaving this to
+    # the operator would mean a fresh install that cannot run.
+    if [ -n "${RPC_PASS:-}" ] || [ -n "${WAM_REDIS_PASS:-}" ]; then
+        python3 - "$PWD/config.json" "${RPC_PASS:-}" "$NETWORK" "${WAM_REDIS_PASS:-}" <<'PY'
 import json, sys
-path, password, network = sys.argv[1], sys.argv[2], sys.argv[3]
+path, password, network, redis_pass = sys.argv[1:5]
 with open(path) as fh:
     cfg = json.load(fh)
 cfg["network"] = network
 port = {"mainnet": 9556, "testnet": 19556, "regtest": 29556}[network]
 for d in cfg["daemons"]:
-    d["password"] = password
+    if password:
+        d["password"] = password
     d["port"] = port
+if redis_pass:
+    cfg.setdefault("redis", {})["password"] = redis_pass
 with open(path, "w") as fh:
     json.dump(cfg, fh, indent=2)
 PY
+    fi
+
+    # A pre-existing Redis password cannot be read back out of redis.conf
+    # without root, so say plainly what is missing rather than letting the
+    # pool fail at startup with a message about a file the operator did not
+    # know it needed.
+    if ! python3 -c "import json,sys; sys.exit(0 if json.load(open('$PWD/config.json')).get('redis',{}).get('password') else 1)" 2>/dev/null; then
+        warn "pool/config.json has no redis.password. Redis already had one set,"
+        warn "so it could not be generated here. Copy it out of redis.conf:"
+        warn "    sudo grep '^requirepass' /etc/redis/redis.conf"
     fi
     chmod 600 config.json
     warn "created pool/config.json -- you MUST set 'poolAddress' before starting it"

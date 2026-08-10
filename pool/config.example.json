@@ -25,6 +25,13 @@
 
   "minimumPayoutWam": 1.0,
   "txFeeReserveWam": 0.01,
+
+  "_maxPaymentRecipients": "Outputs in one payment transaction. A sendmany carrying a few thousand outputs crosses the 100 kB standard-transaction limit and every node drops it, so the pool would retry the same oversized payment for ever and nobody would be paid at all. Whatever does not fit keeps its balance and goes out on the next run.",
+  "maxPaymentRecipients": 200,
+
+  "_maxWamPerPaymentBatch": "Ceiling on the value of one payment transaction. Not a technical limit -- transaction size depends on the number of outputs, not the amount -- but it bounds what a single mistake or a single compromised run can move.",
+  "maxWamPerPaymentBatch": 100000,
+
   "paymentIntervalSec": 600,
   "blockCheckIntervalSec": 60,
   "coinbaseMaturity": 100,

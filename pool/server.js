@@ -90,6 +90,31 @@ function loadConfig(file) {
         throw new Error('minimumPayoutWam must be positive');
     }
 
+    // Redis holds every miner's balance. Anything that can talk to it can
+    // rewrite what the pool owes and to whom, and Redis answers anyone who
+    // asks unless it has been told not to.
+    //
+    // Binding it to localhost is not the same as securing it: every process
+    // and every user on the host is still "local", and the single most common
+    // Redis incident in the wild is an operator widening `bind` for a second
+    // machine and forgetting that nothing else was ever in the way.
+    //
+    // Found by an external reviewer of this repository, 2026-08-09. The pool
+    // had been running against an unauthenticated Redis since the day it was
+    // written.
+    if (!cfg.redis || !cfg.redis.password) {
+        throw new Error(
+            'redis.password is missing.\n' +
+            'Redis stores miner balances, and without a password anything on ' +
+            'this machine can change them. Set `requirepass` in redis.conf and ' +
+            'put the same value in config.json under redis.password.\n' +
+            'install.sh generates one for you.');
+    }
+    if (/^(CHANGE_ME|password|redis|test|)$/i.test(String(cfg.redis.password).trim())) {
+        throw new Error('redis.password is a placeholder. Use a real one; ' +
+                        'install.sh will generate it.');
+    }
+
     for (const d of cfg.daemons) {
         for (const key of ['host', 'port', 'user', 'password']) {
             if (d[key] === undefined) {
@@ -148,11 +173,22 @@ async function main() {
     }
 
     // ---- 2. Redis ---------------------------------------------------------
+    const redisHost = (config.redis && config.redis.host) || '127.0.0.1';
+
+    // A password stops someone reading the balances; it does not stop them
+    // reading the password. Off-host Redis without TLS puts both on the wire.
+    if (redisHost !== '127.0.0.1' && redisHost !== 'localhost' && !config.redis.tls) {
+        log.warn(`redis is at ${redisHost}, off this machine, with no TLS. ` +
+                 'Miner balances and the Redis password both cross the network ' +
+                 'in the clear. Set redis.tls, or keep Redis on the pool host.');
+    }
+
     const redis = new Redis({
-        host: (config.redis && config.redis.host) || '127.0.0.1',
+        host: redisHost,
         port: (config.redis && config.redis.port) || 6379,
-        password: (config.redis && config.redis.password) || undefined,
+        password: config.redis.password,
         db: (config.redis && config.redis.db) || 0,
+        tls: config.redis.tls ? {} : undefined,
         maxRetriesPerRequest: 3,
         lazyConnect: true
     });
