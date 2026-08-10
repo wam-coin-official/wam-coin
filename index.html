@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WAM Coin — a CPU-mineable proof-of-work currency</title>
+<meta name="description" content="A CPU-mineable proof-of-work currency with a hard 22,000,000 cap. RandomX, two-minute blocks, a disclosed and time-locked founder reserve. Launching 15 September 2026.">
+
+<!-- No fonts, no analytics, no CDN, nothing loaded from anywhere else. A page
+     that asks a stranger to trust a currency should not also ask them to trust
+     four other servers. View source: this is the whole thing. -->
+
+<style>
+:root {
+  --bg:#faf9f7; --fg:#1a1a1a; --dim:#5c5a57; --line:#e2ded9;
+  --green:#0B7C5C; --gold:#D9A63C; --card:#fff; --warn-bg:#fff8e8; --warn-line:#e8cf9a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#0e1211; --fg:#eceae7; --dim:#9a9691; --line:#252b29;
+    --green:#14B89A; --gold:#D9A63C; --card:#141918; --warn-bg:#1f1a0e; --warn-line:#4a3c1c;
+  }
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; background:var(--bg); color:var(--fg);
+  font:16px/1.65 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap { max-width:760px; margin:0 auto; padding:0 22px 90px; }
+a { color:var(--green); text-decoration:none; border-bottom:1px solid transparent; }
+a:hover { border-bottom-color:currentColor; }
+code, .mono { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.9em; }
+
+header { padding:70px 0 34px; text-align:center; }
+.mark { width:76px; height:76px; margin:0 auto 20px; display:block; }
+h1 { margin:0 0 8px; font-size:2.05rem; letter-spacing:-.02em; }
+.tag { color:var(--dim); font-size:1.05rem; margin:0; }
+.chips { margin-top:20px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+.chip {
+  font-size:.8rem; padding:4px 11px; border:1px solid var(--line);
+  border-radius:99px; color:var(--dim);
+}
+.chip.live { border-color:var(--green); color:var(--green); }
+
+.warn {
+  background:var(--warn-bg); border:1px solid var(--warn-line);
+  border-radius:10px; padding:18px 20px; margin:34px 0;
+}
+.warn h2 { margin:0 0 8px; font-size:1rem; letter-spacing:.02em; text-transform:uppercase; }
+.warn p { margin:0; font-size:.96rem; }
+
+h2.sec { font-size:1.28rem; margin:46px 0 14px; letter-spacing:-.01em; }
+p { margin:0 0 14px; }
+.dim { color:var(--dim); }
+
+table { width:100%; border-collapse:collapse; margin:18px 0; font-size:.95rem; }
+th, td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); }
+th { color:var(--dim); font-weight:600; font-size:.82rem; text-transform:uppercase; letter-spacing:.04em; }
+td.num { text-align:right; font-family:ui-monospace,Menlo,Consolas,monospace; white-space:nowrap; }
+
+pre {
+  background:var(--card); border:1px solid var(--line); border-radius:9px;
+  padding:14px 16px; overflow-x:auto; font-size:.86rem; line-height:1.55; margin:14px 0;
+}
+
+.links { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin:22px 0; }
+.card {
+  display:block; padding:15px 17px; border:1px solid var(--line);
+  border-radius:10px; background:var(--card); border-bottom:1px solid var(--line);
+}
+.card:hover { border-color:var(--green); }
+.card b { display:block; font-size:.98rem; margin-bottom:3px; }
+.card span { color:var(--dim); font-size:.85rem; }
+
+footer { margin-top:60px; padding-top:22px; border-top:1px solid var(--line); color:var(--dim); font-size:.86rem; }
+.ar { direction:rtl; text-align:right; font-size:.97rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <svg class="mark" viewBox="0 0 100 100" aria-label="WAM Coin">
+    <circle cx="50" cy="50" r="46" fill="none" stroke="var(--gold)" stroke-width="5"/>
+    <circle cx="50" cy="50" r="38" fill="var(--gold)" opacity=".14"/>
+    <text x="50" y="66" text-anchor="middle" font-size="46" font-weight="700"
+          font-family="ui-sans-serif,system-ui,sans-serif" fill="var(--gold)">W</text>
+  </svg>
+  <h1>WAM Coin</h1>
+  <p class="tag">A CPU-mineable proof-of-work currency with a hard 22,000,000 cap.</p>
+  <div class="chips">
+    <span class="chip">RandomX</span>
+    <span class="chip">2-minute blocks</span>
+    <span class="chip">DarkGravityWave v3</span>
+    <span class="chip live" id="status">Testnet running · mainnet 15 Sep 2026</span>
+  </div>
+</header>
+
+<div class="warn">
+  <h2>Before anything else</h2>
+  <p><strong>This coin may be worth nothing.</strong> The overwhelming majority of new
+  cryptocurrencies fail, and there is no reason to assume this one is different.
+  <strong>Nobody will buy it back from you</strong> — the founder does not sell WAM and does
+  not buy it. There is no price on this page and there never will be. Treat anything you
+  acquire as money you can afford to lose entirely.</p>
+</div>
+
+<h2 class="sec">What it is</h2>
+<p>A fork of Bitcoin Core v28.1 with four deliberate departures: a hard ceiling of
+22,000,000 coins, a two-minute block target, <strong>RandomX</strong> proof of work so that
+ordinary CPUs stay competitive against purpose-built hardware, and difficulty retargeting on
+every block so that a rented hash-rate spike cannot freeze the chain.</p>
+
+<p>Roughly 250,000 lines of peer-to-peer networking, script interpretation and wallet code are
+inherited from a codebase that has been adversarially reviewed for fifteen years. Retyping
+that would not have made WAM more original — it would have made it less safe. About 3,000
+lines are genuinely ours, and every one of them is
+<a href="https://github.com/wam-coin-official/wam-coin">public</a>.</p>
+
+<h2 class="sec">The numbers</h2>
+<table>
+  <tr><th>Maximum supply</th><td class="num">22,000,000 WAM</td></tr>
+  <tr><th>Public mining</th><td class="num">19,250,000 · 87.50%</td></tr>
+  <tr><th>Founder reserve</th><td class="num">2,000,000 · 9.09%</td></tr>
+  <tr><th>Operating treasury</th><td class="num">750,000 · 3.41%</td></tr>
+  <tr><th>Block target</th><td class="num">120 seconds</td></tr>
+  <tr><th>Initial reward</th><td class="num">50 WAM</td></tr>
+  <tr><th>Halving</th><td class="num">every 200,000 blocks</td></tr>
+  <tr><th>Proof of work</th><td class="num">RandomX</td></tr>
+</table>
+
+<p class="dim">The founder reserve is locked in the genesis block itself by
+<code>OP_CHECKLOCKTIMEVERIFY</code>, releasing 20% a year to September 2030. The 5% treasury
+fee is a consensus rule that stops permanently at block 400,000, after which miners receive
+the entire subsidy. Neither is a promise; both are enforced by every node.</p>
+
+<h2 class="sec">Do not take our word for it</h2>
+<p>Every claim above has a command that proves or disproves it. These read the shipped
+binary, not this page:</p>
+
+<pre># the 22,000,000 cap, replayed with exact integer arithmetic
+python3 scripts/verify_supply.py
+
+# every difference between WAM and Bitcoin, with the reason for each
+python3 scripts/patch_upstream.py --list
+
+# what the running chain says about its own money
+wam-cli getsupplyinfo</pre>
+
+<h2 class="sec">Links</h2>
+<div class="links">
+  <a class="card" href="https://github.com/wam-coin-official/wam-coin">
+    <b>Source code</b><span>github.com/wam-coin-official</span></a>
+  <a class="card" href="https://github.com/wam-coin-official/wam-coin/blob/main/WHITEPAPER.md">
+    <b>Whitepaper</b><span>the design, and its limits</span></a>
+  <a class="card" href="https://x.com/WAMCoinCore">
+    <b>X</b><span>@WAMCoinCore</span></a>
+  <a class="card" href="https://github.com/wam-coin-official/wam-coin/blob/main/SECURITY.md">
+    <b>Security</b><span>report a vulnerability</span></a>
+</div>
+
+<h2 class="sec">Mining</h2>
+<p>WAM is mined by ordinary computers. There is no pre-sale, no allocation to buy into, and
+no way to acquire it at launch except by mining it or by trading with someone who did.</p>
+<p class="dim">Mainnet opens 15 September 2026. Until then the testnet is running, and its
+coins are worth nothing by design.</p>
+
+<hr style="border:none;border-top:1px solid var(--line);margin:44px 0 24px">
+
+<div class="ar">
+  <h2 class="sec">بالعربية</h2>
+  <p>عملة إثبات عمل تُعدَّن بالمعالجات العادية، بسقف ثابت قدره 22,000,000 وحدة. مبنية على
+  نواة Bitcoin Core مع أربعة اختلافات مقصودة، وكل سطر منها منشور للفحص.</p>
+  <p><strong>قد لا تساوي هذه العملة شيئاً.</strong> أغلب العملات الرقمية الجديدة تفشل، ولا أحد
+  سيشتريها منك — المؤسس لا يبيع ولا يشتري. لا يوجد سعر في هذه الصفحة ولن يوجد.</p>
+  <p>حصة المؤسس 12.50% معلنة ومقفلة بالكود حتى 2030، ورسوم التشغيل تنتهي نهائياً عند البلوك
+  400,000. لا وعود — قواعد تفرضها كل عقدة.</p>
+  <p class="dim">الإطلاق: 15 سبتمبر 2026.</p>
+</div>
+
+<footer>
+  <p>MIT licensed, as Bitcoin Core. No third-party security audit has been performed.</p>
+  <p>This page states no price, forecasts no value, and solicits nothing.</p>
+</footer>
+
+</div>
+
+<script>
+// The only script on the page: turn the launch date into something a reader
+// can act on. It reads the clock and nothing else -- no network, no storage.
+(function () {
+  var launch = Date.UTC(2026, 8, 15, 0, 0, 0);   // 15 September 2026, 00:00 UTC
+  var el = document.getElementById('status');
+  if (!el) return;
+
+  var days = Math.ceil((launch - Date.now()) / 86400000);
+  if (days > 1)       el.textContent = 'Testnet running · mainnet in ' + days + ' days';
+  else if (days === 1) el.textContent = 'Testnet running · mainnet tomorrow';
+  else if (days === 0) el.textContent = 'Mainnet launches today';
+  else                 el.textContent = 'Mainnet live since 15 September 2026';
+})();
+</script>
+</body>
+</html>
