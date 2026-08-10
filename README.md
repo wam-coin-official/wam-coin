@@ -4,6 +4,13 @@
 
 RandomX proof of work · DarkGravityWave v3 · 2-minute blocks · consensus-enforced 5% treasury
 
+[wamcoin.org](https://wamcoin.org) · [@WAMCoinCore](https://x.com/WAMCoinCore) ·
+[announcements](https://t.me/wamcoinupdates) · [security](SECURITY.md)
+
+> Those four are the only official channels. Each one links back to the others, and to this
+> repository; a page that claims to be WAM but is not reachable from here is not WAM. There
+> is no presale, no allocation to buy, and nobody who will ever ask you for funds.
+
 ---
 
 ## What this repository is
