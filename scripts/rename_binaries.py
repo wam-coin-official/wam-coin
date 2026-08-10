@@ -60,6 +60,28 @@ EXACT = [
      'static const char* BITCOIN_PID_FILENAME = "bitcoind.pid";',
      'static const char* BITCOIN_PID_FILENAME = "wamd.pid";'),
 
+    # The functional framework writes the node's config file by name, and the
+    # node now looks for wam.conf. Miss one of these and the node still starts
+    # -- it simply never reads the file, so it never sees `regtest=1` and comes
+    # up on MAINNET, inside a test, reaching for seed1.wamcoin.org. The failure
+    # surfaces sixty seconds later as "unable to connect to bitcoind", which
+    # points at everything except the cause.
+    ('test/functional/test_framework/test_node.py',
+     'self.bitcoinconf = self.datadir_path / "bitcoin.conf"',
+     'self.bitcoinconf = self.datadir_path / "wam.conf"'),
+    ('test/functional/test_framework/util.py',
+     'write_config(os.path.join(datadir, "bitcoin.conf"), n=n, chain=chain, disable_autoconnect=disable_autoconnect)',
+     'write_config(os.path.join(datadir, "wam.conf"), n=n, chain=chain, disable_autoconnect=disable_autoconnect)'),
+    ('test/functional/test_framework/util.py',
+     'with open(os.path.join(datadir, "bitcoin.conf"), \'a\', encoding=\'utf8\') as f:',
+     'with open(os.path.join(datadir, "wam.conf"), \'a\', encoding=\'utf8\') as f:'),
+    ('test/functional/test_framework/util.py',
+     'if os.path.isfile(os.path.join(datadir, "bitcoin.conf")):',
+     'if os.path.isfile(os.path.join(datadir, "wam.conf")):'),
+    ('test/functional/test_framework/util.py',
+     'with open(os.path.join(datadir, "bitcoin.conf"), \'r\', encoding=\'utf8\') as f:',
+     'with open(os.path.join(datadir, "wam.conf"), \'r\', encoding=\'utf8\') as f:'),
+
     # The functional framework's binary table. The KEY is the filename on disk;
     # the first value is the attribute the tests read (self.options.bitcoind),
     # which must not move or every test that starts a node stops compiling.
@@ -134,6 +156,15 @@ def check(tree, report):
         path = tree / rel
         if path.is_file() and old in path.read_text(encoding='utf-8'):
             problems.append(f'{rel} still contains {old[:48]}')
+
+    # The one that fails silently: a node that cannot find its config file
+    # starts anyway, on the wrong chain.
+    for rel in ('test/functional/test_framework/util.py',
+                'test/functional/test_framework/test_node.py'):
+        path = tree / rel
+        if path.is_file() and '"bitcoin.conf"' in path.read_text(encoding='utf-8'):
+            problems.append(f'{rel} still writes bitcoin.conf; the node reads wam.conf '
+                            'and would start on mainnet inside a test')
 
     if problems:
         report(f'{len(problems)} things still carry Bitcoin\'s name:')
