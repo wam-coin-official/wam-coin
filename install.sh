@@ -287,10 +287,22 @@ if [ -f "$CONF" ]; then
 else
     RPC_PASS="$(head -c 32 /dev/urandom | base64 | tr -d '/+=' | head -c 40)"
 
+    # Bitcoin Core refuses to start if a network-specific option appears at
+    # the top level of the config while a non-default chain is selected:
+    #
+    #   Error: Config setting for -rpcbind only applied on test network
+    #          when in [test] section.
+    #
+    # It is a real protection -- a top-level `rpcbind` would otherwise silently
+    # govern mainnet, testnet and regtest at once, and the day you add a second
+    # chain to a machine is the day that matters. But it means the section
+    # header is mandatory, not decorative, and the daemon exits rather than
+    # warns. Under systemd with Restart=on-failure that is an endless restart
+    # loop, which is how this was found.
     case "$NETWORK" in
-        mainnet) NET_LINE="" ;;
-        testnet) NET_LINE="testnet=1" ;;
-        regtest) NET_LINE="regtest=1" ;;
+        mainnet) NET_LINE="";           NET_SECTION="main"    ;;
+        testnet) NET_LINE="testnet=1";  NET_SECTION="test"    ;;
+        regtest) NET_LINE="regtest=1";  NET_SECTION="regtest" ;;
     esac
 
     cat > "$CONF" <<EOF
@@ -305,7 +317,6 @@ txindex=1
 
 rpcuser=wamrpc
 rpcpassword=$RPC_PASS
-rpcbind=127.0.0.1
 rpcallowip=127.0.0.1
 
 # The pool needs getblocktemplate, which requires an unlocked, indexed node.
@@ -319,6 +330,11 @@ maxconnections=125
 randomxmining=0
 
 dbcache=450
+
+# Everything below binds to one chain only. Core enforces the separation; the
+# section header is what tells it which chain these lines belong to.
+[$NET_SECTION]
+rpcbind=127.0.0.1
 EOF
     chmod 600 "$CONF"
     ok "wrote $CONF with a random RPC password (mode 0600)"
@@ -497,24 +513,64 @@ fi   # DO_NODE (dashboard)
 step "6/6  Starting services"
 # ===========================================================================
 
+# Did a service actually come up, and stay up?
+#
+# `systemctl is-active` after `sleep 5` answers neither question. A unit with
+# Restart=on-failure that crashes on startup reports "activating" while it
+# waits out RestartSec, which is neither active nor failed -- so the check
+# passed, the installer printed "installation complete", exited 0, and left a
+# daemon restarting every ten seconds forever. That is exactly what happened
+# here: a config error the daemon refuses to start with, reported as success.
+#
+# So: wait for active(running) specifically, then watch NRestarts hold still.
+# A crash loop satisfies any instantaneous check; only elapsed time exposes it.
+FAILED_UNITS=""
+
+wait_healthy() {
+    local unit="$1" wait_s="${2:-40}" i state sub restarts_a restarts_b
+
+    for i in $(seq 1 "$wait_s"); do
+        state="$(systemctl show -p ActiveState --value "$unit" 2>/dev/null)"
+        sub="$(systemctl show -p SubState --value "$unit" 2>/dev/null)"
+        [ "$state" = "active" ] && [ "$sub" = "running" ] && break
+        [ "$state" = "failed" ] && break
+        sleep 1
+    done
+
+    if [ "$state" != "active" ] || [ "$sub" != "running" ]; then
+        warn "$unit is ${state:-unknown}/${sub:-unknown}, not running:"
+        journalctl -u "$unit" -n 8 --no-pager -o cat 2>/dev/null | sed 's/^/       /' >&2
+        FAILED_UNITS="$FAILED_UNITS $unit"
+        return 1
+    fi
+
+    # Up now, but a loop restarts about every RestartSec. Count restarts across
+    # a window wider than that, and a unit that is quietly cycling is caught.
+    restarts_a="$(systemctl show -p NRestarts --value "$unit" 2>/dev/null || echo 0)"
+    sleep 12
+    restarts_b="$(systemctl show -p NRestarts --value "$unit" 2>/dev/null || echo 0)"
+
+    if [ "${restarts_a:-0}" != "${restarts_b:-0}" ]; then
+        warn "$unit is restarting in a loop (${restarts_a} -> ${restarts_b}):"
+        journalctl -u "$unit" -n 8 --no-pager -o cat 2>/dev/null | sed 's/^/       /' >&2
+        FAILED_UNITS="$FAILED_UNITS $unit"
+        return 1
+    fi
+
+    ok "$unit is running, and stayed up"
+    return 0
+}
+
 if [ "$DO_START" = "0" ]; then
     warn "--build-only: nothing was started"
 else
     if [ "$DO_NODE" = "1" ]; then
         sudo systemctl enable --now wamd
-        sleep 5
-        if systemctl is-active --quiet wamd; then
-            ok "wamd is running"
-        else
-            warn "wamd did not start; check: journalctl -u wamd -n 50"
-        fi
+        wait_healthy wamd 60 || true
 
         if [ -f /etc/systemd/system/wam-dashboard.service ]; then
             sudo systemctl enable --now wam-dashboard
-            sleep 2
-            systemctl is-active --quiet wam-dashboard \
-                && ok "dashboard is running on http://127.0.0.1:8081/" \
-                || warn "dashboard did not start; check: journalctl -u wam-dashboard -n 50"
+            wait_healthy wam-dashboard 30 || true
         fi
     fi
 
@@ -523,15 +579,28 @@ else
             warn "pool NOT started: poolAddress in pool/config.json is still a placeholder"
         else
             sudo systemctl enable --now wam-pool
-            sleep 3
-            systemctl is-active --quiet wam-pool \
-                && ok "the pool is running" \
-                || warn "the pool did not start; check: journalctl -u wam-pool -n 50"
+            wait_healthy wam-pool 30 || true
         fi
     fi
 fi
 
 # ===========================================================================
+# "Installation complete" in green, followed by exit 0, while a daemon
+# restarts every ten seconds. Anything reading the exit code -- a CI job, a
+# provisioning tool, the person who ran this and went to make tea -- was told
+# the deployment succeeded.
+if [ -n "$FAILED_UNITS" ]; then
+    printf '\n%s%s%s\n' "$YLW" "$(printf '=%.0s' {1..74})" "$OFF"
+    printf '%s WAM Coin installation finished, but these are not running:%s\n' "$YLW" "$OFF"
+    for u in $FAILED_UNITS; do
+        printf '%s     %s%s   -- journalctl -u %s -n 50\n' "$YLW" "$u" "$OFF" "$u"
+    done
+    printf '%s%s%s\n\n' "$YLW" "$(printf '=%.0s' {1..74})" "$OFF"
+    printf ' The build succeeded and the binaries are installed at %s/bin.\n' "$PREFIX"
+    printf ' Nothing above needs rebuilding -- fix the service and start it.\n\n'
+    exit 1
+fi
+
 printf '\n%s%s%s\n' "$GRN" "$(printf '=%.0s' {1..74})" "$OFF"
 printf '%s WAM Coin installation complete%s\n' "$GRN" "$OFF"
 printf '%s%s%s\n\n' "$GRN" "$(printf '=%.0s' {1..74})" "$OFF"
