@@ -252,7 +252,21 @@ EOF
      left in place looking as though it had."
         fi
 
-        systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || true
+        # Ubuntu 24.04 enables ssh.socket, which opens port 22 and hands the
+        # listening descriptor to ssh.service. Reload still reaches sshd, but
+        # `restart` and `stop` no longer mean what they did: stopping the
+        # service leaves the socket listening and the next connection starts it
+        # again, and stopping the *socket* is what actually closes the port.
+        # Reload only, and never touch ssh.socket -- a script that stops the
+        # thing holding the port is a script that ends the session running it.
+        if systemctl is-active --quiet ssh.socket 2>/dev/null; then
+            ok "ssh.socket is active (Ubuntu 24.04 style); reloading the service only"
+        fi
+        systemctl reload ssh.service 2>/dev/null \
+            || systemctl reload ssh 2>/dev/null \
+            || systemctl reload sshd 2>/dev/null \
+            || warn "could not reload sshd; the config is correct on disk but
+     may not be live until the next restart"
 
         # Re-read after the reload: what sshd parses and what the running
         # daemon serves are two different questions, and the second is the one

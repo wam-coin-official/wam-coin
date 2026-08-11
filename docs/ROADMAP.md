@@ -18,7 +18,7 @@ compiler.**
 
 | # | Task | Gate |
 |---|---|---|
-| 0.1 | Provision Ubuntu 22.04, 8 GB RAM, 40 GB disk | `ssh` works |
+| 0.1 | Provision Ubuntu 22.04 or 24.04, 8 GB RAM, 40 GB disk | `ssh` works |
 | 0.2 | `./install.sh --network regtest` | binaries exist |
 | 0.3 | **Fix the patch anchors** (expect 2–5 misses of 12) | patcher runs clean |
 | 0.4 | Link librandomx, resolve compile errors in `src/wam/` | `make` succeeds |

@@ -48,7 +48,7 @@ genesis/
 explorer/                network dashboard — zero dependencies, `node server.js`
 pool/                    stratum mining pool (Node.js) + live pool dashboard
 brand/                   logo system (SVG), palette, usage rules
-install.sh               one-command deployment on Ubuntu 22.04 LTS
+install.sh               one-command deployment on Ubuntu 22.04 / 24.04 LTS
 WHITEPAPER.md            the full public specification
 ```
 
@@ -284,7 +284,7 @@ submitted to it.
 
 ## Requirements
 
-**Node:** Ubuntu 22.04 LTS, 4 GB RAM (8 GB to mine), 20 GB disk, a 64-bit CPU with AES-NI.
+**Node:** Ubuntu 22.04 or 24.04 LTS, 4 GB RAM (8 GB to mine), 20 GB disk, a 64-bit CPU with AES-NI.
 **Pool:** Node.js ≥ 18, Redis, and a fully synced local `wamd` with `txindex=1`.
 
 `install.sh` handles all of it on Ubuntu. For other distributions see `docs/BUILD.md` and

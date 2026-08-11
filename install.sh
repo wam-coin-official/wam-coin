@@ -3,7 +3,7 @@
 # Distributed under the MIT software license, see COPYING.
 #
 # ===========================================================================
-#  install.sh -- one-command WAM Coin deployment for Ubuntu 22.04 LTS
+#  install.sh -- one-command WAM Coin deployment for Ubuntu 22.04 / 24.04 LTS
 # ===========================================================================
 #
 #      ./install.sh                  full install: node + pool
@@ -88,7 +88,7 @@ if [ "$SKIP_DEPS" = "1" ]; then
     warn "skipping apt (--skip-deps)"
 else
     if ! command -v apt-get >/dev/null; then
-        die "this installer targets Ubuntu 22.04. On another distribution, install the
+        die "this installer targets Ubuntu 22.04 or 24.04. On another distribution, install the
      equivalents of the package list in docs/BUILD.md and re-run with --skip-deps."
     fi
 

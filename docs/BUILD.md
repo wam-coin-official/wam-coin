@@ -1,13 +1,13 @@
 # Building WAM Coin from source
 
-`./install.sh` does everything below automatically on Ubuntu 22.04. This document is for
+`./install.sh` does everything below automatically on Ubuntu 22.04 and 24.04. This document is for
 other distributions, for CI, and for anyone who wants to know what the installer is doing.
 
 ---
 
 ## 1. Dependencies
 
-### Ubuntu 22.04 / Debian 12
+### Ubuntu 22.04 / 24.04 / Debian 12
 
 ```bash
 sudo apt-get install -y \
