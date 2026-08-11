@@ -126,7 +126,14 @@ while read -r addr port; do
                    EXPOSED=1 ;;
             esac ;;
     esac
-done < <(ss -ltn 2>/dev/null | awk 'NR>1 {n=split($4,a,":"); print a[1], a[n]}')
+done < <(ss -ltn 2>/dev/null | awk '
+    NR>1 {
+        addr = $4; port = $4
+        sub(/.*:/,    "", port)   # the port is whatever follows the last colon
+        sub(/:[^:]*$/, "", addr)  # and the address is everything before it
+        gsub(/^\[|\]$/, "", addr) # [::1]:6379 -- unwrap, or "[" reads as the address
+        print (addr == "" ? "*" : addr), port
+    }')
 
 [ "$EXPOSED" = "0" ] && ok "RPC and Redis are bound to localhost only"
 
@@ -148,13 +155,37 @@ log "ssh"
 if [ "$SKIP_SSH" = "1" ]; then
     warn "skipped by request; password logins are still accepted"
 else
-    KEYFILE="$(getent passwd "$SERVICE_USER" | cut -d: -f6)/.ssh/authorized_keys"
-    KEYCOUNT=0
-    [ -f "$KEYFILE" ] && KEYCOUNT="$(grep -cE '^(ssh|ecdsa)-' "$KEYFILE" 2>/dev/null || echo 0)"
+    # `grep -c` prints the count AND exits 1 when the count is zero, so the
+    # obvious `grep -c ... || echo 0` appends a second zero and yields the
+    # string "0\n0". `[ "0\n0" -eq 0 ]` is not false -- it is an *error*, which
+    # an `if` treats as false, which sends control to the branch that turns
+    # password logins off. On a box whose authorized_keys exists but is empty
+    # -- the default on most VPS images -- that is a permanent lockout, caused
+    # by the very check written to prevent one.
+    #
+    # So: take grep's printed count and discard its status. `tr -dc` strips
+    # anything that is not a digit, so no stray output can reach the arithmetic
+    # test. The trailing `|| true` is load-bearing -- this script runs under
+    # `set -euo pipefail`, where grep's exit 1 would otherwise fail the whole
+    # pipeline and abort mid-hardening, firewall up and SSH half-configured.
+    count_keys() {
+        [ -f "$1" ] || { printf '0'; return; }
+        grep -cE '(^|[[:space:]])(ssh-(rsa|ed25519|dss)|ecdsa-sha2-nistp[0-9]+|sk-(ssh|ecdsa))' \
+            "$1" 2>/dev/null | head -1 | tr -dc '0-9' || true
+    }
 
-    ROOTKEYS=0
-    [ -f /root/.ssh/authorized_keys ] && \
-        ROOTKEYS="$(grep -cE '^(ssh|ecdsa)-' /root/.ssh/authorized_keys 2>/dev/null || echo 0)"
+    KEYFILE="$(getent passwd "$SERVICE_USER" | cut -d: -f6)/.ssh/authorized_keys"
+    KEYCOUNT="$(count_keys "$KEYFILE")"
+    ROOTKEYS="$(count_keys /root/.ssh/authorized_keys)"
+    KEYCOUNT="${KEYCOUNT:-0}"
+    ROOTKEYS="${ROOTKEYS:-0}"
+
+    # If either is still not a plain number, something is wrong that this
+    # script does not understand, and the safe reading of "I do not understand"
+    # is "do not touch SSH".
+    case "$KEYCOUNT$ROOTKEYS" in
+        *[!0-9]*|'') die "could not count SSH keys; leaving password logins ON" ;;
+    esac
 
     if [ "$KEYCOUNT" -eq 0 ] && [ "$ROOTKEYS" -eq 0 ]; then
         warn "no SSH key found for ${SERVICE_USER} or root."
@@ -168,7 +199,26 @@ else
         ok "found ${KEYCOUNT} key(s) for ${SERVICE_USER}, ${ROOTKEYS} for root"
 
         cp -n /etc/ssh/sshd_config /etc/ssh/sshd_config.wam-orig 2>/dev/null || true
-        cat > /etc/ssh/sshd_config.d/60-wam.conf <<'EOF'
+
+        # A drop-in only applies if sshd_config includes the directory. Ubuntu
+        # has done so since 20.04, but a hand-edited or older config may not,
+        # and then this file is inert: the script would report that passwords
+        # are off while they are still accepted. A silent false claim of
+        # protection is worse than no protection, because it stops anyone
+        # looking again.
+        DROPIN_DIR=/etc/ssh/sshd_config.d
+        if ! grep -qE '^[[:space:]]*Include[[:space:]]+/etc/ssh/sshd_config\.d/' /etc/ssh/sshd_config; then
+            warn "sshd_config does not Include ${DROPIN_DIR}."
+            warn "Writing the hardening directly into sshd_config instead."
+            DROPIN=/etc/ssh/sshd_config
+            printf '\n# --- WAM harden_server.sh ---\n' >> "$DROPIN"
+        else
+            mkdir -p "$DROPIN_DIR"
+            DROPIN="${DROPIN_DIR}/60-wam.conf"
+            : > "$DROPIN"
+        fi
+
+        cat >> "$DROPIN" <<'EOF'
 # Installed by WAM harden_server.sh.
 # Password logins are how servers are taken: an attacker needs only time.
 PasswordAuthentication no
@@ -176,15 +226,47 @@ KbdInteractiveAuthentication no
 PermitRootLogin prohibit-password
 MaxAuthTries 3
 EOF
-        if sshd -t 2>/dev/null; then
-            systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || true
-            ok "password logins disabled, keys only"
-            warn "Do not close this session. Open a SECOND terminal and confirm"
-            warn "you can still log in. If you cannot, this session can undo it:"
-            warn "    sudo rm /etc/ssh/sshd_config.d/60-wam.conf && sudo systemctl reload ssh"
-        else
-            rm -f /etc/ssh/sshd_config.d/60-wam.conf
+        undo_ssh() {
+            if [ "$DROPIN" = /etc/ssh/sshd_config ]; then
+                [ -f /etc/ssh/sshd_config.wam-orig ] && \
+                    cp /etc/ssh/sshd_config.wam-orig /etc/ssh/sshd_config
+            else
+                rm -f "$DROPIN"
+            fi
+        }
+
+        if ! sshd -t 2>/dev/null; then
+            undo_ssh
             die "the new sshd config did not validate; nothing was changed"
+        fi
+
+        # `sshd -t` checks syntax. It does not say whether the setting is in
+        # effect -- a file in an un-included directory parses perfectly and
+        # changes nothing. `sshd -T` prints the configuration sshd will
+        # actually run with, which is the only answer that means anything.
+        EFFECTIVE="$(sshd -T 2>/dev/null | awk '/^passwordauthentication /{print $2; exit}')"
+        if [ "$EFFECTIVE" != "no" ]; then
+            undo_ssh
+            die "sshd still reports passwordauthentication=${EFFECTIVE:-unknown}.
+     The hardening did not take effect, so it has been removed rather than
+     left in place looking as though it had."
+        fi
+
+        systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || true
+
+        # Re-read after the reload: what sshd parses and what the running
+        # daemon serves are two different questions, and the second is the one
+        # that locks people out.
+        RUNNING="$(sshd -T 2>/dev/null | awk '/^passwordauthentication /{print $2; exit}')"
+        [ "$RUNNING" = "no" ] || warn "sshd reloaded but now reports ${RUNNING:-unknown}"
+
+        ok "password logins disabled, keys only -- confirmed by sshd -T, not assumed"
+        warn "Do not close this session. Open a SECOND terminal and confirm"
+        warn "you can still log in. If you cannot, this session can undo it:"
+        if [ "$DROPIN" = /etc/ssh/sshd_config ]; then
+            warn "    sudo cp /etc/ssh/sshd_config.wam-orig /etc/ssh/sshd_config && sudo systemctl reload ssh"
+        else
+            warn "    sudo rm ${DROPIN} && sudo systemctl reload ssh"
         fi
     fi
 fi
