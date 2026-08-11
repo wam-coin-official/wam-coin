@@ -57,6 +57,26 @@ case "$NETWORK" in
     *) printf 'unknown network: %s\n' "$NETWORK" >&2; exit 2 ;;
 esac
 
+# ---------------------------------------------------------------------------
+# What sshd will actually run with, for one keyword.
+#
+# The obvious form is `sshd -T | awk '/^key /{print $2; exit}'`. Do not use it.
+# awk's `exit` closes the pipe while sshd is still writing, sshd dies of
+# SIGPIPE, and `set -o pipefail` turns the whole pipeline into status 141.
+# `set -e` then aborts at the assignment -- with no message, because a failed
+# assignment prints nothing.
+#
+# That is not hypothetical. It is why this script wrote its SSH hardening,
+# never verified it, never reloaded, and exited looking successful. And it is a
+# race: the same line survives when the producer happens to finish first, so it
+# fails on one machine and not the next.
+#
+# Reading to END cannot race. sshd -T is a few kilobytes; there is nothing to
+# save by stopping early.
+sshd_effective() {
+    sshd -T 2>/dev/null | awk -v k="$1" '$1==k {v=$2} END{print v}'
+}
+
 BOLD=$'\033[1m'; GREEN=$'\033[32m'; YELLOW=$'\033[33m'; RED=$'\033[31m'; OFF=$'\033[0m'
 log()  { printf '%s==>%s %s\n' "$BOLD" "$OFF" "$*"; }
 ok()   { printf '  %sok%s    %s\n' "$GREEN" "$OFF" "$*"; }
@@ -81,7 +101,7 @@ log "firewall"
 
 # Read the live SSH port rather than assuming 22. Assuming it is how people
 # lock themselves out of servers they moved off the default port.
-SSH_PORT="$(sshd -T 2>/dev/null | awk '/^port /{print $2; exit}')"
+SSH_PORT="$(sshd -T 2>/dev/null | awk '$1=="port"{v=$2} END{print v}')"
 SSH_PORT="${SSH_PORT:-22}"
 
 ufw --force reset >/dev/null
@@ -214,8 +234,32 @@ else
             printf '\n# --- WAM harden_server.sh ---\n' >> "$DROPIN"
         else
             mkdir -p "$DROPIN_DIR"
-            DROPIN="${DROPIN_DIR}/60-wam.conf"
+
+            # OpenSSH takes the FIRST value it sees for a keyword, not the
+            # last -- the opposite of most config systems, and of what almost
+            # everyone assumes. Ubuntu cloud images ship 50-cloud-init.conf
+            # containing `PasswordAuthentication yes`, so a file named
+            # 60-anything is read afterwards and silently loses that one
+            # keyword while winning every other one in the same file. The
+            # result is a hardening drop-in that is present, correct, parsed,
+            # and ignored.
+            #
+            # 00- sorts ahead of anything the distribution ships.
+            DROPIN="${DROPIN_DIR}/00-wam.conf"
+            rm -f "${DROPIN_DIR}/60-wam.conf"   # written before this was understood
             : > "$DROPIN"
+
+            # Name any file that still sorts ahead of us and sets the keyword
+            # that matters. sshd -T below is the real check; this says *which
+            # file* won, which is the part that costs an hour to find by hand.
+            for f in "$DROPIN_DIR"/*.conf; do
+                [ -f "$f" ] || continue
+                B="$(basename "$f")"
+                [ "$B" \< "$(basename "$DROPIN")" ] || continue
+                if grep -qiE '^[[:space:]]*PasswordAuthentication[[:space:]]' "$f"; then
+                    warn "${B} is read before us and also sets PasswordAuthentication"
+                fi
+            done
         fi
 
         cat >> "$DROPIN" <<'EOF'
@@ -244,7 +288,7 @@ EOF
         # effect -- a file in an un-included directory parses perfectly and
         # changes nothing. `sshd -T` prints the configuration sshd will
         # actually run with, which is the only answer that means anything.
-        EFFECTIVE="$(sshd -T 2>/dev/null | awk '/^passwordauthentication /{print $2; exit}')"
+        EFFECTIVE="$(sshd_effective passwordauthentication)"
         if [ "$EFFECTIVE" != "no" ]; then
             undo_ssh
             die "sshd still reports passwordauthentication=${EFFECTIVE:-unknown}.
@@ -271,7 +315,7 @@ EOF
         # Re-read after the reload: what sshd parses and what the running
         # daemon serves are two different questions, and the second is the one
         # that locks people out.
-        RUNNING="$(sshd -T 2>/dev/null | awk '/^passwordauthentication /{print $2; exit}')"
+        RUNNING="$(sshd_effective passwordauthentication)"
         [ "$RUNNING" = "no" ] || warn "sshd reloaded but now reports ${RUNNING:-unknown}"
 
         ok "password logins disabled, keys only -- confirmed by sshd -T, not assumed"

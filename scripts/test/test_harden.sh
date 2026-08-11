@@ -145,6 +145,56 @@ check ":: is not"                      "$(is_local '::')"  "no"
 check "0.0.0.0 is not"                 "$(is_local '0.0.0.0')" "no"
 
 echo
+echo "=== awk must not close a pipe early ==="
+# `producer | awk '{print; exit}'` kills the producer with SIGPIPE. Under
+# `set -o pipefail` the pipeline is then 141, and under `set -e` the enclosing
+# assignment aborts the script with no message at all. That is how the SSH
+# hardening came to be written, never verified, never reloaded, and reported
+# as a success.
+big() { seq 1 200000; }
+
+# 200,000 lines against an exit on line 7: the producer is still writing long
+# after awk is gone, so this is not a race here even though it is one in real
+# use, where the two finish close together and the failure surfaces at random.
+#
+# The status must be read from $? directly. Writing `( ... ) || RC=$?` would
+# put the subshell on the left of a ||, and `set -e` is *disabled* for any
+# command whose failure is being tested that way -- so the abort under test
+# would not happen, and the test would pass by not reproducing the bug. That
+# mistake was made here first.
+( set -euo pipefail; V="$(big | awk '/^7$/{print; exit}')"; : "$V" ) 2>/dev/null
+check "the early-exit form really does die (141)" "$?" "141"
+
+( set -euo pipefail; V="$(big | awk '$1==7{v=$1} END{print v}')"; : "$V" ) 2>/dev/null
+check "reading to END survives pipefail"           "$?" "0"
+
+# And the value is still right -- a fix that returns the wrong answer quietly
+# is worse than the crash it replaced.
+check "  and returns the same value" \
+      "$( set -o pipefail; big | awk '$1==7{v=$1} END{print v}' )" "7"
+
+# The script itself must not contain the hazard. Comments explaining it are
+# fine; a live pipeline is not.
+LIVE="$(grep -vE '^\s*#' "$SCRIPT" | grep -cE "\|[[:space:]]*awk[^|]*exit[[:space:]]*\}" || true)"
+check "no live awk-exit pipeline remains in the script" "${LIVE:-0}" "0"
+
+echo
+echo "=== OpenSSH takes the FIRST value, so we must sort first ==="
+# Ubuntu cloud images ship 50-cloud-init.conf with PasswordAuthentication yes.
+# A 60- file loses that keyword and no other, which is why the drop-in looked
+# correct while the setting stayed on.
+DROPIN_NAME="$(grep -oE 'DROPIN="\$\{DROPIN_DIR\}/[^"]+"' "$SCRIPT" | head -1 | sed 's/.*\///;s/"//')"
+check "the drop-in is named to sort first" "$DROPIN_NAME" "00-wam.conf"
+
+sorts_first() { [ "$1" \< "$2" ] && echo yes || echo no; }
+check "00-wam beats 50-cloud-init" "$(sorts_first 00-wam.conf 50-cloud-init.conf)" "yes"
+check "60-wam does not"            "$(sorts_first 60-wam.conf 50-cloud-init.conf)" "no"
+
+grep -q 'rm -f "${DROPIN_DIR}/60-wam.conf"' "$SCRIPT" \
+    && ok "the old 60-wam.conf is cleaned up on re-run" \
+    || bad "a stale 60-wam.conf would be left behind"
+
+echo
 echo "=== the script still says what it does ==="
 grep -q 'sshd -T' "$SCRIPT" \
     && ok "the change is verified with sshd -T, not just sshd -t" \
