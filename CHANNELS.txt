@@ -11,7 +11,7 @@
 
    website        https://wamcoin.org
    source         https://github.com/wam-coin-official/wam-coin
-   announcements  https://t.me/wamcoinupdates
+   announcements  https://t.me/wam_coin_updates
    x / twitter    https://x.com/WAMCoinCore
 
  There are no others. No Discord, no Reddit, no Instagram, no second
