@@ -114,9 +114,34 @@ ok "ssh on ${SSH_PORT} allowed (read from sshd, not assumed)"
 ufw allow "${P2P_PORT}/tcp" comment "wam p2p ${NETWORK}" >/dev/null
 ok "peer-to-peer on ${P2P_PORT} allowed -- this is how the network finds you"
 
-ufw allow 3333/tcp comment 'stratum' >/dev/null
-ufw allow 3334/tcp comment 'stratum testnet' >/dev/null
-ok "stratum on 3333 and 3334 allowed"
+# Read the stratum ports from the pool's own config rather than guessing.
+# This script hardcoded 3333 and 3334; the pool ships three ports -- 3333,
+# 3334 and 3335, for CPUs, servers and farms -- so the largest miners were
+# firewalled out of a pool that was listening for them. Neither side was
+# wrong on its own, which is why nothing caught it.
+POOL_CONF="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/pool/config.json"
+STRATUM_PORTS=""
+if [ -f "$POOL_CONF" ] && command -v python3 >/dev/null 2>&1; then
+    STRATUM_PORTS="$(python3 -c '
+import json, sys
+try:
+    c = json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit()
+print(" ".join(str(p["port"]) for p in c.get("ports", []) if isinstance(p.get("port"), int)))
+' "$POOL_CONF" 2>/dev/null)"
+fi
+
+if [ -n "$STRATUM_PORTS" ]; then
+    for p in $STRATUM_PORTS; do
+        ufw allow "${p}/tcp" comment 'stratum' >/dev/null
+    done
+    ok "stratum on ${STRATUM_PORTS} allowed (read from pool/config.json)"
+else
+    ufw allow 3333/tcp comment 'stratum' >/dev/null
+    ufw allow 3334/tcp comment 'stratum testnet' >/dev/null
+    warn "pool/config.json not readable; allowed the default 3333 and 3334 only"
+fi
 
 ufw allow 80/tcp  comment 'http'  >/dev/null
 ufw allow 443/tcp comment 'https' >/dev/null
