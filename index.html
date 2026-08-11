@@ -58,6 +58,8 @@ table { width:100%; border-collapse:collapse; margin:18px 0; font-size:.95rem; }
 th, td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); }
 th { color:var(--dim); font-weight:600; font-size:.82rem; text-transform:uppercase; letter-spacing:.04em; }
 td.num { text-align:right; font-family:ui-monospace,Menlo,Consolas,monospace; white-space:nowrap; }
+tr.sum th, tr.sum td { border-top:2px solid var(--line); }
+tr.sum th { color:var(--fg); }
 
 pre {
   background:var(--card); border:1px solid var(--line); border-radius:9px;
@@ -124,7 +126,7 @@ lines are genuinely ours, and every one of them is
   <tr><th>Public mining</th><td class="num">19,250,000 · 87.50%</td></tr>
   <tr><th>Founder reserve</th><td class="num">2,000,000 · 9.09%</td></tr>
   <tr><th>Operating treasury</th><td class="num">750,000 · 3.41%</td></tr>
-  <tr><th>&nbsp;&nbsp;&nbsp;&nbsp;not mined by the public</th><td class="num"><strong>2,750,000 · 12.50%</strong></td></tr>
+  <tr class="sum"><th>Not mined by the public</th><td class="num"><strong>2,750,000 · 12.50%</strong></td></tr>
   <tr><th>Block target</th><td class="num">120 seconds</td></tr>
   <tr><th>Initial reward</th><td class="num">50 WAM</td></tr>
   <tr><th>Halving</th><td class="num">every 200,000 blocks</td></tr>
