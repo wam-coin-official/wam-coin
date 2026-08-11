@@ -169,8 +169,53 @@ bash "$REPO_ROOT/scripts/fetch-upstream.sh"
 
 cd "$CORE_DIR"
 
-if grep -qE "WNg2svm2qApxheBKndKGQ9sRwporvRgRpT|T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb" \
-        src/kernel/chainparams.cpp && [ "$NETWORK" != "regtest" ]; then
+# The generated chainparams carries every network's founder address at once.
+# Grepping the whole file asks "is any address a placeholder", when the only
+# question that matters is "is the address THIS build will actually use a
+# placeholder". Mainnet is legitimately still the burn address until the key
+# ceremony is held, so the broad grep blocked every testnet and signet build
+# for a reason that has nothing to do with them.
+BURN_MAINNET="WNg2svm2qApxheBKndKGQ9sRwporvRgRpT"
+BURN_TESTNET="T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb"
+
+case "$NETWORK" in
+    mainnet)        FOUNDER_SYM="WAM_FOUNDER_ADDRESS_MAINNET" ;;
+    testnet|signet) FOUNDER_SYM="WAM_FOUNDER_ADDRESS_TESTNET" ;;
+    *)              FOUNDER_SYM="" ;;   # regtest pays nobody
+esac
+
+FOUNDER_ADDR=""
+if [ -n "$FOUNDER_SYM" ]; then
+    # Anchored on the declaration, not on the symbol name. chainparams.cpp
+    # also mentions WAM_FOUNDER_ADDRESS_MAINNET inside a quoted C++ error
+    # string, and a looser pattern happily returns that sentence as the
+    # treasury address.
+    #
+    # Reads to END rather than stopping at the first hit. `| head -1` closes
+    # the pipe early, the producer dies of SIGPIPE, pipefail makes the
+    # pipeline 141, and set -e aborts the assignment without printing
+    # anything -- the same failure that made harden_server.sh report a
+    # success it had not performed.
+    FOUNDER_ADDR="$(awk -v s="$FOUNDER_SYM" '
+        $0 ~ ("^static const std::string[[:space:]]+" s "[[:space:]]*=") {
+            if (match($0, /"[^"]*"/)) a = substr($0, RSTART + 1, RLENGTH - 2)
+        }
+        END { print a }' src/kernel/chainparams.cpp)"
+    [ -n "$FOUNDER_ADDR" ] || die "could not read ${FOUNDER_SYM} from the generated
+     chainparams. Refusing to build a chain whose treasury address cannot be read."
+    log "founder address for ${NETWORK}: ${FOUNDER_ADDR}"
+fi
+
+# Building anything other than mainnet while mainnet is unfinished is normal
+# and expected. Saying so is not: a binary that carries a burn address for a
+# network it can still be pointed at is worth one loud sentence.
+if [ "$NETWORK" != "mainnet" ] && grep -q "$BURN_MAINNET" src/kernel/chainparams.cpp; then
+    warn "this binary still carries the burn placeholder as the MAINNET founder"
+    warn "address. It is fine for ${NETWORK}. Never run it with -chain=main."
+fi
+
+if [ -n "$FOUNDER_SYM" ] \
+   && { [ "$FOUNDER_ADDR" = "$BURN_MAINNET" ] || [ "$FOUNDER_ADDR" = "$BURN_TESTNET" ]; }; then
     printf '\n%s%s%s\n' "$YLW" "$(printf '=%.0s' {1..74})" "$OFF"
     warn "STOPPING: the founder address is still the burn placeholder."
     warn ""
