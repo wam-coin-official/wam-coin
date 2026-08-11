@@ -281,12 +281,31 @@ static_assert(WAM_RANDOMX_EPOCH_LAG < WAM_RANDOMX_EPOCH_BLOCKS,
 // Network identity
 // ---------------------------------------------------------------------------
 
+// RPC sits one BELOW the peer-to-peer port, never one above. Bitcoin's own
+// 8333/8332 is not an accident either:
+//
+//     init.cpp:  const uint16_t default_bind_port_onion = default_bind_port + 1;
+//
+// Core reserves p2p+1 on localhost for the Tor onion service whenever
+// -listen=1. RPC on p2p+1 is therefore squatted by the node's own onion
+// listener on any machine that actually accepts connections -- which is every
+// seed, every pool, and every node worth running.
+//
+// WAM had exactly that collision. It stayed invisible because every node so
+// far ran with -listen=0, where no onion listener binds. The first node
+// configured to listen took p2p+1 for Tor, and the RPC server fell back to
+// Bitcoin's own 18332 without saying so. Found on the first real deployment.
 static constexpr int WAM_MAINNET_P2P_PORT  = 9555;
-static constexpr int WAM_MAINNET_RPC_PORT  = 9556;
+static constexpr int WAM_MAINNET_RPC_PORT  = 9554;
 static constexpr int WAM_TESTNET_P2P_PORT  = 19555;
-static constexpr int WAM_TESTNET_RPC_PORT  = 19556;
+static constexpr int WAM_TESTNET_RPC_PORT  = 19554;
 static constexpr int WAM_REGTEST_P2P_PORT  = 29555;
-static constexpr int WAM_REGTEST_RPC_PORT  = 29556;
+static constexpr int WAM_REGTEST_RPC_PORT  = 29554;
+
+static_assert(WAM_MAINNET_RPC_PORT == WAM_MAINNET_P2P_PORT - 1
+              && WAM_TESTNET_RPC_PORT == WAM_TESTNET_P2P_PORT - 1
+              && WAM_REGTEST_RPC_PORT == WAM_REGTEST_P2P_PORT - 1,
+              "RPC must be p2p-1: p2p+1 is reserved by Core for the Tor onion listener");
 
 /** Genesis coinbase message, committed forever into block 0. */
 static constexpr const char* WAM_GENESIS_TIMESTAMP_PHRASE =

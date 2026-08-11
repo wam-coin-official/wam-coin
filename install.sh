@@ -410,7 +410,7 @@ path, password, network, redis_pass = sys.argv[1:5]
 with open(path) as fh:
     cfg = json.load(fh)
 cfg["network"] = network
-port = {"mainnet": 9556, "testnet": 19556, "regtest": 29556}[network]
+port = {"mainnet": 9554, "testnet": 19554, "regtest": 29554}[network]
 for d in cfg["daemons"]:
     if password:
         d["password"] = password

@@ -50,7 +50,7 @@ note() { printf '        \033[90m%s\033[0m\n' "$*"; }
 step() { printf '\n\033[36m%s\033[0m\n' "$*"; }
 
 ONLINE=("$CORE/src/wam-cli" -regtest "-datadir=$ONLINE_DIR"
-        -rpcuser=t -rpcpassword=t -rpcport=29556)
+        -rpcuser=t -rpcpassword=t -rpcport=29554)
 
 FOUNDER_ADDR=$(cat "$ADDR_FILE" 2>/dev/null)
 [ -n "$FOUNDER_ADDR" ] || { echo "no address in $ADDR_FILE"; exit 1; }

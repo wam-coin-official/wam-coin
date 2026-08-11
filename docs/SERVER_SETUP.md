@@ -56,7 +56,7 @@ Two rules in that firewall matter more than the rest:
 
 | port | rule | why |
 |---|---|---|
-| 19556 / 9556 | **denied** | the RPC port is the wallet |
+| 19554 / 9554 | **denied** | the RPC port is the wallet |
 | 6379 | **denied** | Redis is every miner's balance |
 
 Both listen on localhost anyway. The firewall rule is the second lock, for the
@@ -141,7 +141,7 @@ scan from the server itself tests nothing.
 
 ```bash
 # from your laptop
-nmap -Pn -p 22,80,443,3333,3334,6379,9555,9556,19555,19556 <server ip>
+nmap -Pn -p 22,80,443,3333,3334,6379,9555,9554,19555,19554 <server ip>
 ```
 
 You want to see:
@@ -149,7 +149,7 @@ You want to see:
 | port | expected |
 |---|---|
 | 22, 80, 443, 3333, 3334, 19555 | open |
-| **6379, 19556, 9556** | **filtered or closed** |
+| **6379, 19554, 9554** | **filtered or closed** |
 
 If Redis or the RPC port is open, stop and fix it before the machine holds
 anything. Those two are how pools lose their miners' money.

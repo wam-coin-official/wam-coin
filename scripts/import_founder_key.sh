@@ -55,9 +55,9 @@ while [ $# -gt 0 ]; do
 done
 
 case "$NETWORK" in
-    mainnet) NETFLAG="";          DEFPORT=9556  ;;
-    testnet) NETFLAG="-testnet";  DEFPORT=19556 ;;
-    regtest) NETFLAG="-regtest";  DEFPORT=29556 ;;
+    mainnet) NETFLAG="";          DEFPORT=9554  ;;
+    testnet) NETFLAG="-testnet";  DEFPORT=19554 ;;
+    regtest) NETFLAG="-regtest";  DEFPORT=29554 ;;
     *) echo "unknown network $NETWORK" >&2; exit 2 ;;
 esac
 

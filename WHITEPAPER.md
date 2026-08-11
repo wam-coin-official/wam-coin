@@ -388,7 +388,7 @@ because of one.
 | Parameter | Mainnet | Testnet |
 |---|---|---|
 | P2P port | 9555 | 19555 |
-| RPC port | 9556 | 19556 |
+| RPC port | 9554 | 19554 |
 | Message prefix | `WAM!` | `wam!` |
 | P2PKH prefix | `73` → addresses start with `W` | `65` → `T` |
 | P2SH prefix | `135` → `w` | `128` → `t` |

@@ -112,7 +112,7 @@ WantedBy=multi-user.target
 The default bind is `127.0.0.1`. Before changing it:
 
 - Put TLS in front (nginx / Caddy). The dashboard speaks plain HTTP by design.
-- Never expose RPC port 9556 itself. `getblocktemplate` requires an unlocked node; anyone
+- Never expose RPC port 9554 itself. `getblocktemplate` requires an unlocked node; anyone
   who reaches that port reaches the wallet.
 - The dashboard exposes no private data and accepts no request bodies, but `/api/search`
   does pass queries through to the node — rate-limit it at the proxy.
@@ -125,8 +125,8 @@ The default bind is `127.0.0.1`. Before changing it:
 Run `install.sh`, or copy `config.example.json` to `config.json` and fill in the password
 from `~/.wam/wam.conf`.
 
-**`wamd is not reachable at 127.0.0.1:9556`**
-The node is not running, or is on another network's port (testnet 19556, regtest 29556).
+**`wamd is not reachable at 127.0.0.1:9554`**
+The node is not running, or is on another network's port (testnet 19554, regtest 29554).
 `server.js` reads the port from `wam.conf` automatically — check that `testnet=1` /
 `regtest=1` there matches the node you actually started.
 

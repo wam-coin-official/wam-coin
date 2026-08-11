@@ -687,6 +687,63 @@ def build_changes() -> list[Change]:
 
     # -----------------------------------------------------------------------
     changes.append(Change(
+        id="WAM-022",
+        title="RPC ports: WAM's own, one below the peer port",
+        rationale=(
+            "chainparamsbase.cpp kept Bitcoin's RPC ports -- 8332 and 18332 -- so "
+            "wam-cli talked to whichever daemon owned them, a WAM node and a Bitcoin "
+            "node could not share a machine, and the firewall rule denying 19556 "
+            "guarded a port the RPC server was not on.\n\n"
+            "The new numbers are p2p-1, not p2p+1. Upstream's own comment above this "
+            "function says why: 'Port numbers for incoming Tor connections (8334, "
+            "18334, ...)'. init.cpp sets default_bind_port_onion = default_bind_port "
+            "+ 1, so anything at p2p+1 is squatted by the node's own onion listener "
+            "the moment -listen=1. WAM's old 9556/19556 sat exactly there. It went "
+            "unnoticed while every node ran -listen=0; the first listening node took "
+            "19556 for Tor and the RPC server fell back to 18332 in silence.\n\n"
+            "signet and testnet4 are moved too. WAM gives them p2p 39555 and 49555, "
+            "and leaving their RPC on Bitcoin's 38332/48332 would collide with a real "
+            "Bitcoin node for no reason."),
+        edits=[
+            Edit(
+                file="src/chainparamsbase.cpp",
+                description="mainnet RPC 8332 -> 9554",
+                marker='CBaseChainParams>("", 9554)',
+                anchor='return std::make_unique<CBaseChainParams>("", 8332);',
+                replacement='return std::make_unique<CBaseChainParams>("", 9554);',
+            ),
+            Edit(
+                file="src/chainparamsbase.cpp",
+                description="testnet RPC 18332 -> 19554",
+                marker='CBaseChainParams>("testnet3", 19554)',
+                anchor='return std::make_unique<CBaseChainParams>("testnet3", 18332);',
+                replacement='return std::make_unique<CBaseChainParams>("testnet3", 19554);',
+            ),
+            Edit(
+                file="src/chainparamsbase.cpp",
+                description="testnet4 RPC 48332 -> 49554",
+                marker='CBaseChainParams>("testnet4", 49554)',
+                anchor='return std::make_unique<CBaseChainParams>("testnet4", 48332);',
+                replacement='return std::make_unique<CBaseChainParams>("testnet4", 49554);',
+            ),
+            Edit(
+                file="src/chainparamsbase.cpp",
+                description="signet RPC 38332 -> 39554",
+                marker='CBaseChainParams>("signet", 39554)',
+                anchor='return std::make_unique<CBaseChainParams>("signet", 38332);',
+                replacement='return std::make_unique<CBaseChainParams>("signet", 39554);',
+            ),
+            Edit(
+                file="src/chainparamsbase.cpp",
+                description="regtest RPC 18443 -> 29554",
+                marker='CBaseChainParams>("regtest", 29554)',
+                anchor='return std::make_unique<CBaseChainParams>("regtest", 18443);',
+                replacement='return std::make_unique<CBaseChainParams>("regtest", 29554);',
+            ),
+        ]))
+
+    # -----------------------------------------------------------------------
+    changes.append(Change(
         id="WAM-020",
         title="Denominate the GUI in WAM rather than BTC",
         rationale=("Every amount in the wallet -- balances, the send form, the "

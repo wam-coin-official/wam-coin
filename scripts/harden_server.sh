@@ -51,9 +51,9 @@ while [ $# -gt 0 ]; do
 done
 
 case "$NETWORK" in
-    mainnet) P2P_PORT=9555;  RPC_PORT=9556  ;;
-    testnet) P2P_PORT=19555; RPC_PORT=19556 ;;
-    regtest) P2P_PORT=19555; RPC_PORT=29556 ;;
+    mainnet) P2P_PORT=9555;  RPC_PORT=9554  ;;
+    testnet) P2P_PORT=19555; RPC_PORT=19554 ;;
+    regtest) P2P_PORT=29555; RPC_PORT=29554 ;;   # was 19555: testnet's port
     *) printf 'unknown network: %s\n' "$NETWORK" >&2; exit 2 ;;
 esac
 

@@ -85,7 +85,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--cli", default="./src/wam-cli")
     ap.add_argument("--datadir", default=os.path.expanduser("~/wam-regtest"))
-    ap.add_argument("--rpcport", type=int, default=29556)
+    ap.add_argument("--rpcport", type=int, default=29554)
     ap.add_argument("--rpcuser", default="t")
     ap.add_argument("--rpcpassword", default="t")
     args = ap.parse_args()

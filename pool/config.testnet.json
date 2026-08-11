@@ -75,7 +75,7 @@
   "daemons": [
     {
       "host": "127.0.0.1",
-      "port": 19556,
+      "port": 19554,
       "user": "t",
       "password": "t",
       "wallet": "pool",

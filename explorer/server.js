@@ -52,7 +52,7 @@ const log = {
 // Configuration
 // ---------------------------------------------------------------------------
 
-const DEFAULT_RPC_PORTS = { main: 9556, test: 19556, regtest: 29556 };
+const DEFAULT_RPC_PORTS = { main: 9554, test: 19554, regtest: 29554 };
 
 /**
  * Read a text file, dropping a UTF-8 byte-order mark if present.

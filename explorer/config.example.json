@@ -17,7 +17,7 @@
 
   "rpc": {
     "host": "127.0.0.1",
-    "port": 9556,
+    "port": 9554,
     "user": "wamrpc",
     "password": "",
     "ssl": false,

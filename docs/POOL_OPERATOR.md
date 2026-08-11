@@ -157,7 +157,7 @@ This is normal, happens every ~2.8 days, and lasts as long as your miners take t
 
 ## Security
 
-- **Never expose RPC port 9556.** `getblocktemplate` requires an unlocked node; anyone who
+- **Never expose RPC port 9554.** `getblocktemplate` requires an unlocked node; anyone who
   reaches that port reaches the wallet.
 - **Put the dashboard behind TLS** if it is public. It is read-only and accepts no bodies,
   but miner addresses are still visible.

@@ -109,7 +109,7 @@ Everything here is irreversible once the first block is mined. Work through it i
       pending → confirmed → paid.
 - [ ] An orphaned block was simulated and the pool correctly paid nobody for it.
 - [ ] The dashboard is behind TLS if it is publicly reachable.
-- [ ] RPC port 9556 is **not** reachable from the internet.
+- [ ] RPC port 9554 is **not** reachable from the internet.
 - [ ] The pool wallet is separate from any personal wallet and holds only working balance.
 
 ## Phase 7 — Public

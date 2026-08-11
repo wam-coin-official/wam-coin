@@ -34,7 +34,7 @@ import sys
 COIN = 100_000_000
 
 NET_FLAG = {"mainnet": None, "testnet": "-testnet", "regtest": "-regtest"}
-NET_PORT = {"mainnet": 9556, "testnet": 19556, "regtest": 29556}
+NET_PORT = {"mainnet": 9554, "testnet": 19554, "regtest": 29554}
 
 
 def cli(args_ns, *params):
