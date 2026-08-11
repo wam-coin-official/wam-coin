@@ -76,10 +76,49 @@ pre {
 .card span { color:var(--dim); font-size:.85rem; }
 
 footer { margin-top:60px; padding-top:22px; border-top:1px solid var(--line); color:var(--dim); font-size:.86rem; }
-.ar { direction:rtl; text-align:right; font-size:.97rem; }
+
+/* ---------------------------------------------------------------------
+   The language switch, in CSS alone.
+
+   A checkbox and two sibling rules. There is one small script at the
+   foot of this page, for the countdown, and the switch deliberately does
+   not use it: language should not depend on script running. Both
+   languages are in the HTML regardless, so a search engine, a screen
+   reader and a browser with CSS off all get the whole page.
+
+   .ar-i is the inline variant. `display:revert` would cover both, but a
+   browser that does not know it leaves the Arabic hidden forever, and
+   the failure is invisible to whoever deployed it.
+   --------------------------------------------------------------------- */
+.ar, .ar-i { display:none; }
+#lang:checked ~ .wrap .en   { display:none; }
+#lang:checked ~ .wrap .en-i { display:none; }
+#lang:checked ~ .wrap .ar   { display:block; }
+#lang:checked ~ .wrap .ar-i { display:inline; }
+
+.ar { direction:rtl; text-align:right; }
+
+/* Arabic is cursive: letter-spacing severs the joins between letters and
+   uppercase does nothing at all. Both are inherited from the Latin rules
+   above, so both are undone here. */
+.ar th { letter-spacing:normal; text-transform:none; font-size:.88rem; }
+.ar th, .ar td { text-align:right; }
+.ar td.num { text-align:left; direction:ltr; }
+.ar pre, .ar code { direction:ltr; text-align:left; }
+.ar ul { padding:0 20px 0 0; margin:14px 0; }
+.ar li { margin-bottom:9px; }
+
+.langbtn {
+  display:inline-block; margin-top:20px; cursor:pointer; user-select:none;
+  font-size:.82rem; padding:5px 15px; border:1px solid var(--line);
+  border-radius:99px; color:var(--dim); background:var(--card);
+}
+.langbtn:hover { border-color:var(--green); color:var(--green); }
+#lang:focus-visible ~ .wrap .langbtn { outline:2px solid var(--green); outline-offset:2px; }
 </style>
 </head>
 <body>
+<input type="checkbox" id="lang" hidden>
 <div class="wrap">
 
 <header>
@@ -90,14 +129,22 @@ footer { margin-top:60px; padding-top:22px; border-top:1px solid var(--line); co
           font-family="ui-sans-serif,system-ui,sans-serif" fill="var(--gold)">W</text>
   </svg>
   <h1>WAM Coin</h1>
-  <p class="tag">A CPU-mineable proof-of-work currency with a hard 22,000,000 cap.</p>
+  <p class="tag en">A CPU-mineable proof-of-work currency with a hard 22,000,000 cap.</p>
+  <p class="tag ar">عملة إثبات عمل تُعدَّن بالمعالجات العادية، بسقف نهائي قدره 22,000,000 وحدة.</p>
   <div class="chips">
     <span class="chip">RandomX</span>
-    <span class="chip">2-minute blocks</span>
+    <span class="chip en-i">2-minute blocks</span>
+    <span class="chip ar-i">بلوك كل دقيقتين</span>
     <span class="chip">DarkGravityWave v3</span>
-    <span class="chip live" id="status">Testnet running · mainnet 15 Sep 2026</span>
+    <span class="chip live en-i" id="status-en">Testnet running · mainnet 15 Sep 2026</span>
+    <span class="chip live ar-i" id="status-ar">الشبكة التجريبية تعمل · الإطلاق 15 سبتمبر 2026</span>
   </div>
+  <label class="langbtn" for="lang">
+    <span class="en-i">العربية</span><span class="ar-i">English</span>
+  </label>
 </header>
+
+<div class="en">
 
 <div class="warn">
   <h2>Before anything else</h2>
@@ -178,39 +225,133 @@ no way to acquire it at launch except by mining it or by trading with someone wh
 <p class="dim">Mainnet opens 15 September 2026. Until then the testnet is running, and its
 coins are worth nothing by design.</p>
 
-<hr style="border:none;border-top:1px solid var(--line);margin:44px 0 24px">
+</div><!-- /en -->
 
-<div class="ar">
-  <h2 class="sec">بالعربية</h2>
-  <p>عملة إثبات عمل تُعدَّن بالمعالجات العادية، بسقف ثابت قدره 22,000,000 وحدة. مبنية على
-  نواة Bitcoin Core مع أربعة اختلافات مقصودة، وكل سطر منها منشور للفحص.</p>
-  <p><strong>قد لا تساوي هذه العملة شيئاً.</strong> أغلب العملات الرقمية الجديدة تفشل، ولا أحد
-  سيشتريها منك — المؤسس لا يبيع ولا يشتري. لا يوجد سعر في هذه الصفحة ولن يوجد.</p>
-  <p>حصة المؤسس 12.50% معلنة ومقفلة بالكود حتى 2030، ورسوم التشغيل تنتهي نهائياً عند البلوك
-  400,000. لا وعود — قواعد تفرضها كل عقدة.</p>
-  <p class="dim">الإطلاق: 15 سبتمبر 2026.</p>
+
+<div class="ar" lang="ar" dir="rtl">
+
+<div class="warn">
+  <h2>قبل أي شيء آخر</h2>
+  <p><strong>قد لا تساوي هذه العملة شيئاً.</strong> الغالبية الساحقة من العملات الرقمية
+  الجديدة تفشل، ولا يوجد سبب لافتراض أن هذه استثناء. <strong>ولن يشتريها منك أحد</strong> —
+  المؤسس لا يبيع WAM ولا يشتريها. لا يوجد سعر في هذه الصفحة ولن يوجد. اعتبر أي مبلغ تضعه
+  فيها مبلغاً تحتمل خسارته بالكامل.</p>
 </div>
 
+<h2 class="sec">ما هي</h2>
+<p>تفريعة من Bitcoin Core v28.1 بأربعة اختلافات مقصودة: سقف نهائي قدره 22,000,000 وحدة،
+وبلوك كل دقيقتين، وإثبات عمل <strong>RandomX</strong> ليبقى المعالج العادي منافساً أمام
+العتاد المصنوع خصيصاً للتعدين، وإعادة ضبط للصعوبة عند كل بلوك حتى لا تستطيع قوة تعدين
+مستأجرة أن تُجمّد السلسلة.</p>
+
+<p>نحو 250,000 سطر من شبكة الند للند وتفسير السكربت وإدارة المحفظة موروثة من قاعدة كود
+خضعت لمراجعة عدائية طوال خمسة عشر عاماً. إعادة كتابتها ما كانت لتجعل WAM أكثر أصالة — كانت
+لتجعلها أقل أماناً. نحو 3,000 سطر هي ملكنا فعلاً، وكلها
+<a href="https://github.com/wam-coin-official/wam-coin">منشورة</a>.</p>
+
+<h2 class="sec">الأرقام</h2>
+<table>
+  <tr><th>الحد الأقصى للإصدار</th><td class="num">22,000,000 WAM</td></tr>
+  <tr><th>التعدين العام</th><td class="num">19,250,000 · 87.50%</td></tr>
+  <tr><th>احتياطي المؤسس</th><td class="num">2,000,000 · 9.09%</td></tr>
+  <tr><th>خزينة التشغيل</th><td class="num">750,000 · 3.41%</td></tr>
+  <tr class="sum"><th>غير مُعدَّن للعموم</th><td class="num"><strong>2,750,000 · 12.50%</strong></td></tr>
+  <tr><th>زمن البلوك</th><td class="num">120 ثانية</td></tr>
+  <tr><th>مكافأة البلوك الأول</th><td class="num">50 WAM</td></tr>
+  <tr><th>التنصيف</th><td class="num">كل 200,000 بلوك</td></tr>
+  <tr><th>إثبات العمل</th><td class="num">RandomX</td></tr>
+</table>
+
+<p class="dim">احتياطي المؤسس مقفل داخل بلوك التكوين نفسه بـ<code>OP_CHECKLOCKTIMEVERIFY</code>،
+ويُفرج عنه بنسبة 20% سنوياً حتى سبتمبر 2030. ورسوم التشغيل البالغة 5% قاعدة إجماع تتوقّف
+نهائياً عند البلوك 400,000، وبعدها يأخذ المعدّنون المكافأة كاملة. لا هذا وعد ولا ذاك — كلاهما
+تفرضه كل عقدة على الشبكة.</p>
+
+<h2 class="sec">لا تصدّقنا — تحقّق بنفسك</h2>
+<p>كل رقم أعلاه له أمر يُثبته أو ينفيه. هذه الأوامر تقرأ الملف التنفيذي نفسه، لا هذه الصفحة:</p>
+
+<ul>
+  <li><code>python3 scripts/verify_supply.py</code><br>
+      <span class="dim">يعيد حساب السقف 22,000,000 بحساب صحيح دقيق، بلوكاً بلوكاً.</span></li>
+  <li><code>python3 scripts/patch_upstream.py --list</code><br>
+      <span class="dim">كل اختلاف بين WAM وبيتكوين، ومعه سبب وجوده.</span></li>
+  <li><code>wam-cli getsupplyinfo</code><br>
+      <span class="dim">ما تقوله السلسلة العاملة عن نقودها هي، لا ما نقوله نحن عنها.</span></li>
+</ul>
+
+<h2 class="sec">الروابط</h2>
+<div class="links">
+  <a class="card" href="https://github.com/wam-coin-official/wam-coin">
+    <b>الكود المصدري</b><span dir="ltr">github.com/wam-coin-official</span></a>
+  <a class="card" href="https://github.com/wam-coin-official/wam-coin/blob/main/WHITEPAPER.md">
+    <b>الورقة البيضاء</b><span>التصميم، وحدوده</span></a>
+  <a class="card" href="https://x.com/WAMCoinCore">
+    <b>X</b><span dir="ltr">@WAMCoinCore</span></a>
+  <a class="card" href="https://t.me/wamcoinupdates">
+    <b>قناة الإعلانات</b><span dir="ltr">t.me/wamcoinupdates</span></a>
+  <a class="card" href="https://github.com/wam-coin-official/wam-coin/blob/main/SECURITY.md">
+    <b>الأمان</b><span>الإبلاغ عن ثغرة</span></a>
+  <a class="card" href="/CHANNELS.txt">
+    <b>القنوات الرسمية</b><span>القائمة المرجعية</span></a>
+</div>
+
+<p class="dim">هذه هي الحسابات الوحيدة. لن يراسلك أحد باسم WAM أولاً، ولن يعرض عليك حصة،
+ولن يطلب منك مفتاحاً ولا مبلغاً — لا يوجد شيء يُشترى، ولا سبب يجعل أحداً يحتاج الوصول إليك.
+<a href="/CHANNELS.txt">CHANNELS.txt</a> نسخة نصية صِرفة من هذه القائمة، محفوظة بهذا الشكل
+لتقبل توقيعاً يمكن التحقّق منه، بدل أن يُطلب منك تصديقها فحسب.</p>
+
+<h2 class="sec">التعدين</h2>
+<p>تُعدَّن WAM بأجهزة الحاسب العادية. لا يوجد بيع مسبق، ولا حصة تُشترى، ولا طريقة للحصول
+عليها يوم الإطلاق إلا بتعدينها أو بمبادلتها مع من عدّنها.</p>
+<p class="dim">تُفتح الشبكة الرئيسية في 15 سبتمبر 2026. وحتى ذلك الحين تعمل الشبكة التجريبية،
+وعملاتها لا تساوي شيئاً بالتصميم.</p>
+
+</div><!-- /ar -->
+
+
 <footer>
-  <p>MIT licensed, as Bitcoin Core. No third-party security audit has been performed.</p>
-  <p>This page states no price, forecasts no value, and solicits nothing.</p>
+  <p class="en">MIT licensed, as Bitcoin Core. No third-party security audit has been performed.</p>
+  <p class="en">This page states no price, forecasts no value, and solicits nothing.</p>
+  <p class="ar" dir="rtl">رخصة MIT، كما Bitcoin Core. <strong>لم يُجرَ أي تدقيق أمني من جهة
+  مستقلة.</strong></p>
+  <p class="ar" dir="rtl">هذه الصفحة لا تذكر سعراً، ولا تتنبّأ بقيمة، ولا تطلب منك شيئاً.</p>
 </footer>
 
 </div>
 
 <script>
 // The only script on the page: turn the launch date into something a reader
-// can act on. It reads the clock and nothing else -- no network, no storage.
+// can act on. It reads the clock and nothing else -- no network, no storage,
+// no cookies. The language switch above is deliberately CSS-only; this is here
+// because a countdown cannot be computed from a stylesheet.
+//
+// Both chips are written, not just the visible one. Which one is showing is a
+// CSS state this script cannot see, and guessing would leave the other stale
+// for anyone who then switches language.
 (function () {
   var launch = Date.UTC(2026, 8, 15, 0, 0, 0);   // 15 September 2026, 00:00 UTC
-  var el = document.getElementById('status');
-  if (!el) return;
-
   var days = Math.ceil((launch - Date.now()) / 86400000);
-  if (days > 1)       el.textContent = 'Testnet running · mainnet in ' + days + ' days';
-  else if (days === 1) el.textContent = 'Testnet running · mainnet tomorrow';
-  else if (days === 0) el.textContent = 'Mainnet launches today';
-  else                 el.textContent = 'Mainnet live since 15 September 2026';
+
+  var text = {
+    en: days > 1  ? 'Testnet running · mainnet in ' + days + ' days'
+      : days === 1 ? 'Testnet running · mainnet tomorrow'
+      : days === 0 ? 'Mainnet launches today'
+      :              'Mainnet live since 15 September 2026',
+
+    // Arabic marks 3-10 differently from 11+, and 1 and 2 differently again.
+    // "في 5 أيام" is right; "في 15 أيام" is not -- it is "في 15 يوماً".
+    ar: days > 10 ? 'الشبكة التجريبية تعمل · الإطلاق بعد ' + days + ' يوماً'
+      : days > 2  ? 'الشبكة التجريبية تعمل · الإطلاق بعد ' + days + ' أيام'
+      : days === 2 ? 'الشبكة التجريبية تعمل · الإطلاق بعد يومين'
+      : days === 1 ? 'الشبكة التجريبية تعمل · الإطلاق غداً'
+      : days === 0 ? 'الشبكة الرئيسية تُطلق اليوم'
+      :              'الشبكة الرئيسية تعمل منذ 15 سبتمبر 2026'
+  };
+
+  Object.keys(text).forEach(function (lang) {
+    var el = document.getElementById('status-' + lang);
+    if (el) el.textContent = text[lang];
+  });
 })();
 </script>
 </body>
