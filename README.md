@@ -7,8 +7,9 @@ RandomX proof of work · DarkGravityWave v3 · 2-minute blocks · consensus-enfo
 [wamcoin.org](https://wamcoin.org) · [@WAMCoinCore](https://x.com/WAMCoinCore) ·
 [announcements](https://t.me/wamcoinupdates) · [security](SECURITY.md)
 
-> Those four are the only official channels. Each one links back to the others, and to this
-> repository; a page that claims to be WAM but is not reachable from here is not WAM. There
+> Those four are the only official channels, and [CHANNELS.txt](CHANNELS.txt) is the
+> canonical copy of that list — plain text, so it can be signed and checked rather than
+> merely believed. A page that claims to be WAM but is not named there is not WAM. There
 > is no presale, no allocation to buy, and nobody who will ever ask you for funds.
 
 ---
