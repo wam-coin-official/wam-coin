@@ -35,6 +35,47 @@ class VarDiff {
         this.bufferSize = Math.max(4, Math.round(this.retargetTime / this.targetTime * 4));
         this.tMin = this.targetTime * (1 - this.variance);
         this.tMax = this.targetTime * (1 + this.variance);
+
+        // Filled in by setNetworkDifficulty(). Until the pool has spoken to a
+        // daemon the configured bounds stand on their own.
+        this.networkDiff = null;
+    }
+
+    /**
+     * Tell the controller how hard a block currently is.
+     *
+     * minDiff and maxDiff are absolute numbers chosen for a mature chain. On a
+     * young one they are nonsense: this pool shipped minDiff 100 against a
+     * testnet whose difficulty was 0.000244, making the easiest share the pool
+     * would ever hand out four hundred thousand times harder than a block.
+     *
+     * The miner then finds blocks -- those are accepted whatever the share
+     * target says -- and submits no shares at all. Everything still looks
+     * healthy: blocks arrive, payouts happen, the dashboard fills in. With one
+     * miner nobody notices, because PPLNS splitting one block between one
+     * participant is correct however you compute it. With two it silently
+     * stops being a pool and becomes solo mining with extra steps, paying
+     * whoever got lucky and nothing to the miner who contributed half the work.
+     */
+    setNetworkDifficulty(d) {
+        this.networkDiff = (typeof d === 'number' && isFinite(d) && d > 0) ? d : null;
+    }
+
+    /** A share must never be harder than the block it is a fraction of. */
+    _maxAllowed() {
+        return this.networkDiff === null
+            ? this.maxDiff
+            : Math.min(this.maxDiff, this.networkDiff);
+    }
+
+    /**
+     * The floor follows the chain down. /16 rather than /1 so there is room
+     * for several shares per block, which is what PPLNS needs to measure
+     * contribution at all.
+     */
+    _minAllowed() {
+        if (this.networkDiff === null) return this.minDiff;
+        return Math.min(this.minDiff, Math.max(this.networkDiff / 16, 1e-9));
     }
 
     /** Per-connection state. */
@@ -101,7 +142,9 @@ class VarDiff {
     }
 
     _clamp(d) {
-        d = Math.min(this.maxDiff, Math.max(this.minDiff, d));
+        const lo = this._minAllowed();
+        const hi = Math.max(lo, this._maxAllowed());
+        d = Math.min(hi, Math.max(lo, d));
         // Round to 6 significant-ish decimals so the wire value is stable and
         // share accounting is reproducible.
         return Math.round(d * 1000000) / 1000000;

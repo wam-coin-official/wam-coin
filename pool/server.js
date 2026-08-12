@@ -306,6 +306,9 @@ async function main() {
 
     // ---- 7. stratum -------------------------------------------------------
     const stratum = new StratumServer(jobManager, config, logger.scope('stratum'));
+    // Before listen(), so the first miner to connect is already handed a share
+    // difficulty the chain can actually produce.
+    stratum.setNetworkDifficulty(chainInfo.difficulty);
     stratum.listen();
 
     // ---- 8. dashboard -----------------------------------------------------
@@ -315,11 +318,15 @@ async function main() {
     });
     api.listen();
 
-    // Keep the difficulty used for PPLNS window sizing fresh.
+    // Keep the difficulty used for PPLNS window sizing -- and for capping the
+    // share difficulty -- fresh. A chain whose difficulty moves by orders of
+    // magnitude in its first weeks will otherwise be measured against the
+    // number it had when the pool booted.
     const diffTimer = setInterval(async () => {
         try {
             const info = await daemon.getBlockchainInfo();
             shareProcessor.setNetworkDifficulty(info.difficulty);
+            stratum.setNetworkDifficulty(info.difficulty);
         } catch { /* the daemon layer already logged it */ }
     }, 60000);
 

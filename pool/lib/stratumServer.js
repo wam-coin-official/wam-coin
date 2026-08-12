@@ -308,6 +308,18 @@ class StratumServer extends EventEmitter {
         jobManager.on('newJob', (job, isNewBlock) => this.broadcastJob(job, isNewBlock));
     }
 
+    /**
+     * Cap share difficulty against what a block currently costs.
+     *
+     * Without this the configured minDiff is an absolute number, and on a young
+     * chain it can exceed the network difficulty -- at which point the easiest
+     * share the pool will accept is harder than a block, no share is ever
+     * submitted, and PPLNS has nothing to divide.
+     */
+    setNetworkDifficulty(d) {
+        this.varDiff.setNetworkDifficulty(d);
+    }
+
     listen() {
         const ports = this.config.ports || [{ port: 3333 }];
 
