@@ -442,6 +442,14 @@ sudo tee /etc/systemd/system/wam-pool.service >/dev/null <<EOF
 Description=WAM Coin stratum mining pool
 After=network-online.target wamd.service redis-server.service
 Wants=network-online.target
+# After= only orders the *start*; it does not wait for wamd to be usable. The
+# node needs a minute or two to load its block index, so the pool always comes
+# up first. It waits for the daemon itself (see lib/daemon.js init()), and this
+# raises the ceiling so a slow boot cannot exhaust systemd's patience:
+# the default is 5 starts in 10s, after which systemd gives up permanently and
+# the pool stays down after every reboot until someone runs reset-failed.
+StartLimitBurst=20
+StartLimitIntervalSec=600
 
 [Service]
 Type=simple

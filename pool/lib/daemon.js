@@ -30,27 +30,65 @@ class DaemonInterface extends EventEmitter {
         this.rpcId = 0;
     }
 
-    /** Probe every daemon; resolves once at least one answers getblockchaininfo. */
-    async init() {
-        const results = await Promise.allSettled(
-            this.daemons.map((d) => this._request(d, 'getblockchaininfo', []))
-        );
+    /**
+     * Probe every daemon; resolves once at least one answers getblockchaininfo.
+     *
+     * Waits rather than failing on the first attempt. A node that is starting
+     * takes a minute or two to load its block index and wallets, and answers
+     * ECONNREFUSED or RPC_IN_WARMUP (-28) throughout -- so at boot the pool
+     * used to exit immediately, systemd restarted it, and the two raced until
+     * the node happened to win. With StartLimitBurst=5 that race can end with
+     * systemd giving up permanently, leaving the pool down after every reboot
+     * until somebody notices and runs reset-failed by hand.
+     *
+     * Refusing to run without a node is still right; doing it in under a
+     * second was not. A node that is booting appears within a minute, and one
+     * that is misconfigured never appears -- only elapsed time tells them
+     * apart, so this spends the time and then says which case it was.
+     */
+    async init(waitSeconds = 180) {
+        const deadline = Date.now() + waitSeconds * 1000;
+        let attempt = 0;
+        let announcedWait = false;
 
-        results.forEach((r, i) => {
-            const d = this.daemons[i];
-            d.online = r.status === 'fulfilled';
-            if (d.online) {
-                const info = r.value;
-                this.log.info(`daemon ${d.host}:${d.port} online -- chain=${info.chain} ` +
-                              `blocks=${info.blocks} difficulty=${info.difficulty}`);
-            } else {
-                this.log.error(`daemon ${d.host}:${d.port} unreachable: ${r.reason.message}`);
+        for (;;) {
+            attempt++;
+            const results = await Promise.allSettled(
+                this.daemons.map((d) => this._request(d, 'getblockchaininfo', []))
+            );
+
+            let lastReason = '';
+            results.forEach((r, i) => {
+                const d = this.daemons[i];
+                d.online = r.status === 'fulfilled';
+                if (d.online) {
+                    const info = r.value;
+                    this.log.info(`daemon ${d.host}:${d.port} online -- chain=${info.chain} ` +
+                                  `blocks=${info.blocks} difficulty=${info.difficulty}`);
+                } else {
+                    lastReason = r.reason.message;
+                    // Only the first failure is an error; the rest are a wait.
+                    if (attempt === 1) {
+                        this.log.error(`daemon ${d.host}:${d.port} unreachable: ${lastReason}`);
+                    }
+                }
+            });
+
+            if (this.daemons.some((d) => d.online)) return;
+
+            if (Date.now() >= deadline) {
+                throw new Error(
+                    `no wamd instance became reachable within ${waitSeconds}s ` +
+                    `(${attempt} attempts, last: ${lastReason}) -- refusing to start. ` +
+                    'Check that wamd is running and that rpcuser/rpcpassword match.');
             }
-        });
 
-        if (!this.daemons.some((d) => d.online)) {
-            throw new Error('no wamd instance is reachable -- refusing to start. ' +
-                            'Check that wamd is running and that rpcuser/rpcpassword match.');
+            if (!announcedWait) {
+                announcedWait = true;
+                this.log.warn(`waiting up to ${waitSeconds}s for a daemon ` +
+                              '(this is normal while a node loads its block index)');
+            }
+            await new Promise((r) => setTimeout(r, 3000));
         }
     }
 
