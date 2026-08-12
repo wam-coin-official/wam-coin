@@ -16,6 +16,11 @@
 // Poisson noise forever.
 // ---------------------------------------------------------------------------
 
+// The fewest shares the hardest-working miner should produce per block. PPLNS
+// divides a reward by share count; one share per block is a measurement with a
+// single sample, which cannot distinguish two miners from one.
+const SHARES_PER_BLOCK = 16;
+
 class VarDiff {
     /**
      * @param {object} cfg
@@ -61,21 +66,29 @@ class VarDiff {
         this.networkDiff = (typeof d === 'number' && isFinite(d) && d > 0) ? d : null;
     }
 
-    /** A share must never be harder than the block it is a fraction of. */
+    /**
+     * A share is a *fraction* of a block, not a synonym for one.
+     *
+     * Capping at the network difficulty is not enough: at exactly that value a
+     * miner submits one share per block, and PPLNS -- which apportions a
+     * reward by share count -- has a single data point to divide. The measure
+     * only means something if the largest participant produces a number of
+     * shares per block, so no share may cost more than a sixteenth of one.
+     *
+     * On a mature chain networkDiff/16 is far above any sane maxDiff, so the
+     * configured value governs and nothing here changes behaviour.
+     */
     _maxAllowed() {
         return this.networkDiff === null
             ? this.maxDiff
-            : Math.min(this.maxDiff, this.networkDiff);
+            : Math.min(this.maxDiff, this.networkDiff / SHARES_PER_BLOCK);
     }
 
-    /**
-     * The floor follows the chain down. /16 rather than /1 so there is room
-     * for several shares per block, which is what PPLNS needs to measure
-     * contribution at all.
-     */
+    /** The floor follows the chain down by the same rule. */
     _minAllowed() {
         if (this.networkDiff === null) return this.minDiff;
-        return Math.min(this.minDiff, Math.max(this.networkDiff / 16, 1e-9));
+        return Math.min(this.minDiff,
+                        Math.max(this.networkDiff / SHARES_PER_BLOCK, 1e-9));
     }
 
     /** Per-connection state. */

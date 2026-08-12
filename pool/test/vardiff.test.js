@@ -71,11 +71,24 @@ test('on a mature chain the configured floor is respected', () => {
     assert.strictEqual(v.createState(500).difficulty, 500);
 });
 
-test('the ceiling never exceeds the network difficulty', () => {
-    const v = new VarDiff({ minDiff: 1, maxDiff: 2000000 });
+test('the ceiling is a sixteenth of a block, not a whole one', () => {
+    // At exactly the network difficulty a miner submits one share per block,
+    // and PPLNS divides a reward by a single sample.
+    const v = new VarDiff({ minDiff: 0.0001, maxDiff: 2000000 });
     v.setNetworkDifficulty(1000);
-    assert.strictEqual(v._maxAllowed(), 1000);
-    assert.ok(v.createState(999999).difficulty <= 1000);
+    assert.strictEqual(v._maxAllowed(), 62.5);
+    assert.ok(v.createState(999999).difficulty <= 62.5);
+});
+
+test('a new miner starts where it can actually produce shares', () => {
+    // The live testnet case: difficulty 0.000244, port start 500.
+    const net = 0.000244140625;
+    const v = new VarDiff({ minDiff: 100, maxDiff: 2000000 });
+    v.setNetworkDifficulty(net);
+    const d = v.createState(500).difficulty;
+    assert.ok(d <= net / 16 + 1e-12,
+        `started at ${d}; needs to be at or below ${net / 16} for 16 shares/block`);
+    assert.ok(d > 0, 'and still positive');
 });
 
 console.log('\n=== bad input does not widen the bounds ===');
