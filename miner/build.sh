@@ -22,9 +22,29 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO="$(cd "$HERE/.." && pwd)"
 
-RANDOMX_INCLUDE="${RANDOMX_INCLUDE:-$HOME/wam/build/randomx/src}"
-RANDOMX_LIB="${RANDOMX_LIB:-$HOME/wam/build/randomx/build/librandomx.a}"
+# Look in this repository first, then in ~/wam.
+#
+# HERE was already computed from the script's own location and then ignored in
+# favour of $HOME/wam -- which is correct on exactly one machine, the laptop
+# this was written on. Cloned to /opt/wam on a server it failed with "randomx.h
+# not found at /root/wam/build/randomx/src", naming a path the operator never
+# chose and cannot see the origin of.
+#
+# fetch-upstream.sh builds RandomX into <repo>/build/randomx, so the repository
+# already knows where its own artefacts are. The $HOME fallback stays for
+# anyone with an existing tree built the old way.
+for base in "$REPO/build/randomx" "$HOME/wam/build/randomx"; do
+    if [ -f "$base/src/randomx.h" ]; then
+        RANDOMX_DEFAULT_BASE="$base"
+        break
+    fi
+done
+RANDOMX_DEFAULT_BASE="${RANDOMX_DEFAULT_BASE:-$REPO/build/randomx}"
+
+RANDOMX_INCLUDE="${RANDOMX_INCLUDE:-$RANDOMX_DEFAULT_BASE/src}"
+RANDOMX_LIB="${RANDOMX_LIB:-$RANDOMX_DEFAULT_BASE/build/librandomx.a}"
 CXX="${CXX:-g++}"
 OUT="${OUT:-$HERE/wam-miner}"
 
