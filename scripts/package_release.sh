@@ -41,9 +41,31 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/.." && pwd)"
 
+# Look in this repository first, then in ~/wam.
+#
+# HERE and REPO are computed on the two lines above and were then ignored in
+# favour of $HOME/wam -- correct on exactly one machine, the laptop this was
+# written on. Cloned to /opt/wam on the release server it failed with
+#
+#     error: missing /root/wam/build/wam-core/src/wamd
+#
+# naming a path the operator never chose. fetch-upstream.sh builds into
+# <repo>/build, so the repository already knows where its own tree is. The
+# $HOME fallback stays for anyone with a tree built the old way.
+#
+# Same defect, same fix, as miner/build.sh. A path written from memory of
+# where something lives, in a file that could have asked.
+for base in "$REPO/build" "$HOME/wam/build"; do
+    if [ -d "$base/wam-core" ]; then
+        BUILD_BASE="$base"
+        break
+    fi
+done
+BUILD_BASE="${BUILD_BASE:-$REPO/build}"
+
 VERSION="${VERSION:-}"
-TREE="${TREE:-$HOME/wam/build/wam-core}"
-WORK="${WORK:-$HOME/wam/build/release}"
+TREE="${TREE:-$BUILD_BASE/wam-core}"
+WORK="${WORK:-$BUILD_BASE/release}"
 OUT="${OUT:-$REPO/out/release}"
 JOBS="${JOBS:-$(nproc)}"
 PLATFORM="x86_64-linux-gnu"
@@ -90,7 +112,7 @@ ok "node build carries no -march= flag"
 # ---------------------------------------------------------------------------
 step "2. RandomX, rebuilt for the baseline"
 
-RX_SRC="${RX_SRC:-$HOME/wam/build/randomx}"
+RX_SRC="${RX_SRC:-$BUILD_BASE/randomx}"
 [ -d "$RX_SRC" ] || fail "RandomX sources not found at $RX_SRC"
 
 RX_BUILD="$WORK/randomx"
