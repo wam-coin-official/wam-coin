@@ -277,7 +277,16 @@ if [ -x ./src/test/test_bitcoin ]; then
 fi
 
 log "installing binaries to $PREFIX/bin"
-sudo make install >/dev/null
+
+# install-strip, not install. An unstripped wamd is 267 MB of debug symbols;
+# stripped it is 14 MB, and identical in behaviour. Five binaries meant over a
+# gigabyte of symbols on every server, which also made copying a node to a
+# second machine over a home connection fail halfway.
+#
+# The symbols are not lost. The build tree keeps the unstripped binaries at
+# build/wam-core/src/, which is where a backtrace would be resolved from
+# anyway -- you need the exact build that crashed, not a copy in /usr/local.
+sudo make install-strip >/dev/null 2>&1 || sudo make install >/dev/null
 
 # The upstream build produces bitcoind/bitcoin-cli names; expose them as WAM.
 for pair in "bitcoind:wamd" "bitcoin-cli:wam-cli" "bitcoin-tx:wam-tx" "bitcoin-util:wam-util"; do

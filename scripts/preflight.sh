@@ -92,6 +92,31 @@ if [ -d build/wam-core/src ] || [ -d "$HOME/wam/build/wam-core/src" ]; then
     fi
 fi
 
+if [ -n "$HOST" ]; then
+    # An unstripped wamd is 267 MB of debug symbols against 14 MB stripped.
+    # Nobody downloading a currency wants a quarter of a gigabyte of symbols,
+    # and it is large enough to make copying the node to a second machine over
+    # an ordinary connection time out halfway.
+    SZ="$(rsh 'stat -c%s /usr/local/bin/wamd 2>/dev/null')"
+    if [ -n "$SZ" ] && [ "$SZ" -gt 62914560 ]; then
+        bad "the installed wamd is $((SZ / 1048576)) MB -- debug symbols were not
+           stripped. make install-strip, not make install"
+    elif [ -n "$SZ" ]; then
+        ok "the installed wamd is $((SZ / 1048576)) MB, stripped"
+    fi
+
+    # Twelve of these shipped silently for weeks.
+    DEPS="$(rsh "ldd /usr/local/bin/wamd 2>/dev/null | awk '/=>/{print \$1}' \
+            | grep -vE 'linux-vdso|ld-linux|libc\.so|libm\.so|libgcc_s|libstdc|libpthread|libdl|librt|libresolv' \
+            | grep -vE 'libevent|libsqlite3' | sort -u")"
+    if [ -z "$DEPS" ]; then
+        ok "no runtime dependency beyond libevent and libsqlite3"
+    else
+        bad "extra runtime dependencies a downloader must already have:
+           $(printf '%s' "$DEPS" | tr '\n' ' ')"
+    fi
+fi
+
 # ---------------------------------------------------------------------------
 sect "A stranger's first five minutes"
 
