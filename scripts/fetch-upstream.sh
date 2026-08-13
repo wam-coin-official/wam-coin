@@ -116,6 +116,29 @@ fi
 
 python3 "$REPO_ROOT/scripts/patch_upstream.py" --tree "$CORE_DIR" --repo "$REPO_ROOT"
 
+# ---------------------------------------------------------------------------
+# Rename the binaries.
+#
+# rename_binaries.py has existed, complete and tested, since the first week,
+# and was never called from anywhere. The result shipped as far as a live
+# server: the node's executable was still `bitcoind`, with `wamd` a symlink
+# beside it. Every check passed, because the symlink works.
+#
+# It is not cosmetic. A WAM node and a Bitcoin node cannot coexist on one
+# machine when both install /usr/local/bin/bitcoind, and package_release.sh
+# looks for src/wamd, which never existed.
+#
+# Run here rather than in patch_upstream.py because it rewrites automake
+# variable names, which the anchored-transformation model is deliberately not
+# built for -- it renames identifiers across a file rather than replacing a
+# known string at a known anchor.
+log "     renaming binaries to wamd / wam-cli / wam-tx / wam-util / wam-wallet"
+python3 "$REPO_ROOT/scripts/rename_binaries.py" --tree "$CORE_DIR"
+
+# Verify rather than assume. --check re-reads the tree and fails if any
+# upstream name survived, so a partial rename cannot pass silently.
+python3 "$REPO_ROOT/scripts/rename_binaries.py" --tree "$CORE_DIR" --check
+
 cat > "$CORE_DIR/.wam-patched" <<EOF
 upstream_repo=$UPSTREAM_REPO
 upstream_tag=$UPSTREAM_TAG
