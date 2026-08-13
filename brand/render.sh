@@ -41,8 +41,17 @@ command -v rsvg-convert >/dev/null 2>&1 || {
 
 mkdir -p "$OUT"
 
+command -v python3 >/dev/null 2>&1 && [ -f "$HERE/make_coin_face.py" ] && {
+    # The coin faces carry legends, and those legends are outlines rather than
+    # <text>. Regenerating here means a change to the supply figure or the
+    # launch date cannot be made in one file and forgotten in the other.
+    python3 "$HERE/make_coin_face.py" >/dev/null 2>&1 \
+        && ok "coin faces regenerated from make_coin_face.py" \
+        || printf '  warn  could not regenerate the coin faces (fonttools missing?)\n'
+}
+
 # name:viewbox-width:viewbox-height
-SQUARE="wam-coin wam-icon wam-icon-mono"
+SQUARE="wam-coin wam-coin-face wam-coin-face-struck wam-icon wam-icon-mono"
 SIZES="1024 512 256 200 128 64"
 
 for name in $SQUARE; do

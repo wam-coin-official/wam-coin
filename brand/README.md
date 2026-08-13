@@ -5,7 +5,9 @@
 | `wam-icon.svg` | Primary mark. Default for anything ≥ 48px. |
 | `wam-logo.svg` | Horizontal lockup (mark + wordmark). Whitepaper header, site header, README. |
 | `wam-icon-mono.svg` | Single ink. Engraving, embossing, stamps, screen print, fax. Inherits `currentColor`. |
-| `wam-coin.svg` | Circular coin face. Exchange listings, wallet token lists, market-data aggregators. |
+| `wam-coin.svg` | Circular coin face, no legend. Exchange listings, wallet token lists, market-data aggregators. |
+| `wam-coin-face.svg` | The coin with its legends. Official use: email signatures, documents, print. |
+| `wam-coin-face-struck.svg` | The same coin with a struck-metal finish. Screens only, 128px and up. |
 | `wam-favicon.svg` | 16–48px. **Not** the primary icon scaled down — redrawn for small sizes. |
 
 ---
@@ -50,6 +52,38 @@ one solid shape in one ink. It uses a mask referencing the identical W path, so 
 never drift out of sync with the primary.
 
 ---
+
+## The coin face
+
+Four positions. They do not move between variants:
+
+```
+        22,000,000          the supply ceiling
+            W               the mark
+     WAMCOIN.15.9.2026      the name and the genesis date
+```
+
+**Colour, finish and ornament may vary. These positions may not.** That single
+rule is what lets a flat asset and a rich marketing image read as the same
+coin rather than as two identities. A silver edition, a print edition, an
+anniversary edition — all of them keep the four positions and change whatever
+else they like.
+
+**Only what can be checked goes on the coin.** The ceiling is enforced by
+consensus and the date is the genesis timestamp; both can be verified against
+a running node. No price, no slogan, and specifically not "decentralized
+digital currency" — a claim every coin makes and none of them proves.
+
+`make_coin_face.py` generates both files, extracting the legends from the font
+as outlines. Nothing font-dependent survives into the shipped SVG, because an
+asset carrying `<text>` renders with whatever the viewer happens to have
+installed, and a coin whose legend reflows on someone else's machine is worse
+than no coin at all. The script refuses to write a file that still contains
+`<text>`, `font-family` or `textPath`.
+
+The arc is built one glyph at a time rather than with `<textPath>`. librsvg,
+which renders every PNG in this directory, ignores `textPath` completely and
+emits a coin with no legend and no warning.
 
 ## Clear space and minimum sizes
 
