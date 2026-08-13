@@ -100,7 +100,7 @@ else
         build-essential libtool autotools-dev automake pkg-config bsdmainutils \
         cmake curl git ca-certificates python3 python3-pip \
         libevent-dev libboost-dev libssl-dev libsqlite3-dev \
-        libzmq3-dev systemd
+        systemd
 
     if [ "$DO_POOL" = "1" ]; then
         if ! command -v node >/dev/null || [ "$(node -p 'process.versions.node.split(".")[0]')" -lt 18 ]; then
@@ -243,9 +243,23 @@ log "configuring (autotools)"
 RANDOMX_CFLAGS="-I$RANDOMX_DIR/src"
 RANDOMX_LIBS="$RANDOMX_DIR/build/librandomx.a"
 
+# --disable-zmq is not a size optimisation. ZMQ is a notification interface
+# nothing in this project uses -- zero references in src/wam, the pool, the
+# explorer or the bot -- and linking it drags in twelve shared libraries,
+# including the whole of Kerberos, that a downloader must then already have.
+#
+# A node copied to a clean Ubuntu box died with
+#
+#     error while loading shared libraries: libevent_pthreads-2.1.so.7
+#
+# which no user can read as "install one package". Removing a feature we do
+# not use removes twelve of the seventeen dependencies outright, and leaves
+# libevent and libsqlite3 -- both of which any Ubuntu already has or gets from
+# a single apt line.
 ./configure \
     --prefix="$PREFIX" \
     --without-gui \
+    --disable-zmq \
     --disable-tests-fuzz-binary \
     --with-incompatible-bdb \
     CPPFLAGS="$RANDOMX_CFLAGS" \

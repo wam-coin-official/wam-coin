@@ -197,6 +197,70 @@ Source: https://github.com/wam-coin-official/wam-coin
 Security: SECURITY.md
 EOF
 
+# ---------------------------------------------------------------------------
+# What will this actually need on a machine that is not this one?
+#
+# A binary copied to a clean Ubuntu box died with
+#
+#     error while loading shared libraries: libevent_pthreads-2.1.so.7
+#
+# which a downloader cannot read as "install one package". The build had been
+# linking ZMQ -- a feature nothing here uses -- and that alone pulled in twelve
+# libraries including the whole of Kerberos.
+#
+# So the packager now reads its own output and writes the answer into the
+# tarball. Anything appearing here that is not libevent or libsqlite3 is a
+# dependency that crept back in, and it is visible at package time rather than
+# on a stranger's machine.
+step "4b. runtime dependencies"
+
+BASE_LIBS='linux-vdso|ld-linux|libc\.so|libm\.so|libgcc_s|libstdc\+\+|libpthread|libdl|librt|libanl|libresolv'
+NEEDED="$(ldd "$WORK/stage/wam-coin-$VERSION/bin/wamd" 2>/dev/null \
+          | awk '/=>/ {print $1}' | grep -vE "$BASE_LIBS" | sort -u)"
+
+if [ -z "$NEEDED" ]; then
+    ok "no dependencies beyond the C library -- this runs anywhere"
+else
+    printf '  needs, beyond a bare glibc system:\n'
+    printf '%s\n' "$NEEDED" | sed 's/^/    /'
+    # Anything unexpected is loud. Twelve of these were shipping silently.
+    UNEXPECTED="$(printf '%s\n' "$NEEDED" | grep -vE 'libevent|libsqlite3' || true)"
+    if [ -n "$UNEXPECTED" ]; then
+        printf '\n  \033[33mwarn\033[0m  unexpected dependencies, each one a package the\n'
+        printf '        downloader must already have:\n'
+        printf '%s\n' "$UNEXPECTED" | sed 's/^/          /'
+        printf '        Was a feature enabled by accident?\n'
+    fi
+fi
+
+# The tarball says what it needs, in the file people open first.
+cat > "$WORK/stage/wam-coin-$VERSION/DEPENDENCIES.txt" <<DEPS
+WAM Coin $VERSION -- what this needs to run
+===========================================
+
+Ubuntu 22.04 / 24.04, Debian 12, or anything with glibc 2.35 or newer.
+
+If the node exits with
+
+    error while loading shared libraries: ...
+
+install the shared libraries it asks for:
+
+    sudo apt-get install -y libevent-2.1-7t64 libsqlite3-0
+
+On Ubuntu 22.04 the libevent package is named libevent-2.1-7 instead.
+
+Nothing else is required. This build has ZMQ disabled, which is why it does
+not ask for libzmq, libsodium, libpgm, libnorm or Kerberos -- none of which
+this project uses.
+
+Verify what your copy actually wants:
+
+    ldd bin/wamd | grep 'not found'
+
+Empty output means you are ready.
+DEPS
+
 TARBALL_NODE="wam-coin-$VERSION-$PLATFORM.tar.gz"
 TARBALL_MINER="wam-miner-$VERSION-$PLATFORM.tar.gz"
 
