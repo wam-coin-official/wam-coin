@@ -6,8 +6,9 @@
 | `wam-logo.svg` | Horizontal lockup (mark + wordmark). Whitepaper header, site header, README. |
 | `wam-icon-mono.svg` | Single ink. Engraving, embossing, stamps, screen print, fax. Inherits `currentColor`. |
 | `wam-coin.svg` | Circular coin face, no legend. Exchange listings, wallet token lists, market-data aggregators. |
-| `wam-coin-face.svg` | The coin with its legends. Official use: email signatures, documents, print. |
-| `wam-coin-face-struck.svg` | The same coin with a struck-metal finish. Screens only, 128px and up. |
+| `wam-coin-face.svg` | **Email only.** The coin with its legends, flat. |
+| `wam-coin-face-struck.svg` | The same, struck finish. Screens, 128px and up. |
+| `wam-coin-marketing.jpg` | **Everything else.** The primary coin image. |
 | `wam-favicon.svg` | 16–48px. **Not** the primary icon scaled down — redrawn for small sizes. |
 
 ---
@@ -52,6 +53,27 @@ one solid shape in one ink. It uses a mask referencing the identical W path, so 
 never drift out of sync with the primary.
 
 ---
+
+## Which coin, where
+
+**`wam-coin-marketing.jpg` is the coin.** Website, social, presentations,
+exchange artwork, anywhere the currency is shown — it is the one people should
+recognise.
+
+**`wam-coin-face.svg` is for email, and only email.** Mail clients composite a
+transparent image onto the reader's theme background, and several rewrite or
+strip anything they consider decorative. A flat three-ink asset survives that;
+a dark photographic render does not.
+
+The marketing coin is a 3D render, so it is raster and always will be. That
+costs three things, none of which are email:
+
+- It cannot be the favicon. Use `wam-favicon.svg`, redrawn for 16–48px.
+- It cannot be printed in one ink, embroidered, or engraved. Use
+  `wam-icon-mono.svg`.
+- It cannot be enlarged past its master. `make_marketing_sizes.py` derives
+  every size downward and refuses to invent detail upward; replacing the
+  master with a larger render is the only way to get bigger.
 
 ## The coin face
 
