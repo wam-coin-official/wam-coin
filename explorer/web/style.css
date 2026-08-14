@@ -208,3 +208,25 @@ footer {
   display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
   color: var(--muted); font-size: 12px; border-top: 1px solid var(--line);
 }
+
+/* -------------------------------------------------------------- network
+   Three numbers that answer "is this a network or one machine". Built from
+   the same tokens as .tile rather than new colours, so the card reads as
+   part of the page and not as something bolted on later. */
+.netgrid {
+  display: grid; gap: 13px; margin-bottom: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+.netstat {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 14px 16px;
+}
+.netnum {
+  font-size: 26px; font-weight: 640; font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em; line-height: 1.15;
+}
+.netlabel {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.045em;
+  color: var(--muted); margin-top: 4px;
+}
+.netstat .fine { margin-top: 5px; }

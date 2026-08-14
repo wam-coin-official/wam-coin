@@ -26,6 +26,7 @@ const path = require('path');
 
 const RpcClient = require('./lib/rpc');
 const Collector = require('./lib/collector');
+const network = require('./lib/network');
 
 // ---------------------------------------------------------------------------
 // Tiny logger (no dependency)
@@ -290,6 +291,17 @@ WAM Network Dashboard
 
             case pathname === '/api/blocks':
                 return json(res, 200, { blocks: collector.get().blocks });
+
+            // Who else is out there. Deliberately not cached with the rest:
+            // this is the number people will refresh, and a minute-old answer
+            // reads as a dead network rather than a slow page.
+            case pathname === '/api/network': {
+                const peers = await collector.rpc.tryCall('getpeerinfo', [], []);
+                // 0 means "everything you know", not "nothing".
+                const known = await collector.rpc.tryCall('getnodeaddresses', [0], []);
+                const netInfo = await collector.rpc.tryCall('getnetworkinfo', [], null);
+                return json(res, 200, network.build(peers, known, netInfo));
+            }
 
             case pathname === '/api/search': {
                 if (!q('q')) return json(res, 400, { error: 'q is required' });

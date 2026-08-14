@@ -143,6 +143,60 @@
 
   </section>
 
+  <!-- ----------------------------------------------------------------
+       The network, as seen from this node.
+
+       The pool dashboard answers "is anyone mining with me". This answers
+       the question that matters more at launch: is this a network, or one
+       person's machine? The measure is how many independent computers
+       validate the chain for themselves.
+
+       No peer address appears here. Someone running a WAM node is doing the
+       project a favour, and publishing where they are would turn that into a
+       target list. Only WAM's own seeds are named, and only by country,
+       because their addresses are already in public DNS.
+       ---------------------------------------------------------------- -->
+  <section class="card">
+    <h2>The network</h2>
+
+    <div class="netgrid">
+      <div class="netstat">
+        <div class="netnum" id="netKnown">—</div>
+        <div class="netlabel">addresses known</div>
+        <div class="fine">every node this one has heard of</div>
+      </div>
+      <div class="netstat">
+        <div class="netnum" id="netConnected">—</div>
+        <div class="netlabel">connected now</div>
+        <div class="fine" id="netInOut">&nbsp;</div>
+      </div>
+      <div class="netstat">
+        <div class="netnum" id="netSeeds">—</div>
+        <div class="netlabel">WAM seed nodes</div>
+        <div class="fine" id="netSeedWhere">&nbsp;</div>
+      </div>
+    </div>
+
+    <table class="kv" id="netTypes">
+      <tr><td>IPv4</td><td class="num" id="netIpv4">—</td></tr>
+      <tr><td>IPv6</td><td class="num" id="netIpv6">—</td></tr>
+      <tr><td>Tor</td><td class="num" id="netOnion">—</td></tr>
+      <tr><td>Software versions</td><td class="num mono" id="netVersions">—</td></tr>
+      <tr><td>Longest connection</td><td class="num" id="netLongest">—</td></tr>
+    </table>
+
+    <p class="fine">
+      Peer addresses are never published here. Running a node is a favour to
+      this project, and a list of who does it is a list of who to attack.
+      Only WAM's own seeds are named, by country, because they are already in
+      public DNS.
+    </p>
+    <p class="fine">
+      Run one yourself and this number goes up:
+      <code>./install.sh --network testnet</code>
+    </p>
+  </section>
+
   <!-- ---------------------------------------------------------------- -->
   <section class="card">
     <h2>Recent blocks</h2>

@@ -348,6 +348,47 @@ $('auditForm').addEventListener('submit', async (e) => {
 
 // ---------------------------------------------------------------- loop
 
+// ---------------------------------------------------------------- network
+
+// Fetched on its own rather than folded into /api/status, because the status
+// payload is a cached snapshot and this is the number a visitor refreshes to
+// watch. A minute-old peer count reads as a dead network.
+//
+// A failure here must not blank the rest of the page: the network card is the
+// least important thing on it and the chain data is the most.
+async function renderNetwork() {
+  let n;
+  try {
+    n = await getJSON('/api/network');
+  } catch {
+    text($('netKnown'), '—');
+    text($('netConnected'), '—');
+    return;
+  }
+
+  text($('netKnown'), n.known === null ? '—' : n.known.toLocaleString());
+  text($('netConnected'), n.connected.toLocaleString());
+  text($('netInOut'), `${n.outbound} out · ${n.inbound} in`);
+
+  text($('netSeeds'), String(n.seeds.length));
+  text($('netSeedWhere'), n.seeds.length
+    ? n.seeds.map((s) => s.where).join(' · ')
+    : 'none reachable');
+
+  const t = n.byType || {};
+  text($('netIpv4'), String(t.ipv4 || 0));
+  text($('netIpv6'), String(t.ipv6 || 0));
+  text($('netOnion'), String(t.onion || 0));
+
+  text($('netVersions'), n.versions.length
+    ? n.versions.map((v) => `${v.version} ×${v.count}`).join('  ')
+    : '—');
+
+  text($('netLongest'), n.longestConnectionSeconds
+    ? duration(n.longestConnectionSeconds)
+    : '—');
+}
+
 async function refresh() {
   try {
     const s = await getJSON('/api/status');
@@ -364,6 +405,7 @@ async function refresh() {
     renderTreasury(s);
     renderRandomX(s);
     renderBlocks(s.blocks);
+    renderNetwork();
 
     text($('footerStatus'), `dashboard up ${duration(s.serverUptimeSec)}`);
   } catch (err) {
