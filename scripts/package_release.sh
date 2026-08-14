@@ -98,8 +98,25 @@ NODE_BINS=(wamd wam-cli wam-tx wam-util wam-wallet)
 for b in "${NODE_BINS[@]}"; do
     [ -x "$TREE/src/$b" ] || fail "missing $TREE/src/$b -- run scripts/build.sh first"
 done
-[ -x "$TREE/src/qt/wam-qt" ] || fail "missing the GUI -- run scripts/build_qt.sh first"
-ok "found ${#NODE_BINS[@]} programs and the wallet"
+# The GUI is optional, and its absence is not an error.
+#
+# install.sh builds --without-gui on purpose. Adding Qt would pull X11,
+# fontconfig, freetype, harfbuzz, dbus and thirty more shared libraries into a
+# package that was just cut from seventeen dependencies to two -- and a person
+# reviewing a testnet on a headless VPS has no use for a window.
+#
+# Refusing to package because a component nobody asked for is missing is the
+# script deciding for the operator. It now packages what exists and says what
+# did not.
+HAVE_GUI=0
+if [ -x "$TREE/src/qt/wam-qt" ]; then
+    HAVE_GUI=1
+    ok "found ${#NODE_BINS[@]} programs, the wallet, and the GUI"
+else
+    ok "found ${#NODE_BINS[@]} programs and the wallet"
+    printf '  \033[33mnote\033[0m  no GUI in this build (--without-gui). The node, CLI and\n'
+    printf '        miner are packaged; scripts/build_qt.sh builds the GUI if wanted.\n'
+fi
 
 # Bitcoin Core's configure does not add -march, so these are already portable.
 # Assert it rather than assume it: a stray CXXFLAGS in someone's environment
@@ -158,7 +175,7 @@ mkdir -p "$NODE_DIR" "$MINER_DIR"
 for b in "${NODE_BINS[@]}"; do
     cp "$TREE/src/$b" "$NODE_DIR/"
 done
-cp "$TREE/src/qt/wam-qt" "$NODE_DIR/"
+[ "$HAVE_GUI" = "1" ] && cp "$TREE/src/qt/wam-qt" "$NODE_DIR/"
 cp "$MINER_OUT" "$MINER_DIR/"
 
 # Debug symbols are most of the size and none of the use. 339 MB -> ~30 MB.
@@ -170,31 +187,105 @@ for f in COPYING README.md WHITEPAPER.md SECURITY.md; do
 done
 cp "$REPO/COPYING" "$REPO/miner/README.md" "$MINER_DIR/" 2>/dev/null || true
 
+GUI_LINE=""
+[ "$HAVE_GUI" = "1" ] && GUI_LINE="
+  bin/wam-qt       the graphical wallet"
+
 cat > "$WORK/stage/wam-coin-$VERSION/RELEASE.txt" <<EOF
 WAM Coin $VERSION -- $PLATFORM
+=====================================================================
 
+RUN A NODE IN FOUR COMMANDS
+---------------------------
+
+  1.  Check what you downloaded is what we built:
+
+          sha256sum -c SHA256SUMS
+
+      It must say OK. If it does not, delete the file and download it
+      again -- do not run it.
+
+  2.  Make sure the two libraries are present. On Ubuntu or Debian:
+
+          sudo apt-get install -y libevent-2.1-7t64 libsqlite3-0
+
+      On Ubuntu 22.04 the first is named libevent-2.1-7 instead. That is
+      all this needs; there is no third package.
+
+  3.  Start the node on the test network:
+
+          ./bin/wamd -testnet -daemon
+
+      It finds the network by itself through DNS. Give it a minute.
+
+  4.  Ask it how it is doing:
+
+          ./bin/wam-cli -testnet getblockchaininfo
+          ./bin/wam-cli -testnet getsupplyinfo
+
+That is a full node. It validates every block for itself and trusts
+nobody, including us.
+
+
+TO MINE
+-------
+
+  Download the miner package beside this one, then:
+
+      ./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 \\
+                  -u YOUR_WAM_ADDRESS.rig1
+
+  Get an address first:
+
+      ./bin/wam-cli -testnet createwallet mine
+      ./bin/wam-cli -testnet getnewaddress
+
+  TESTNET COINS ARE WORTH NOTHING. They do not carry over to mainnet on
+  15 September 2026. This is for testing the software, and that is all.
+
+
+WHAT IS IN HERE
+---------------
   bin/wamd         the node
-  bin/wam-cli      talk to a running node
-  bin/wam-qt       the graphical wallet
+  bin/wam-cli      talk to a running node$GUI_LINE
   bin/wam-tx       build and inspect raw transactions
   bin/wam-util     miscellaneous utilities
   bin/wam-wallet   wallet maintenance, offline
 
-Start with:   ./bin/wamd -daemon
-Then:         ./bin/wam-cli getblockchaininfo
+  DEPENDENCIES.txt what this needs installed, and how to check
+  WHITEPAPER.md    the design and its limits
+  SECURITY.md      how to report a vulnerability
 
-Verify what you downloaded before you run it:
 
-  sha256sum -c SHA256SUMS
+CHECK OUR CLAIMS RATHER THAN BELIEVING THEM
+-------------------------------------------
 
-These binaries are built for the plain x86-64 baseline and will run on any
-64-bit Intel or AMD processor. They are NOT reproducible builds: the checksums
-prove your download is intact, not that it was compiled from this source. If
-that distinction matters to you -- and for a currency it should -- build it
-yourself. The instructions are in README.md and take about twenty minutes.
+  ./bin/wam-cli -testnet getsupplyinfo     what the chain says about its money
+  ./bin/wam-cli -testnet getdevfeeinfo     the 5% treasury and when it ends
+  ./bin/wam-cli -testnet getrandomxinfo    the proof-of-work key schedule
 
-Source: https://github.com/wam-coin-official/wam-coin
-Security: SECURITY.md
+  From the source tree, python3 scripts/verify_supply.py replays all 33
+  halvings with exact integer arithmetic and asserts the 22,000,000 cap,
+  and python3 scripts/patch_upstream.py --list prints every difference
+  from Bitcoin Core with the reason for each.
+
+
+THE FINE PRINT, WHICH IS THE IMPORTANT PART
+-------------------------------------------
+
+  These binaries are built for the plain x86-64 baseline and run on any
+  64-bit Intel or AMD processor.
+
+  They are NOT reproducible builds. The checksums prove your download
+  arrived intact; they do not prove it was compiled from this source.
+  If that distinction matters to you -- and for a currency it should --
+  build it yourself. README.md has the steps and it takes about twenty
+  minutes.
+
+  There has been no third-party security audit.
+
+Source:   https://github.com/wam-coin-official/wam-coin
+Website:  https://wamcoin.org
 EOF
 
 # ---------------------------------------------------------------------------
