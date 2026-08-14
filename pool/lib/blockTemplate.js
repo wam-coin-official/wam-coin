@@ -292,12 +292,41 @@ class BlockTemplate {
         return applyMerkleBranch(sha256d(coinbaseBuffer), this.merkleBranch);
     }
 
-    /** Reject a share we have already accounted for. Returns false on duplicate. */
+    /**
+     * Claim a share tuple. Returns false if it is already claimed.
+     *
+     * The check and the insert are one synchronous step on purpose: a client's
+     * messages are not processed one at a time, so two copies of the same share
+     * can be in flight together, and anything that yields between looking and
+     * claiming lets both through to be credited.
+     *
+     * The claim is held across hashing and released again by releaseSubmit if
+     * the share is not credited -- see the comment there.
+     */
     registerSubmit(extranonce1, extranonce2, nTime, nonce) {
         const key = `${extranonce1}:${extranonce2}:${nTime}:${nonce}`;
         if (this.submits.has(key)) return false;
         this.submits.add(key);
         return true;
+    }
+
+    /**
+     * Give back a claim for a share that was not credited.
+     *
+     * Without this the set records every syntactically valid submission,
+     * including the ones that fail the difficulty check -- which cost the
+     * sender nothing. At the message rate limit that is thousands of permanent
+     * entries a second from one address, and the pool runs out of memory
+     * without anybody mining.
+     *
+     * Capping the set instead would be the wrong repair: evicting an entry lets
+     * a real share be submitted and credited twice, turning a memory problem
+     * into a payment one. Keeping only credited shares bounds the set by proof
+     * of work -- filling it costs an attacker exactly what it costs a miner,
+     * and at that point the entries are honest accounting.
+     */
+    releaseSubmit(extranonce1, extranonce2, nTime, nonce) {
+        this.submits.delete(`${extranonce1}:${extranonce2}:${nTime}:${nonce}`);
     }
 
     // -----------------------------------------------------------------------

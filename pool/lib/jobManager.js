@@ -246,62 +246,77 @@ class JobManager extends EventEmitter {
             return this._reject(REJECT.DUPLICATE, workerName);
         }
 
-        // ---- rebuild exactly what the miner hashed ------------------------
-        const extranonce2 = Buffer.from(extranonce2Hex, 'hex');
-        const coinbase = job.serializeCoinbase(extranonce1, extranonce2);
-        const merkleRoot = job.computeMerkleRoot(coinbase);
-        const header = job.serializeHeader(merkleRoot, nTime, nonce);
-
-        if (header.length !== HEADER_SIZE) {
-            this.log.error(`built a ${header.length}-byte header; expected ${HEADER_SIZE}`);
-            return this._reject(REJECT.INTERNAL, workerName);
-        }
-
-        // ---- the expensive part, off the event loop -----------------------
-        let powHash;
+        // Everything below can reject, and a rejected share must give its claim
+        // back -- it was never credited, so nothing needs to remember it, and
+        // keeping it would let anyone fill the set for free. `finally` rather
+        // than a release call on each path, so a rejection added here later
+        // cannot silently reintroduce the leak.
+        let credited = false;
         try {
-            powHash = await randomx.hash(job.seedHash, header);
-        } catch (err) {
-            this.log.error(`RandomX hashing failed: ${err.message}`);
-            return this._reject(REJECT.INTERNAL, workerName);
+            // ---- rebuild exactly what the miner hashed --------------------
+            const extranonce2 = Buffer.from(extranonce2Hex, 'hex');
+            const coinbase = job.serializeCoinbase(extranonce1, extranonce2);
+            const merkleRoot = job.computeMerkleRoot(coinbase);
+            const header = job.serializeHeader(merkleRoot, nTime, nonce);
+
+            if (header.length !== HEADER_SIZE) {
+                this.log.error(`built a ${header.length}-byte header; expected ${HEADER_SIZE}`);
+                return this._reject(REJECT.INTERNAL, workerName);
+            }
+
+            // ---- the expensive part, off the event loop -------------------
+            let powHash;
+            try {
+                powHash = await randomx.hash(job.seedHash, header);
+            } catch (err) {
+                this.log.error(`RandomX hashing failed: ${err.message}`);
+                return this._reject(REJECT.INTERNAL, workerName);
+            }
+
+            const hashValue = hashToBigIntLE(powHash);
+            const shareTarget = difficultyToTarget(difficulty);
+            const shareDiff = targetToDifficulty(hashValue > 0n ? hashValue : 1n);
+
+            // ---- did it solve the block? ----------------------------------
+            const isBlockCandidate = hashValue <= job.target;
+
+            if (!isBlockCandidate && hashValue > shareTarget) {
+                this.log.debug(
+                    `low-difficulty share from ${workerName}: ` +
+                    `diff ${shareDiff.toFixed(6)} < required ${difficulty}`);
+                return this._reject(REJECT.LOW_DIFFICULTY, workerName, { shareDiff });
+            }
+
+            const share = {
+                jobId,
+                height: job.height,
+                worker: workerName,
+                ipAddress,
+                difficulty,
+                shareDiff,
+                blockCandidate: isBlockCandidate,
+                blockHash: null,
+                powHash: powHash.toString('hex'),
+                distributableValue: job.distributableValue,
+                devFeeAmount: job.devFeeAmount,
+                coinbaseValue: job.coinbaseValue,
+                time: Date.now()
+            };
+
+            if (isBlockCandidate) {
+                await this._submitBlock(job, header, coinbase, share);
+            }
+
+            // Past this point the share counts, so its claim is kept: it is the
+            // only thing standing between a resubmission and a second payment.
+            credited = true;
+            this.emit('share', share);
+            return { valid: true, share };
+        } finally {
+            if (!credited) {
+                job.releaseSubmit(e1hex, extranonce2Hex, nTimeHex, nonceHex);
+            }
         }
-
-        const hashValue = hashToBigIntLE(powHash);
-        const shareTarget = difficultyToTarget(difficulty);
-        const shareDiff = targetToDifficulty(hashValue > 0n ? hashValue : 1n);
-
-        // ---- did it solve the block? --------------------------------------
-        const isBlockCandidate = hashValue <= job.target;
-
-        if (!isBlockCandidate && hashValue > shareTarget) {
-            this.log.debug(
-                `low-difficulty share from ${workerName}: ` +
-                `diff ${shareDiff.toFixed(6)} < required ${difficulty}`);
-            return this._reject(REJECT.LOW_DIFFICULTY, workerName, { shareDiff });
-        }
-
-        const share = {
-            jobId,
-            height: job.height,
-            worker: workerName,
-            ipAddress,
-            difficulty,
-            shareDiff,
-            blockCandidate: isBlockCandidate,
-            blockHash: null,
-            powHash: powHash.toString('hex'),
-            distributableValue: job.distributableValue,
-            devFeeAmount: job.devFeeAmount,
-            coinbaseValue: job.coinbaseValue,
-            time: Date.now()
-        };
-
-        if (isBlockCandidate) {
-            await this._submitBlock(job, header, coinbase, share);
-        }
-
-        this.emit('share', share);
-        return { valid: true, share };
     }
 
     async _submitBlock(job, header, coinbase, share) {
