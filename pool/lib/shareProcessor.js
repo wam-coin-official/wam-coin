@@ -60,9 +60,71 @@ class ShareProcessor extends EventEmitter {
 
         this.networkDifficulty = 1;
         this.timers = [];
+
+        // A payment run must never overlap itself. processPayments is driven by
+        // setInterval, and a slow one -- a daemon that takes thirty seconds to
+        // answer, a batch of two hundred outputs, a wallet rescan -- lets the
+        // next tick start while the first is still between reading balances and
+        // clearing them. Both runs read the same balances, build the same batch
+        // and call sendmany. Everyone is paid twice, out of the pool's own
+        // wallet, and nothing in the logs looks wrong.
+        //
+        // The collector in the explorer has had `if (this.polling) return` since
+        // it was written, for the far less costly problem of stacked RPC polls.
+        this.paying = false;
     }
 
     k(...parts) { return [this.prefix, ...parts].join(':'); }
+
+    /**
+     * Did a previous run die with money in the air?
+     *
+     * Called before the payment timer starts. If an intent record survives, the
+     * process stopped between sendmany returning and the balances being
+     * cleared, and nobody but a human can tell which. Paying again would double
+     * the payout; clearing the record blindly would rob whoever was not paid.
+     *
+     * So it stops, prints what to check and how to resolve it, and refuses to
+     * pay. A pool that pauses is a support ticket. A pool that pays twice is
+     * the operator's own money, and a pool that skips a payment is a reputation.
+     */
+    async startupReconcile() {
+        const raw = await this.redis.get(this.k('payment:inflight'));
+        if (!raw) return true;
+
+        let intent;
+        try {
+            intent = JSON.parse(raw);
+        } catch {
+            intent = { total: 0, payouts: {} };
+        }
+
+        const when = intent.startedAt ? new Date(intent.startedAt).toISOString() : 'unknown';
+        const names = Object.keys(intent.payouts || {});
+
+        this.log.error('=========================================================');
+        this.log.error('A PAYMENT RUN DID NOT FINISH. PAYMENTS ARE PAUSED.');
+        this.log.error(`  started    ${when}`);
+        this.log.error(`  total      ${(intent.total / COIN).toFixed(8)} WAM`);
+        this.log.error(`  recipients ${names.length}`);
+        this.log.error('');
+        this.log.error('  The transaction may or may not have been broadcast, and the');
+        this.log.error('  balances may or may not have been cleared. Check the wallet:');
+        this.log.error('');
+        this.log.error('    wam-cli listtransactions "*" 20');
+        this.log.error('');
+        this.log.error('  If a matching send exists, the miners were paid. Deduct the');
+        this.log.error('  balances by hand, then clear the marker:');
+        this.log.error('');
+        this.log.error(`    redis-cli DEL ${this.k('payment:inflight')}`);
+        this.log.error('');
+        this.log.error('  If no such transaction exists, nothing was sent. Clear the');
+        this.log.error('  marker and the next run will pay normally.');
+        this.log.error('=========================================================');
+
+        this.paused = true;
+        return false;
+    }
 
     // -----------------------------------------------------------------------
     // Lifecycle
@@ -74,6 +136,10 @@ class ShareProcessor extends EventEmitter {
             `, pool fee ${this.poolFeePercent}%`);
         this.log.info('the chain\'s 5% treasury output is paid by the coinbase itself and is ' +
                       'never part of the miner pot');
+
+        // Before any timer fires: did the last run leave money in the air?
+        this.startupReconcile().catch((e) =>
+            this.log.error(`could not check for an unfinished payment: ${e.message}`));
 
         const blockCheck = (this.config.blockCheckIntervalSec || 60) * 1000;
         const payoutCheck = (this.config.paymentIntervalSec || 600) * 1000;
@@ -318,6 +384,22 @@ class ShareProcessor extends EventEmitter {
     // -----------------------------------------------------------------------
 
     async processPayments() {
+        if (this.paused) return;              // an unfinished run needs a human
+        if (this.paying) {
+            this.log.warn('a payment run is still in progress; skipping this tick');
+            return;
+        }
+        this.paying = true;
+        try {
+            await this._processPayments();
+        } finally {
+            // finally, not after: an exception must not leave the flag set, or
+            // the pool stops paying anyone and only says so once.
+            this.paying = false;
+        }
+    }
+
+    async _processPayments() {
         const threshold = Math.round((this.config.minimumPayoutWam || 1) * COIN);
         const balances = await this.redis.hgetall(this.k('balances'));
 
@@ -395,10 +477,33 @@ class ShareProcessor extends EventEmitter {
         this.log.info(`paying ${batch.length} miners a total of ` +
                       `${(batchTotal / COIN).toFixed(8)} WAM`);
 
+        // Record the intent BEFORE the money moves.
+        //
+        // Between sendmany returning and the balances being cleared there is a
+        // window of milliseconds. A crash inside it -- and this project has
+        // already lost power twice in one day -- leaves the coins spent and the
+        // balances intact, so the next run pays the same people again out of
+        // the pool's own wallet. Milliseconds times years is not never.
+        //
+        // The record is written first and cleared last, so an interrupted run
+        // leaves evidence. startupReconcile() reads it and refuses to pay until
+        // an operator has checked the wallet, because the safe failure here is
+        // a delayed payment and the unsafe one is a duplicate.
+        const intent = {
+            startedAt: Date.now(),
+            total: batchTotal,
+            payouts: Object.fromEntries(batch)
+        };
+        await this.redis.set(this.k('payment:inflight'), JSON.stringify(intent));
+
         let txid;
         try {
             txid = await this.daemon.cmd('sendmany', ['', sendMany]);
         } catch (err) {
+            // The call failed, so nothing was spent and the intent is stale.
+            // Clearing it here is safe; leaving it would halt payments over a
+            // transient RPC error.
+            await this.redis.del(this.k('payment:inflight'));
             this.log.error(`sendmany failed, balances left untouched: ${err.message}`);
             return;
         }
@@ -417,6 +522,10 @@ class ShareProcessor extends EventEmitter {
             payouts: Object.fromEntries(batch)
         }));
         pipe.ltrim(this.k('payments'), 0, 999);
+        // Cleared in the same pipeline that clears the balances: if this
+        // survives, so did the deduction, and if neither did the intent record
+        // is still there to be found.
+        pipe.del(this.k('payment:inflight'));
         await pipe.exec();
 
         this.log.info(`payment sent, txid ${txid}`);

@@ -370,6 +370,27 @@ class StratumServer extends EventEmitter {
             return;
         }
 
+        // A global cap alone is a denial of service with no cost to the
+        // attacker. Authorising needs nothing but a valid WAM address, which is
+        // free, and an authorised connection is exempt from the 30-second
+        // timeout and never trips the invalid-share ban because it submits
+        // nothing. One host opens five thousand connections, holds them, and
+        // every real miner is refused.
+        //
+        // The cap has to allow a farm behind one NAT -- hundreds of rigs on one
+        // address is ordinary -- so it is generous, and it is a limit on one
+        // address rather than on everyone.
+        const perIp = this.config.maxConnectionsPerIp || 128;
+        let fromThisIp = 0;
+        for (const c of this.clients.values()) {
+            if (c.ip === ip && ++fromThisIp >= perIp) break;
+        }
+        if (fromThisIp >= perIp) {
+            this.log.warn(`${ip} already holds ${fromThisIp} connections; refusing`);
+            socket.destroy();
+            return;
+        }
+
         const client = new StratumClient(socket, this);
         if (portCfg.difficulty) {
             client.varDiffState = this.varDiff.createState(portCfg.difficulty);
