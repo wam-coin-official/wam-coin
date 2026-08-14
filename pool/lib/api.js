@@ -18,6 +18,11 @@ const {
     DEVFEE_PERCENT, DEVFEE_LAST_HEIGHT
 } = require('./constants');
 
+// The same validator the stratum server authorizes with. Two address checks in
+// one process drift apart, and the day they disagree the API answers for a
+// string no miner could ever have used -- or refuses one that is paying out.
+const { validateAddress } = require('./util');
+
 const MIME = {
     '.html': 'text/html; charset=utf-8',
     '.css': 'text/css; charset=utf-8',
@@ -127,6 +132,17 @@ class ApiServer {
         case '/api/miner': {
             const address = query.get('address');
             if (!address) return this._json(res, 400, { error: 'address required' });
+
+            // Reject before doing any work, and before this string becomes a
+            // cache key. Anything that is not shaped like an address cannot
+            // have mined here, so answering it costs a Redis round trip and a
+            // cache entry to tell someone what they already knew.
+            // validateAddress returns {ok, reason}, never a boolean: `!result`
+            // is always false and would wave everything through.
+            const check = validateAddress(address, this.config.netVersions);
+            if (!check.ok) {
+                return this._json(res, 400, { error: check.reason });
+            }
             body = await this.shares.getMinerStats(address);
             break;
         }
@@ -140,8 +156,36 @@ class ApiServer {
             return this._json(res, 404, { error: 'unknown endpoint' });
         }
 
-        this.cache.set(cacheKey, { at: Date.now(), body });
+        this._cacheSet(cacheKey, body);
         return this._json(res, 200, body);
+    }
+
+    /**
+     * Store, and keep the cache from becoming the attack.
+     *
+     * The key contains the query string, and /api/miner?address=... is written
+     * by whoever is asking. An unbounded Map keyed on that is a memory
+     * exhaustion vector: a million distinct addresses is a million entries the
+     * process never releases, and the pool dies of a request pattern rather
+     * than of a bug.
+     *
+     * Bounded with the oldest evicted first. A Map iterates in insertion order,
+     * so the first key is the oldest -- no library, no timestamp scan.
+     */
+    _cacheSet(key, body) {
+        const max = this.config.apiCacheEntries || 512;
+        if (this.cache.size >= max) {
+            // Drop expired entries first; only fall back to evicting a live one
+            // if everything in there is still warm.
+            const now = Date.now();
+            for (const [k, v] of this.cache) {
+                if (now - v.at >= this.cacheMs) this.cache.delete(k);
+            }
+            while (this.cache.size >= max) {
+                this.cache.delete(this.cache.keys().next().value);
+            }
+        }
+        this.cache.set(key, { at: Date.now(), body });
     }
 
     async _stats() {
