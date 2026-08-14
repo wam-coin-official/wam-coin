@@ -72,7 +72,11 @@ function classify(addr) {
 function build(peers, known, netInfo) {
     const list = Array.isArray(peers) ? peers : [];
 
-    const seeds = [];
+    // Keyed by place, not by connection. Two nodes routinely hold a pair of
+    // connections to each other -- one dialled each way -- and listing
+    // "Singapore, Singapore" makes one seed look like two, which is the
+    // opposite of what a page about decentralisation should do.
+    const seedsByPlace = new Map();
     const counts = { ipv4: 0, ipv6: 0, onion: 0, seed: 0 };
     const versions = new Map();
     let inbound = 0;
@@ -83,11 +87,16 @@ function build(peers, known, netInfo) {
         counts[c.kind] = (counts[c.kind] || 0) + 1;
 
         if (c.kind === 'seed') {
-            seeds.push({
+            const held = p.conntime
+                ? Math.max(0, Math.floor(Date.now() / 1000 - p.conntime)) : null;
+            const prev = seedsByPlace.get(c.where);
+            seedsByPlace.set(c.where, {
                 where: c.where,
-                direction: p.inbound ? 'inbound' : 'outbound',
-                version: p.subver || null,
-                connectedSeconds: p.conntime ? Math.max(0, Math.floor(Date.now() / 1000 - p.conntime)) : null
+                connections: (prev ? prev.connections : 0) + 1,
+                version: p.subver || (prev ? prev.version : null),
+                // The longest-held of the pair: how long this link has
+                // actually stood, not how long its newest strand has.
+                connectedSeconds: Math.max(prev ? prev.connectedSeconds || 0 : 0, held || 0)
             });
         }
 
@@ -116,8 +125,8 @@ function build(peers, known, netInfo) {
             .map(([version, count]) => ({ version, count }))
             .sort((a, b) => b.count - a.count),
 
-        // Ours, named, because they are already public.
-        seeds,
+        // Ours, named, because they are already public. One entry per place.
+        seeds: [...seedsByPlace.values()].sort((a, b) => a.where.localeCompare(b.where)),
 
         longestConnectionSeconds: longest,
 

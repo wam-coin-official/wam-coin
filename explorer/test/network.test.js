@@ -78,6 +78,21 @@ test('but even our seeds are named by place, not by address', () => {
     assert.ok(!out.includes('5.223.52.200'), 'seed address is in the payload');
 });
 
+test('a seed connected twice is listed once, not twice', () => {
+    // Two nodes routinely hold a connection each way, one dialled in each
+    // direction. Listing "Singapore, Singapore" makes one seed look like two,
+    // on the page whose entire purpose is to report decentralisation
+    // honestly. Seen on the live node the first time this ran.
+    const both = [
+        { addr: '5.223.52.200:19555', inbound: false, subver: '/WAM:0.1.0/', conntime: now() - 3000 },
+        { addr: '5.223.52.200:41234', inbound: true,  subver: '/WAM:0.1.0/', conntime: now() - 2900 }
+    ];
+    const o = net.build(both, [], null);
+    assert.strictEqual(o.seeds.length, 1, 'one place, one entry');
+    assert.strictEqual(o.seeds[0].connections, 2, 'but both connections counted');
+    assert.ok(o.seeds[0].connectedSeconds >= 3000, 'and the longer link is reported');
+});
+
 console.log('\n=== the counts are right ===');
 
 test('every peer is counted exactly once', () => {
