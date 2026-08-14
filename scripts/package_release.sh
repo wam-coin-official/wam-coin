@@ -200,10 +200,14 @@ RUN A NODE IN FOUR COMMANDS
 
   1.  Check what you downloaded is what we built:
 
-          sha256sum -c SHA256SUMS
+          sha256sum --ignore-missing -c SHA256SUMS
 
-      It must say OK. If it does not, delete the file and download it
-      again -- do not run it.
+      --ignore-missing matters: SHA256SUMS lists both packages, and
+      without it a person who took only the node is told the miner
+      FAILED and, following this instruction, deletes a good file.
+
+      Every line must say OK. If one does not, delete that file and
+      download it again -- do not run it.
 
   2.  Make sure the two libraries are present. On Ubuntu or Debian:
 
