@@ -179,22 +179,37 @@ done
 if [ -n "$HOST" ]; then
     sect "The running network"
 
-    for u in wamd wam-pool wam-dashboard wam-telegram nginx redis-server; do
+    # What is this machine for?
+    #
+    # A seed node runs wamd and nothing else -- no pool, no dashboard, no
+    # nginx -- and reporting six failures for services it was never meant to
+    # have is a false alarm. This script says elsewhere that an operator shown
+    # false alarms stops reading the real ones, so it has to know the
+    # difference. The role is read from what is installed, not configured
+    # anywhere, so a machine cannot drift from its own description.
+    ROLE="seed"
+    [ -n "$(rsh 'ls /etc/systemd/system/wam-pool.service 2>/dev/null')" ] && ROLE="full"
+    printf '  %s%s%s node\n\n' "$BLD" "$ROLE" "$OFF"
+
+    SERVICES="wamd"
+    [ "$ROLE" = "full" ] && SERVICES="wamd wam-pool wam-dashboard wam-telegram nginx redis-server"
+
+    for u in $SERVICES; do
         [ "$(rsh "systemctl is-active $u")" = "active" ] \
             && ok "$u is running" || bad "$u is not running"
     done
 
     # Reachability from outside, not a firewall rule that claims it.
-    for spec in "19555 peer-to-peer, how the network is found" \
-                "3333 stratum"; do
-        set -- $spec
-        P="$1"; shift
-        if timeout 8 bash -c "exec 3<>/dev/tcp/$HOST/$P" 2>/dev/null; then
-            ok "port $P reachable from the internet -- $*"
+    check_open() {
+        if timeout 8 bash -c "exec 3<>/dev/tcp/$HOST/$1" 2>/dev/null; then
+            ok "port $1 reachable from the internet -- $2"
         else
-            bad "port $P NOT reachable -- $*"
+            bad "port $1 NOT reachable -- $2"
         fi
-    done
+    }
+
+    check_open 19555 "peer-to-peer, how the network is found"
+    [ "$ROLE" = "full" ] && check_open 3333 "stratum"
 
     for spec in "19554 RPC, this is the wallet" "6379 redis, every miner balance"; do
         set -- $spec
