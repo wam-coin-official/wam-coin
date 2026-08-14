@@ -74,7 +74,7 @@ in this repository, and in no other place:
 ```
 
 That matters beyond encrypted mail. [CHANNELS.txt](CHANNELS.txt) lists the
-project's four official channels, and a list of accounts that vouch for each
+project's official channels, and a list of accounts that vouch for each
 other is only as strong as the weakest of them: take one, repoint it at three
 impostors, and the mutual linking now argues *for* the attacker. A detached
 signature over CHANNELS.txt removes that. The reader stops needing to trust

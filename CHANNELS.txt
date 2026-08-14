@@ -13,9 +13,10 @@
    source         https://github.com/wam-coin-official/wam-coin
    announcements  https://t.me/wam_coin_updates
    x / twitter    https://x.com/WAMCoinCore
+   discord        https://discord.gg/Gxvmrjy9Qb
 
- There are no others. No Discord, no Reddit, no Instagram, no second
- Telegram group, no "support" account, no exchange listing, no presale,
+ There are no others. No Reddit, no Instagram, no second Telegram group,
+ no second Discord, no "support" account, no exchange listing, no presale,
  no airdrop, no token sale, no wallet app. If you have found one of those
  and it says WAM, it is not us.
 
