@@ -96,7 +96,7 @@ step "1. the node binaries"
 
 NODE_BINS=(wamd wam-cli wam-tx wam-util wam-wallet)
 for b in "${NODE_BINS[@]}"; do
-    [ -x "$TREE/src/$b" ] || fail "missing $TREE/src/$b -- run scripts/build.sh first"
+    [ -x "$TREE/src/$b" ] || fail "missing $TREE/src/$b -- run ./install.sh --build-only first"
 done
 # The GUI is optional, and its absence is not an error.
 #

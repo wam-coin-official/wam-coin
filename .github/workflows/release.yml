@@ -1,0 +1,150 @@
+# ===========================================================================
+#  Build and publish a WAM Coin release.
+#
+#  Pushing a tag is the whole trigger. GitHub builds the binaries on its own
+#  machines and publishes them itself, using a token it issues to this job and
+#  destroys when the job ends. No release token exists on anyone's laptop, and
+#  nobody has to remember to drag files into a browser -- which is exactly how
+#  the first release came to be announced without existing.
+#
+#      git tag -a v0.1.0 -m 'first testnet release'
+#      git push origin v0.1.0
+#
+#  The build recipe is not written here. It is install.sh, the same script a
+#  user runs, so the published binaries cannot drift from the documented build.
+#  A second recipe in this file would be correct on the day it was written and
+#  wrong the first time install.sh changed.
+# ===========================================================================
+
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g. v0.1.0). Builds but does not publish.'
+        required: true
+
+permissions:
+  contents: write        # required to create the release; nothing else is granted
+
+jobs:
+  build:
+    # 22.04 on purpose, not ubuntu-latest. A binary linked against a newer
+    # glibc will not start on an older one, so building on the oldest release
+    # we support is what makes the tarball run on both 22.04 and 24.04.
+    # `latest` silently becomes a newer distro one day and quietly drops
+    # everyone still on 22.04.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+
+    steps:
+      - name: Check out the tag
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        # package_release.sh reports the commit it built
+
+      - name: Work out the version
+        id: v
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "version=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+            echo "publish=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+            echo "publish=no" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build node, RandomX and miner
+        run: |
+          # The same script a user runs. --build-only stops before starting
+          # services; --node-only leaves out the pool, which is not shipped in
+          # the release tarball.
+          bash install.sh --build-only --node-only --network testnet --jobs "$(nproc)"
+
+      - name: Package
+        run: bash scripts/package_release.sh --version "${{ steps.v.outputs.version }}"
+
+      - name: Verify the artifact before anyone can download it
+        run: |
+          set -euo pipefail
+          cd out/release
+          ls -la
+
+          # A checksum file that does not match its own tarballs is worse than
+          # none: it tells people a corrupt download is fine.
+          sha256sum -c SHA256SUMS
+
+          # Unpack somewhere with nothing built in it and confirm the binary
+          # actually runs. A tarball that builds but does not start is the
+          # failure this whole job exists to prevent.
+          work="$(mktemp -d)"
+          tar -xzf wam-coin-*.tar.gz -C "$work"
+          node_bin="$(find "$work" -name wamd -type f | head -1)"
+          [ -n "$node_bin" ] || { echo "::error::no wamd in the tarball"; exit 1; }
+          chmod +x "$node_bin"
+          "$node_bin" -version | head -3
+
+          # Count the shared libraries. The release was cut from seventeen to
+          # four on purpose; a jump means a dependency crept back in and the
+          # tarball stops being portable.
+          libs="$(ldd "$node_bin" | grep -c '=>' || true)"
+          echo "shared libraries: $libs"
+          if [ "$libs" -gt 8 ]; then
+            echo "::error::wamd links $libs shared libraries; expected 4-8."
+            ldd "$node_bin"
+            exit 1
+          fi
+
+      - name: Publish the release
+        if: steps.v.outputs.publish == 'yes'
+        env:
+          # Issued by GitHub for this run and revoked when it ends. It is not a
+          # personal token and cannot be reused anywhere else.
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          # Everything below 1.0 is a pre-release, and says so on the page,
+          # rather than depending on whoever cut it to remember the checkbox.
+          prerelease=""
+          case "$VERSION" in v0.*) prerelease="--prerelease" ;; esac
+
+          notes="$(mktemp)"
+          {
+            echo "Built by GitHub Actions from \`${GITHUB_SHA}\` on ubuntu-22.04."
+            echo
+            echo "Verify before running:"
+            echo
+            echo '```'
+            echo "sha256sum --ignore-missing -c SHA256SUMS"
+            echo '```'
+            echo
+            echo "WAM has no market value and may never have one. This is testnet"
+            echo "software and has had no third-party security audit."
+            echo
+            echo "Build it yourself instead, if you prefer -- the release above is"
+            echo "produced by \`install.sh --build-only\`, the same script in this"
+            echo "repository, with no manual steps."
+          } > "$notes"
+
+          # gh is preinstalled on GitHub runners. Using it rather than a
+          # third-party publishing action keeps the number of people who can
+          # change what gets attached to a release at zero.
+          gh release create "$VERSION" \
+            --title "WAM Coin $VERSION" \
+            --notes-file "$notes" \
+            $prerelease \
+            out/release/*.tar.gz \
+            out/release/SHA256SUMS
+
+      - name: Keep the artifact even when this was only a test build
+        if: steps.v.outputs.publish != 'yes'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wam-coin-${{ steps.v.outputs.version }}
+          path: out/release/
+          retention-days: 14

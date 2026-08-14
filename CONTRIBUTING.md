@@ -28,10 +28,14 @@ time, read that list before you read any code.
 ## Building
 
 ```bash
-bash scripts/build.sh          # node, cli, tools
+./install.sh --build-only      # deps, upstream fetch + patch, RandomX, node, cli, tools
 bash scripts/build_qt.sh       # add the graphical wallet (needs Qt5 dev packages)
 bash miner/build.sh            # the reference miner
 ```
+
+`--build-only` compiles and installs the binaries without starting anything.
+It is the same command the release workflow runs, so what you build locally is
+what ships.
 
 See [docs/BUILD.md](docs/BUILD.md) for prerequisites.
 
