@@ -42,7 +42,7 @@ jobs:
 
     steps:
       - name: Check out the tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0        # package_release.sh reports the commit it built
 
@@ -87,16 +87,44 @@ jobs:
           chmod +x "$node_bin"
           "$node_bin" -version | head -3
 
-          # Count the shared libraries. The release was cut from seventeen to
-          # four on purpose; a jump means a dependency crept back in and the
-          # tarball stops being portable.
-          libs="$(ldd "$node_bin" | grep -c '=>' || true)"
-          echo "shared libraries: $libs"
-          if [ "$libs" -gt 8 ]; then
-            echo "::error::wamd links $libs shared libraries; expected 4-8."
-            ldd "$node_bin"
+          # Compare the shared libraries against a recorded list, not a count
+          # with room in it. A ceiling of "no more than eight" passes a build
+          # that swapped one library for another, and passes three new ones the
+          # day a legitimate one is dropped -- which is how a check ends up
+          # green while the thing it guards is broken.
+          #
+          # Any difference in either direction is a failure. Something added is
+          # a dependency that crept back in; something missing means a feature
+          # was silently compiled out, and the wallet disappearing is not a
+          # smaller problem than Kerberos reappearing.
+          cat > /tmp/expected-libs <<'LIBS'
+          libc.so.6
+          libevent-2.1.so.7
+          libevent_core-2.1.so.7
+          libevent_pthreads-2.1.so.7
+          libgcc_s.so.1
+          libm.so.6
+          libsqlite3.so.0
+          libstdc++.so.6
+          LIBS
+          sed -i 's/^ *//' /tmp/expected-libs
+
+          ldd "$node_bin" | awk '/=>/ {print $1}' | sort -u > /tmp/actual-libs
+          echo "linked against:"; sed 's/^/  /' /tmp/actual-libs
+
+          if ! diff -u /tmp/expected-libs /tmp/actual-libs > /tmp/libdiff; then
+            echo "::error::the shared library set changed (- expected, + actual)"
+            cat /tmp/libdiff
             exit 1
           fi
+
+          # And confirm it starts on 22.04 rather than only linking correctly.
+          # package_release.sh already gates the symbol versions, but that runs
+          # on the build machine; this is the binary as a downloader gets it.
+          "$node_bin" -version >/dev/null 2>/tmp/starterr || {
+            echo "::error::the packaged wamd does not start here"
+            cat /tmp/starterr; exit 1
+          }
 
       - name: Publish the release
         if: steps.v.outputs.publish == 'yes'
@@ -143,7 +171,7 @@ jobs:
 
       - name: Keep the artifact even when this was only a test build
         if: steps.v.outputs.publish != 'yes'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: wam-coin-${{ steps.v.outputs.version }}
           path: out/release/

@@ -328,12 +328,74 @@ else
     fi
 fi
 
-# The tarball says what it needs, in the file people open first.
+# ---------------------------------------------------------------------------
+step "4c. will it start on the oldest system we promise?"
+
+# The library *names* above are only half the question. A binary can link
+# exactly the right libraries and still refuse to start, because it was
+# compiled against a newer libstdc++ or glibc than the target has: the loader
+# needs specific symbol versions, not just the file.
+#
+# This is not hypothetical. The first release was built on 24.04 and required
+# GLIBCXX_3.4.32, which is GCC 14. Ubuntu 22.04 tops out at 3.4.30, so it did
+# not start there at all -- while the file it shipped with cheerfully claimed
+# "Ubuntu 22.04 / 24.04". Nobody noticed because it was only ever run on the
+# machine that built it and on a server of the same version.
+#
+# The floor is glibc 2.35 / GLIBCXX_3.4.30: Ubuntu 22.04 LTS, which is what
+# most providers still hand you by default. Measured, not asserted, and a
+# build that exceeds it stops here rather than on a stranger's machine.
+BASELINE_GLIBC="2.35"
+BASELINE_GLIBCXX="3.4.30"
+
+vermax() { tr ' ' '\n' | sed 's/^[A-Z_]*_//' | sort -V | tail -1; }
+
+SYMS="$(objdump -T "$WORK/stage/wam-coin-$VERSION/bin/wamd" 2>/dev/null \
+        | grep -oE 'GLIBCXX_[0-9.]+|GLIBC_[0-9.]+' | sort -u)"
+
+REQ_GLIBC="$(printf '%s\n' "$SYMS" | grep '^GLIBC_'   | vermax)"
+REQ_GLIBCXX="$(printf '%s\n' "$SYMS" | grep '^GLIBCXX_' | vermax)"
+REQ_GLIBC="${REQ_GLIBC:-0}"; REQ_GLIBCXX="${REQ_GLIBCXX:-0}"
+
+# `sort -V | head -1` picking the baseline means the requirement is <= it.
+newer_than() { [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -1)" != "$1" ]; }
+
+PORTABLE=1
+if newer_than "$REQ_GLIBC" "$BASELINE_GLIBC"; then
+    PORTABLE=0
+    printf '  \033[31mfail\033[0m  needs glibc %s; the baseline is %s\n' \
+           "$REQ_GLIBC" "$BASELINE_GLIBC"
+fi
+if newer_than "$REQ_GLIBCXX" "$BASELINE_GLIBCXX"; then
+    PORTABLE=0
+    printf '  \033[31mfail\033[0m  needs GLIBCXX_%s; the baseline is %s\n' \
+           "$REQ_GLIBCXX" "$BASELINE_GLIBCXX"
+fi
+
+if [ "$PORTABLE" = "0" ]; then
+    printf '\n  This build will not start on Ubuntu 22.04. It is not a flag that\n'
+    printf '  can be added -- the compiler on this machine is too new. Build it\n'
+    printf '  on 22.04, or let the release workflow do it (it runs there for\n'
+    printf '  exactly this reason).\n\n'
+    fail "the binary is not portable to the oldest system this release claims"
+fi
+ok "glibc <= $BASELINE_GLIBC (needs $REQ_GLIBC), GLIBCXX <= $BASELINE_GLIBCXX (needs $REQ_GLIBCXX)"
+
+# The tarball says what it needs, in the file people open first -- and it says
+# it from measurement. A hand-written compatibility line is a claim nobody
+# rechecks; this one cannot be wrong without the build failing above.
 cat > "$WORK/stage/wam-coin-$VERSION/DEPENDENCIES.txt" <<DEPS
 WAM Coin $VERSION -- what this needs to run
 ===========================================
 
-Ubuntu 22.04 / 24.04, Debian 12, or anything with glibc 2.35 or newer.
+Measured from this exact binary, not assumed:
+
+    glibc     $REQ_GLIBC or newer
+    libstdc++  GLIBCXX_$REQ_GLIBCXX or newer  (GCC 12 and up)
+
+That is Ubuntu 22.04 LTS or newer, Debian 12 or newer, and anything of a
+similar age. If your system is older than that, build from source -- no flag
+on this binary will make it start.
 
 If the node exits with
 
@@ -353,7 +415,12 @@ Verify what your copy actually wants:
 
     ldd bin/wamd | grep 'not found'
 
-Empty output means you are ready.
+Empty output means the libraries are present. To check the versions too:
+
+    ldd bin/wamd >/dev/null && echo ok
+
+Anything about GLIBCXX or GLIBC there means your system is older than this
+build; use a newer one or build from source.
 DEPS
 
 TARBALL_NODE="wam-coin-$VERSION-$PLATFORM.tar.gz"
