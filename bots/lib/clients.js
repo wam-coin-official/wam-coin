@@ -80,17 +80,43 @@ function latestRelease(repo, timeout = 15000) {
     return new Promise((resolve) => {
         const req = https.request({
             host: 'api.github.com',
-            path: `/repos/${repo}/releases/latest`,
+            // The list, not /releases/latest.
+            //
+            // /releases/latest excludes pre-releases by design and answers 404
+            // when every release is one. Everything below 1.0 is published as a
+            // pre-release -- the release workflow marks them from the version
+            // string -- so that endpoint would have returned 404 for the entire
+            // pre-1.0 life of this project, and not one release would ever have
+            // been announced. It did exactly that for v0.1.0, silently, because
+            // a 404 here is indistinguishable from "no releases yet".
+            //
+            // The list endpoint returns newest first and includes pre-releases.
+            // Drafts are invisible to an unauthenticated request, which is the
+            // behaviour wanted anyway: a draft is not published.
+            path: `/repos/${repo}/releases?per_page=10`,
             headers: { 'User-Agent': 'wam-announce', Accept: 'application/vnd.github+json' },
             timeout
         }, (res) => {
             const chunks = [];
             res.on('data', (c) => chunks.push(c));
             res.on('end', () => {
-                if (res.statusCode !== 200) return resolve(null);   // no releases yet, or rate limited
+                if (res.statusCode !== 200) return resolve(null);   // rate limited, or no repo
                 try {
-                    const r = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-                    resolve({ tag: r.tag_name, name: r.name, url: r.html_url, body: r.body || '' });
+                    const list = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+                    if (!Array.isArray(list)) return resolve(null);
+                    const r = list.find((x) => x && !x.draft && x.tag_name);
+                    if (!r) return resolve(null);                   // genuinely no releases yet
+                    resolve({
+                        tag: r.tag_name,
+                        name: r.name,
+                        url: r.html_url,
+                        body: r.body || '',
+                        // Announced rather than hidden. A pre-release is not a
+                        // stable release, and a channel that presents one as
+                        // the other is doing the overclaiming this project
+                        // spends its effort avoiding.
+                        prerelease: !!r.prerelease
+                    });
                 } catch {
                     resolve(null);
                 }

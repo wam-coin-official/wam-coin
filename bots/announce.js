@@ -313,6 +313,11 @@ function releaseMessage(release) {
     const body = t(String(release.body || '').split('\n').slice(0, 8).join('\n')).slice(0, 700);
     return [
         `\u{1F680} ${b(release.name || release.tag)}`,
+        // Said plainly rather than left for the reader to notice on the page.
+        // Every release before 1.0 is a pre-release, and a channel that
+        // announces one without saying so is describing the project as further
+        // along than it is.
+        ...(release.prerelease ? [i('Pre-release — testnet software.')] : []),
         ``,
         body,
         ``,
