@@ -622,7 +622,15 @@ def build_changes() -> list[Change]:
                    "'Satoshi', reported Bitcoin Core's version number, and told anyone "
                    "who ran --version that the source lives at github.com/bitcoin/"
                    "bitcoin. Each of these is a statement the software makes about "
-                   "itself, unprompted, to strangers."),
+                   "itself, unprompted, to strangers.\n\n"
+                   "The copyright line was the same kind of error pointing the other "
+                   "way. Upstream builds one prefix -- 'Copyright (C) 2009-<year>' -- "
+                   "and applies it to every holder, which is correct while there is "
+                   "one holder. For a fork it printed 'Copyright (C) 2009-2024 The "
+                   "WAM Coin developers': a claim of authorship reaching back to "
+                   "Bitcoin's genesis, in the first output anyone sees. WAM's line now "
+                   "carries WAM's year and Bitcoin Core's keeps the range upstream "
+                   "declared, which is the accurate split and costs nothing to state."),
         edits=[
             Edit(
                 file="src/clientversion.cpp",
@@ -682,6 +690,57 @@ def build_changes() -> list[Change]:
                     "dnl output credits both, which is the accurate answer: WAM wrote the\n"
                     "dnl consensus changes, Bitcoin Core wrote almost everything else.\n"
                     "define(_COPYRIGHT_HOLDERS_SUBSTITUTION,[[WAM Coin]])"),
+            ),
+            Edit(
+                file="configure.ac",
+                description="copyright year: this build's, not the year we forked from",
+                marker="define(_COPYRIGHT_YEAR, 2026)",
+                anchor="define(_COPYRIGHT_YEAR, 2024)",
+                replacement=(
+                    "dnl WAM_COPYRIGHT_YEAR -- 2024 is when Bitcoin Core cut v28.1, and it\n"
+                    "dnl stays on their line below. This constant is now WAM's own year:\n"
+                    "dnl the copyright a build asserts is the copyright of that build.\n"
+                    "dnl Bump it at the first release of each year, the same way upstream\n"
+                    "dnl does.\n"
+                    "define(_COPYRIGHT_YEAR, 2026)"),
+            ),
+            Edit(
+                file="src/clientversion.cpp",
+                description="WAM's copyright line starts when WAM started",
+                marker='_("Copyright (C) %i").translated, COPYRIGHT_YEAR',
+                anchor=('    return CopyrightHolders(strprintf(_("Copyright (C) %i-%i")'
+                        '.translated, 2009, COPYRIGHT_YEAR) + " ") + "\\n" +'),
+                replacement=(
+                    '    // A range starting at 2009 is Bitcoin\'s history, not ours. This\n'
+                    '    // prefix reaches the WAM line only; see CopyrightHolders below,\n'
+                    '    // where Bitcoin Core keeps the range it declared.\n'
+                    '    return CopyrightHolders(strprintf(_("Copyright (C) %i")'
+                    '.translated, COPYRIGHT_YEAR) + " ") + "\\n" +'),
+            ),
+            Edit(
+                file="src/clientversion.cpp",
+                description="Bitcoin Core keeps the range it actually declared",
+                marker="WAM_BITCOIN_COPYRIGHT_RANGE",
+                anchor=('    // Make sure Bitcoin Core copyright is not removed by accident\n'
+                        '    if (copyright_devs.find("Bitcoin Core") == std::string::npos) {\n'
+                        '        strCopyrightHolders += "\\n" + strPrefix + '
+                        '"The Bitcoin Core developers";\n'
+                        '    }'),
+                replacement=(
+                    '    // WAM_BITCOIN_COPYRIGHT_RANGE\n'
+                    '    //\n'
+                    '    // strPrefix now carries the WAM year, so it cannot be reused here:\n'
+                    '    // 2009-2024 is a statement about Bitcoin Core\'s work, and it does\n'
+                    '    // not move when the WAM copyright year does. Frozen at what v28.1\n'
+                    '    // declared, which is the release this was forked from.\n'
+                    '    //\n'
+                    '    // The upstream check itself is left exactly as written: it is what\n'
+                    '    // guarantees a fork cannot drop this credit by editing one macro.\n'
+                    '    if (copyright_devs.find("Bitcoin Core") == std::string::npos) {\n'
+                    '        strCopyrightHolders += "\\n" + strprintf('
+                    '"Copyright (C) %i-%i ", 2009, 2024)\n'
+                    '                               + "The Bitcoin Core developers";\n'
+                    '    }'),
             ),
         ]))
 
