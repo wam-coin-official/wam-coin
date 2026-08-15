@@ -1,0 +1,90 @@
+# ===========================================================================
+#  WAM announcement bot -- Telegram and Discord
+# ===========================================================================
+#
+#  Installed by bots/setup.sh, which also creates the user and the config.
+#
+#  The bot this replaces ran as root. An announcement bot reads a local RPC
+#  port and posts to two web APIs; it needs no privilege at all, and running it
+#  as root meant any flaw in it -- or in anything it imports -- was a flaw in
+#  the whole machine, on a host that also holds the node and the pool.
+#
+#  Nothing here is decoration. The directives below are the difference between
+#  "a bug in the bot loses the announcement channel" and "a bug in the bot
+#  loses the server".
+# ===========================================================================
+
+[Unit]
+Description=WAM Coin announcement bot (Telegram, Discord)
+Documentation=https://github.com/wam-coin-official/wam-coin/blob/main/bots/README.md
+After=network-online.target wamd.service
+Wants=network-online.target
+# Wants, not Requires: the stall alert is the one message that matters most
+# when the node is unhealthy, so the bot must keep running when wamd does not.
+Wants=wamd.service
+
+# In [Unit], not [Service] -- systemd moved it and silently ignores it in the
+# wrong section, which systemd-analyze verify will tell you and nothing else
+# will. Zero means never stop retrying: a bot that gave up after five quick
+# failures would stay dead through exactly the outage it exists to report.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=wam-announce
+Group=wam-announce
+
+# The config holds the channel credentials and is read at start-up. It lives
+# outside the repository on purpose: a secret inside a git working tree is one
+# `git add -A` away from being published, and that is not a mistake anybody
+# makes on purpose.
+Environment=WAM_ANNOUNCE_CONFIG=/etc/wam/announce.json
+ExecStart=/usr/bin/node /opt/wam/bots/announce.js
+
+# systemd creates and owns this, so the state file survives reinstalls without
+# anyone having to remember to chown it.
+StateDirectory=wam-announce
+StateDirectoryMode=0700
+
+Restart=always
+RestartSec=30
+
+# ---- confinement ----------------------------------------------------------
+# The bot needs: outbound TCP, a local RPC port, its config, and its state
+# directory. Everything below removes something it does not need.
+
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+
+# Nothing but IP. A bot that only speaks HTTPS has no use for netlink, packet
+# sockets, or unix sockets it did not open itself.
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources @obsolete
+
+# ---- limits ---------------------------------------------------------------
+# A runaway here must not take the node or the pool down with it.
+MemoryMax=256M
+TasksMax=32
+
+[Install]
+WantedBy=multi-user.target
