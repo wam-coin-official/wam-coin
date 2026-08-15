@@ -167,21 +167,63 @@ esac
 # ---------------------------------------------------------------------------
 step "5. the node"
 
-RPC_PORT="${RPC_PORT:-19555}"
-RPC_USER=""; RPC_PASS=""
+RPC_USER=""; RPC_PASS=""; RPC_PORT="${RPC_PORT:-}"; WAM_CONF=""
 for f in /etc/wam/wam.conf /opt/wam/wam.conf "$HOME/.wam/wam.conf"; do
     [ -f "$f" ] || continue
     RPC_USER=$(grep -m1 '^rpcuser=' "$f" 2>/dev/null | cut -d= -f2- || true)
     RPC_PASS=$(grep -m1 '^rpcpassword=' "$f" 2>/dev/null | cut -d= -f2- || true)
-    [ -n "$RPC_USER" ] && { ok "read RPC credentials from $f"; break; }
+    [ -n "$RPC_USER" ] && { WAM_CONF="$f"; ok "read RPC credentials from $f"; break; }
 done
 
 if [ -z "$RPC_USER" ]; then
     printf '  RPC username: '; read -r RPC_USER </dev/tty
     printf '  RPC password: '; read -r -s RPC_PASS </dev/tty; printf '\n'
 fi
-printf '  RPC port [%s]: ' "$RPC_PORT"; read -r REPLY </dev/tty
+
+# The port is derived, never assumed. WAM's RPC ports are the peer port minus
+# one -- Bitcoin Core reserves peer+1 for its Tor listener -- so guessing "the
+# peer port" points the bot at the wrong socket, and it fails with a connection
+# error that looks like a dead node rather than a wrong number.
+if [ -z "$RPC_PORT" ] && [ -n "$WAM_CONF" ]; then
+    RPC_PORT=$(grep -m1 '^rpcport=' "$WAM_CONF" 2>/dev/null | cut -d= -f2- || true)
+    [ -n "$RPC_PORT" ] && ok "rpcport is declared in $WAM_CONF: $RPC_PORT"
+fi
+
+if [ -z "$RPC_PORT" ] && [ -n "$WAM_CONF" ]; then
+    # Not declared, so it is the built-in default for whichever network the
+    # node is on. These are WAM's own numbers, not Bitcoin's.
+    if   grep -qE '^regtest=1'  "$WAM_CONF"; then RPC_PORT=29554
+    elif grep -qE '^signet=1'   "$WAM_CONF"; then RPC_PORT=39554
+    elif grep -qE '^testnet4=1' "$WAM_CONF"; then RPC_PORT=49554
+    elif grep -qE '^testnet=1'  "$WAM_CONF"; then RPC_PORT=19554
+    else                                          RPC_PORT=9554
+    fi
+    ok "rpcport is not declared; the default for this network is $RPC_PORT"
+fi
+
+printf '  RPC port [%s]: ' "${RPC_PORT:-9554}"; read -r REPLY </dev/tty
 [ -n "$REPLY" ] && RPC_PORT="$REPLY"
+RPC_PORT="${RPC_PORT:-9554}"
+
+# Proven, not assumed. One call now, against the real node, so a wrong port or
+# a wrong password is a message here rather than a bot that starts cleanly and
+# announces nothing.
+CHAIN=$(curl -sS -m 15 --user "$RPC_USER:$RPC_PASS" \
+        -H 'Content-Type: application/json' \
+        -d '{"jsonrpc":"2.0","id":1,"method":"getblockchaininfo","params":[]}' \
+        "http://127.0.0.1:$RPC_PORT/" 2>/dev/null \
+        | python3 -c 'import json,sys
+try:
+    d = json.load(sys.stdin)
+    r = d.get("result") or {}
+    print("%s %s" % (r.get("chain",""), r.get("blocks","")))
+except Exception:
+    print("")' 2>/dev/null || true)
+
+case "$CHAIN" in
+    ""|" ") fail "no answer from the node on 127.0.0.1:$RPC_PORT -- wrong port, or wrong rpcuser/rpcpassword" ;;
+    *)      ok "node answered on $RPC_PORT: chain ${CHAIN% *}, height ${CHAIN#* }" ;;
+esac
 
 # ---------------------------------------------------------------------------
 step "6. writing the config"
