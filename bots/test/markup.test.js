@@ -93,6 +93,29 @@ test('null and undefined become empty, not the words', () => {
     assert.strictEqual(M.toTelegram(M.b(undefined)), '<b></b>');
 });
 
+test('only pairs are escaped, because only pairs mean anything', () => {
+    // Discord consumes a backslash only in front of something it treats as
+    // special, and prints both when it does not. Over-escaping is therefore
+    // visible to every reader: "~275 days" was arriving as "\~275 days" in
+    // every heartbeat, and "47.50 miner + 2.50" as "miner \+ 2.50", while the
+    // same line was correct on Telegram -- the exact split the neutral markup
+    // exists to prevent, reintroduced by the renderer.
+    assert.strictEqual(M.toDiscord(M.t('~275 days')), '~275 days');
+    assert.strictEqual(M.toDiscord(M.t('47.50 miner + 2.50')), '47.50 miner + 2.50');
+    assert.strictEqual(M.toDiscord(M.t('a|b')), 'a|b');
+    assert.strictEqual(M.toDiscord(M.t('cost: 5-10')), 'cost: 5-10');
+    assert.strictEqual(M.toDiscord(M.t('#1 result')), '#1 result');
+
+    // The pairs, which do mean something, still cannot format anything.
+    assert.strictEqual(M.toDiscord(M.t('~~strike~~')), '\\~\\~strike\\~\\~');
+    assert.strictEqual(M.toDiscord(M.t('||spoiler||')), '\\|\\|spoiler\\|\\|');
+
+    // And the singles that are special on their own are untouched by this.
+    assert.strictEqual(M.toDiscord(M.t('*i*')), '\\*i\\*');
+    assert.strictEqual(M.toDiscord(M.t('_u_')), '\\_u\\_');
+    assert.strictEqual(M.toDiscord(M.t('`c`')), '\\`c\\`');
+});
+
 console.log('\n=== the two renderers agree about structure ===');
 
 test('same marks, same number of bold runs', () => {

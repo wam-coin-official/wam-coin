@@ -110,14 +110,31 @@ function toTelegram(message) {
 /**
  * Discord Markdown.
  *
- * Backslash-escaping every character Discord treats as formatting. The list is
- * deliberately wide: a stray asterisk in a release title turning the rest of
- * an announcement italic is cosmetic, but a backtick doing it is how a message
- * ends up rendering something its author did not write.
+ * Exactly the characters Discord treats as formatting anywhere in a line, and
+ * no others. The set was wider once and that was a mistake in the visible
+ * direction: Discord consumes a backslash only in front of a character it
+ * considers special, and prints both when it does not. Escaping '+' turned
+ * every heartbeat into "47.50 miner \+ 2.50 treasury" on Discord while the
+ * same line was correct on Telegram -- the exact failure the neutral markup
+ * exists to prevent, arriving through the renderer instead.
+ *
+ * Left alone deliberately: '>', '#' and '-', which mean something to Discord
+ * only at the start of a line. A release note that begins a line with one of
+ * them becomes a quote, a heading or a bullet, which is how its author wrote
+ * it and is no more than cosmetic. They cannot close a mark or execute
+ * anything, and escaping them mid-line is what produced the visible junk.
  */
 function toDiscord(message) {
     return render(message, {
-        escape: (s) => s.replace(/([\\*_~`|>#\-+])/g, '\\$1'),
+        escape: (s) => s
+            // Special on their own: one asterisk or underscore is italic, one
+            // backtick is code, and a backslash escapes whatever follows it.
+            .replace(/([\\*_`])/g, '\\$1')
+            // Special only in pairs. A lone tilde is a tilde -- "~275 days"
+            // appears in every heartbeat and had been arriving as "\~275".
+            // A lone pipe is a pipe.
+            .replace(/~~/g, '\\~\\~')
+            .replace(/\|\|/g, '\\|\\|'),
         bold: ['**', '**'],
         italic: ['*', '*']
     });
