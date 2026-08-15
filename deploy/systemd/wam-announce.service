@@ -76,9 +76,30 @@ RestrictNamespaces=yes
 RestrictRealtime=yes
 RestrictSUIDSGID=yes
 LockPersonality=yes
-MemoryDenyWriteExecute=yes
+
+# MemoryDenyWriteExecute is deliberately NOT set.
+#
+# It is one of the strongest directives systemd offers and it cannot be used
+# here: V8 compiles JavaScript to machine code at runtime, so it must make
+# memory writable and then executable. Setting it does not harden this service,
+# it stops it -- the process dies in V8 start-up with a fatal error before a
+# line of our code runs. Any hardening guide that lists it as a default is
+# describing programs without a JIT.
+#
+# This was set, and the service crash-looped. Left here as a comment rather
+# than deleted, because the next person to harden this file will reach for it.
+
 SystemCallArchitectures=native
-SystemCallFilter=@system-service
+
+# pkey_alloc and friends are named explicitly because they belong to no
+# systemd syscall group at all -- not @default, not @system-service, not
+# @resources -- so no filter expression can include them by category. V8 uses
+# memory protection keys to guard its generated code, and without them the
+# process is killed by seccomp with SIGSYS during start-up.
+#
+# Found from the kernel audit record (type=1326, syscall=330), not by
+# removing the filter until things worked. The filter is the point.
+SystemCallFilter=@system-service pkey_alloc pkey_free pkey_mprotect
 SystemCallFilter=~@privileged @resources @obsolete
 
 # ---- limits ---------------------------------------------------------------
