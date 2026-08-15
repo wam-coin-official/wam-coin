@@ -123,14 +123,27 @@ case "${REPLY:-y}" in
         *)
             TG_TOKEN=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["telegram"]["token"])' "$OLD_TG")
             TG_CHAT=$(python3 -c 'import json,sys; t=json.load(open(sys.argv[1]))["telegram"]; print(t.get("chatId") or t.get("chat_id") or "")' "$OLD_TG")
-            [ -n "$TG_TOKEN" ] && [ -n "$TG_CHAT" ] || fail "could not read both values from $OLD_TG"
 
             # Imported, but still verified. A config file can be stale, and a
             # credential nobody has tested is a credential nobody should trust.
             NAME=$(curl -sS -m 20 "https://api.telegram.org/bot${TG_TOKEN}/getMe" \
                    | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["result"]["username"] if d.get("ok") else "")' 2>/dev/null || true)
-            [ -n "$NAME" ] || fail "the imported token is no longer valid -- was it revoked?"
-            ok "imported and verified: @$NAME -> $TG_CHAT"
+
+            if [ -n "$NAME" ]; then
+                ok "imported and verified: @$NAME -> $TG_CHAT"
+            else
+                # A revoked token is not a reason to throw the chat id away.
+                # They fail independently: the token is replaced at BotFather,
+                # while the chat id never changes and cannot be revoked -- and
+                # it is the value that gets mistyped, because it is the one
+                # people retype rather than paste.
+                TG_TOKEN=""
+                warn "the stored token is no longer valid -- revoked, most likely"
+                if [ -n "$TG_CHAT" ]; then
+                    ok "keeping the channel id from $OLD_TG: $TG_CHAT"
+                    printf '        Only the new token is needed below.\n'
+                fi
+            fi
             ;;
         esac
     fi
@@ -152,14 +165,22 @@ case "${REPLY:-y}" in
            | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["result"]["username"] if d.get("ok") else "")' 2>/dev/null || true)
     [ -n "$NAME" ] || fail "Telegram rejected that token"
     ok "Telegram accepted the token: @$NAME"
+    fi   # the token
 
-    printf '\n  Channel or chat id (e.g. -1001234567890).\n'
-    printf '  Add the bot to the channel as an administrator first.\n'
-    printf '  Chat id: '
-    read -r TG_CHAT </dev/tty
-    [ -n "$TG_CHAT" ] || fail "no chat id given"
-
-    fi   # manual entry
+    # Asked for separately from the token, because they fail separately. A
+    # revoked token needs replacing; the channel it posts to did not change,
+    # and re-entering an id that was already correct is how a digit gets lost.
+    if [ -n "$TG_CHAT" ]; then
+        printf '\n  Channel id [%s]: ' "$TG_CHAT"
+        read -r REPLY </dev/tty
+        [ -n "$REPLY" ] && TG_CHAT="$REPLY"
+    else
+        printf '\n  Channel or chat id (e.g. -1001234567890).\n'
+        printf '  Add the bot to the channel as an administrator first.\n'
+        printf '  Chat id: '
+        read -r TG_CHAT </dev/tty
+        [ -n "$TG_CHAT" ] || fail "no chat id given"
+    fi
 
     # The test post happens for imported credentials too. An import that is
     # never exercised proves only that a file exists.
