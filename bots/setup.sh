@@ -91,11 +91,51 @@ chown "$BOT_USER:$BOT_USER" "$CONF"
 step "3. Telegram"
 
 TG_TOKEN=""; TG_CHAT=""
+
+# If a Telegram bot is already posting on this machine, its credentials are on
+# disk and are *proven* -- they have been delivering messages. Asking anyone to
+# retype a ten-digit id and a forty-character token is asking for a typo, and
+# the typo does not announce itself: it fails as "could not post -- is the bot
+# an admin?", which sends you to check permissions that were never wrong.
+#
+# That is exactly what happened here. Nothing is shown on screen and nothing
+# passes through a shell; the values are read from the file into the process.
+OLD_TG=""
+for f in /root/.wam/telegram-config.json /etc/wam/telegram-config.json; do
+    [ -f "$f" ] || continue
+    if python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d.get("telegram",{}).get("token") else 1)' "$f" 2>/dev/null; then
+        OLD_TG="$f"; break
+    fi
+done
+
 printf '  Add a Telegram channel? [Y/n] '
 read -r REPLY </dev/tty
 case "${REPLY:-y}" in
 [nN]*) warn "skipping Telegram" ;;
 *)
+    if [ -n "$OLD_TG" ]; then
+        printf '\n  A Telegram bot is already configured on this machine:\n'
+        printf '      %s\n' "$OLD_TG"
+        printf '  Reuse its credentials? Nothing is displayed and nothing is retyped. [Y/n] '
+        read -r REPLY </dev/tty
+        case "${REPLY:-y}" in
+        [nN]*) : ;;
+        *)
+            TG_TOKEN=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["telegram"]["token"])' "$OLD_TG")
+            TG_CHAT=$(python3 -c 'import json,sys; t=json.load(open(sys.argv[1]))["telegram"]; print(t.get("chatId") or t.get("chat_id") or "")' "$OLD_TG")
+            [ -n "$TG_TOKEN" ] && [ -n "$TG_CHAT" ] || fail "could not read both values from $OLD_TG"
+
+            # Imported, but still verified. A config file can be stale, and a
+            # credential nobody has tested is a credential nobody should trust.
+            NAME=$(curl -sS -m 20 "https://api.telegram.org/bot${TG_TOKEN}/getMe" \
+                   | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["result"]["username"] if d.get("ok") else "")' 2>/dev/null || true)
+            [ -n "$NAME" ] || fail "the imported token is no longer valid -- was it revoked?"
+            ok "imported and verified: @$NAME -> $TG_CHAT"
+            ;;
+        esac
+    fi
+
+    if [ -z "$TG_TOKEN" ]; then
     printf '\n  Paste the bot token from @BotFather.\n'
     printf '  It will not be shown as you type, and will not be saved to your shell history.\n'
     printf '  Token: '
@@ -119,11 +159,36 @@ case "${REPLY:-y}" in
     read -r TG_CHAT </dev/tty
     [ -n "$TG_CHAT" ] || fail "no chat id given"
 
-    curl -sS -m 20 -X POST \
+    fi   # manual entry
+
+    # The test post happens for imported credentials too. An import that is
+    # never exercised proves only that a file exists.
+    TG_ERR=$(curl -sS -m 20 -X POST \
         -H 'Content-Type: application/json' \
         -d "$(python3 -c 'import json,sys; print(json.dumps({"chat_id": sys.argv[1], "text": "WAM announcement bot connected."}))' "$TG_CHAT")" \
         "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
-        | grep -q '"ok":true' || fail "could not post to $TG_CHAT -- is the bot an admin there?"
+        | python3 -c 'import json,sys
+try:
+    d = json.load(sys.stdin)
+    print("" if d.get("ok") else d.get("description", "unknown error"))
+except Exception:
+    print("no reply from Telegram")' 2>/dev/null || true)
+
+    if [ -n "$TG_ERR" ]; then
+        # Telegram says which of the two it is, so say that rather than
+        # guessing. "chat not found" is a wrong id -- one mistyped digit -- and
+        # sends people to check admin rights that were never the problem.
+        printf '  %sfail%s  Telegram refused: %s\n' "$RED" "$OFF" "$TG_ERR" >&2
+        case "$TG_ERR" in
+        *"chat not found"*)
+            printf '        That chat id does not exist. It is not a permissions\n' >&2
+            printf '        problem -- check the digits, and that it starts with -100.\n' >&2 ;;
+        *"not enough rights"*|*"kicked"*|*"not a member"*|*"CHAT_ADMIN"*)
+            printf '        The id is real but this bot cannot post there. Add it to\n' >&2
+            printf '        the channel as an administrator and run this again.\n' >&2 ;;
+        esac
+        exit 1
+    fi
     ok "posted a test message to $TG_CHAT"
     ;;
 esac
