@@ -171,7 +171,7 @@ jobs:
 
       - name: Keep the artifact even when this was only a test build
         if: steps.v.outputs.publish != 'yes'
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: wam-coin-${{ steps.v.outputs.version }}
           path: out/release/
