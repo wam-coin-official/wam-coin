@@ -177,12 +177,21 @@ deliberately.
 
 ## 7. Assets
 
+All transparent PNG, square, the coin masked to its own circle — no background
+is baked in, so they sit correctly on a light or a dark interface.
+
 | | Path |
 |---|---|
-| Logo, 200×200 transparent PNG | `brand/png/wam-logo-200.png` |
-| Logo, 2048×2048 transparent PNG | `brand/png/wam-logo-2048.png` |
-| Social / announcement image | `brand/png/wam-coin-social.png` |
+| **Listing logo, 200×200** | `brand/png/wam-platform-200.png` |
+| Listing logo, other sizes | `wam-platform-{32,64,128,256,512,2048}.png` |
+| Social / announcement image | `brand/png/wam-social-{512,1024,2048}.png` |
+| Masters (JPEG, 1080) | `wam-platform-master-1080.jpg`, `wam-social-master-1080.jpg` |
 | Whitepaper | `WHITEPAPER.md` |
+
+The listing logo carries the mark alone. The social image is the same coin with
+`22,000,000` and the launch date struck into it — correct for an announcement,
+wrong for a listing, where it is rendered at 32 pixels and the text becomes
+noise.
 
 ---
 
