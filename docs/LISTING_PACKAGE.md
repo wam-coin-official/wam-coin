@@ -91,7 +91,7 @@ wam-cli getblock $(wam-cli getblockhash 0) 2
 | Network magic | `0x77 0x61 0x6d 0x21` ("wam!") |
 | P2P port | 19555 |
 | RPC port | 19554 |
-| Genesis hash | `b66685143044db0a6e35348ea51ca859c8143d9a1d2afe93ddf10b8caecac319` |
+| Genesis hash | `ce81c20a59a9586946d46177317658575b9d1c1fc07912b5488ab76202f59bcb` |
 | PUBKEY_ADDRESS | 65 — `T` |
 | SCRIPT_ADDRESS | 128 — `t` |
 | SECRET_KEY (WIF) | 239 — `c` |
