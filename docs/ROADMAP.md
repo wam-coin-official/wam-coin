@@ -145,6 +145,25 @@ Core CVE as a WAM CVE until proven otherwise.
 Exchanges list what people already trade. Chasing a listing before there is organic volume
 burns money for a chart nobody looks at. Earn the volume first.
 
+**Status, 2026-08-18.** Enquiries have been sent to six decentralised venues asking what
+they require in order to list: Komodo Wallet, BasicSwap DEX, Bisq, Maya Protocol, Haveno and
+Block DX. They are the right category for this chain — every one settles native assets by
+atomic swap or peer-to-peer order book, so none needs a bridge, a wrapped token or a smart
+contract, and none asks the founder to supply liquidity. WAM cannot be listed on an
+AMM-style DEX at all: it is its own layer 1, not a token on someone else's chain, which is
+the same reason Monero is not on Uniswap.
+
+**None of them has agreed to anything.** These are requests for their requirements, and
+their answers are expected by email. Reviews at venues of this kind run two to three weeks,
+which is why the enquiries went out before launch rather than after — not because anything
+has been secured. It is recorded here as a step taken, and it stays worded this way until
+one of them says yes.
+
+The remaining gap is an Electrum server: Komodo Wallet requires one for UTXO chains, and it
+is the only item on the common requirements list that WAM does not already have. `electrs`
+is written for Bitcoin and WAM is RPC-compatible with it, so this is expected to be
+configuration rather than new code.
+
 ---
 
 ## Realistic timeline
