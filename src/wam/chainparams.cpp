@@ -355,21 +355,27 @@ public:
         // Genesis
         // -------------------------------------------------------------------
         //
-        // nTime  : 2026-01-01 00:00:00 UTC
+        // nTime  : 2026-09-15 00:00:00 UTC
         // nBits  : 0x1e0ffff0, matching powLimit above
-        // nNonce : filled in by genesis/genesis_generator.py -- the placeholder
-        //          value below will FAIL the assertions and that is intended.
+        // nNonce : mined 2026-08-18 by genesis/genesis_generator.py, 1,258,094
+        //          RandomX hashes against the key "WAM/RandomX/epoch-0/2026".
+        //
+        // The merkle root below is the one check that proves the premine is
+        // what it claims to be: it commits to all five outputs and their
+        // scripts, so a schedule that does not match this root cannot produce
+        // this block. It changed from 51e7dd7b when the first tranche was
+        // locked, which is how that change was verified rather than trusted.
         genesis = CreateGenesisBlock(
             /*nTime=*/   WAM_GENESIS_TIME,   // 2026-09-15 00:00:00 UTC
-            /*nNonce=*/  874791,                  // <-- genesis_generator.py
+            /*nNonce=*/  1264205,                 // <-- genesis_generator.py
             /*nBits=*/   0x1e0ffff0,
             /*nVersion=*/1,
             /*genesisOutputs=*/ BuildGenesisOutputs(WAM_FOUNDER_ADDRESS_MAINNET));
 
         consensus.hashGenesisBlock = genesis.GetHash();
 
-        assert(consensus.hashGenesisBlock == uint256S("0xbbbd737e2aa2fd83cd1e192a065e566fcb8d0187262dc71179e43cbf5dfbfd1a"));
-        assert(genesis.hashMerkleRoot     == uint256S("0x51e7dd7b7b6e4684b74ea280b16bc54dc00136df6a39f419c18bc53b51714749"));
+        assert(consensus.hashGenesisBlock == uint256S("0xd8d3debea987b62a0934c3980d62bffbb6e16aa797d19891d4fcc9b9fb11d7e9"));
+        assert(genesis.hashMerkleRoot     == uint256S("0x230fc579dfbad4cec208c43392e3178760fcd74617e4ef22903eae7bf7fcff29"));
 
         // -------------------------------------------------------------------
         // Peer discovery
