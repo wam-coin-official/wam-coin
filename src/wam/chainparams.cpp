@@ -518,15 +518,15 @@ public:
 
         genesis = CreateGenesisBlock(
             /*nTime=*/   WAM_TESTNET_GENESIS_TIME,   // 2026-08-01, ahead of mainnet
-            /*nNonce=*/  2121580,             // <-- genesis_generator.py --network testnet
+            /*nNonce=*/  1851661,             // <-- genesis_generator.py --network testnet
             /*nBits=*/   0x1e0ffff0,
             /*nVersion=*/1,
             /*genesisOutputs=*/ BuildGenesisOutputs(WAM_FOUNDER_ADDRESS_TESTNET));
 
         consensus.hashGenesisBlock = genesis.GetHash();
 
-        assert(consensus.hashGenesisBlock == uint256S("0xb66685143044db0a6e35348ea51ca859c8143d9a1d2afe93ddf10b8caecac319"));
-        assert(genesis.hashMerkleRoot     == uint256S("0x2b1469b34052506ab9425c98f9c3cddd19d1fdbcb2f6ace9f80fac42b0523f6e"));
+        assert(consensus.hashGenesisBlock == uint256S("0xce81c20a59a9586946d46177317658575b9d1c1fc07912b5488ab76202f59bcb"));
+        assert(genesis.hashMerkleRoot     == uint256S("0x1b04b1bd7be04b777c1a2371d7990a66592790ed78c02c6f5716e31f0ce147bd"));
 
         vFixedSeeds.clear();
         vSeeds.clear();
@@ -670,15 +670,15 @@ public:
         // unlock date and prove the lock RELEASES, not merely that it holds.
         genesis = CreateGenesisBlock(
             /*nTime=*/   WAM_REGTEST_GENESIS_TIME,   // 2011 -- safely in the past
-            /*nNonce=*/  1,
+            /*nNonce=*/  0,
             /*nBits=*/   0x207fffff,
             /*nVersion=*/1,
             /*genesisOutputs=*/ BuildGenesisOutputs(WAM_FOUNDER_ADDRESS_TESTNET));
 
         consensus.hashGenesisBlock = genesis.GetHash();
 
-        assert(consensus.hashGenesisBlock == uint256S("0x1fa171c2abc3cd0ba6d177524d23d63cc6ddeb4f08b20548c9b3d3c36ea6588b"));
-        assert(genesis.hashMerkleRoot     == uint256S("0x2b1469b34052506ab9425c98f9c3cddd19d1fdbcb2f6ace9f80fac42b0523f6e"));
+        assert(consensus.hashGenesisBlock == uint256S("0xb88f3d262f285e38e184f50bf3eea1c8e615486ae67d3d9eaf0976fbd6d3d30d"));
+        assert(genesis.hashMerkleRoot     == uint256S("0x1b04b1bd7be04b777c1a2371d7990a66592790ed78c02c6f5716e31f0ce147bd"));
 
         vFixedSeeds.clear();
         vSeeds.clear();
