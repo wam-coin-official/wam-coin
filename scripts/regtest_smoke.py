@@ -18,7 +18,7 @@ assumed:
   1. The coinbase actually splits 47.5 / 2.5, and the treasury output is real.
   2. Consensus REJECTS a block that omits the treasury output.
      (A rule you have not watched refuse a block is a rule you do not have.)
-  3. The premine exists in the UTXO set and tranche 1 is spendable.
+  3. The premine exists in the UTXO set -- every tranche time-locked, none spendable yet.
      (If change WAM-005 did not apply, the whole 2,000,000 is burned.)
   4. Tranches 2-5 REFUSE to be spent before their unlock date.
      (A lock you have not watched refuse a spend is a lock you do not have.)

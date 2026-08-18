@@ -1,149 +1,77 @@
 # WAM Coin brand assets
 
+The mark is a struck gold coin on black: the letter **W** over a dotted world
+map and a circuit trace, inside a milled rim. Adopted 2026-08-18 and final.
+
+---
+
+## Which file to use
+
 | File | Use |
 |---|---|
-| `wam-icon.svg` | Primary mark. Default for anything ≥ 48px. |
-| `wam-logo.svg` | Horizontal lockup (mark + wordmark). Whitepaper header, site header, README. |
-| `wam-icon-mono.svg` | Single ink. Engraving, embossing, stamps, screen print, fax. Inherits `currentColor`. |
-| `wam-coin.svg` | Circular coin face, no legend. Exchange listings, wallet token lists, market-data aggregators. |
-| `wam-coin-face.svg` | **Email only.** The coin with its legends, flat. |
-| `wam-coin-face-struck.svg` | The same, struck finish. Screens, 128px and up. |
-| `wam-coin-marketing.jpg` | **Everything else.** The primary coin image. |
-| `wam-favicon.svg` | 16–48px. **Not** the primary icon scaled down — redrawn for small sizes. |
+| `png/wam-platform-200.png` | **Exchange and wallet listings.** The size almost every venue asks for. |
+| `png/wam-platform-32.png` … `-2048.png` | The same mark at 32, 64, 128, 256, 512 and 2048. Favicon at 32, app icon at 512. |
+| `png/wam-social-512.png` … `-2048.png` | **Announcements only.** The coin with the supply figure and the launch date struck into it. |
+| `png/wam-platform-master-1080.jpg` | Source render, plain mark. |
+| `png/wam-social-master-1080.jpg` | Source render, with legend. |
+
+All PNGs are RGBA with a genuinely transparent background — the coin is masked
+to its own circle, so it sits correctly on a light interface and a dark one.
+The JPEG masters are not transparent and are kept only as the originals.
 
 ---
 
-## Palette
+## The one rule that matters
 
-| | Hex | Use |
+**The plain mark is the identity. The one with text is not.**
+
+The version carrying the supply figure and `WAMCOIN · 15 · 9 · 2026` is
+announcement artwork. It is dated, it carries a number, and at the 32 pixels an
+exchange renders a logo at, both become noise. It is right for a launch post
+and wrong everywhere the identity appears.
+
+The plain mark goes everywhere and never changes. Consistency is most of what
+makes a mark recognisable, and a mark that varies by context is not one.
+
+---
+
+## Sizes, and why nothing larger
+
+2048 is the largest useful size. Exchanges and wallets render listing logos
+between 24 and 200 pixels; aggregators ask for 200 or 256. Anything above 2048
+is bytes nobody downloads — a 7680 square PNG of this artwork is over sixty
+megabytes and renders identically to the 512.
+
+If a venue asks for a size that is not here, downscale from
+`png/wam-platform-2048.png` rather than from a smaller file.
+
+---
+
+## Colour
+
+Read off the render rather than specified in advance, because the mark is a 3D
+render and not a flat vector.
+
+| | Approximate | Use |
 |---|---|---|
-| Primary | `#0B7C5C` | The hexagon. Also the accent colour in the pool dashboard and explorer. |
-| Ink | `#0B2C22` | Wordmark, body text on light. |
-| On dark | `#14B88A` | Substitute for the primary on dark backgrounds — `#0B7C5C` fails contrast there. |
-| Coin field | `#D9A63C` | Coin face only. Never for UI. |
-| Coin rim | `#A8761A` / `#8A5F10` | Coin face only. |
+| Coin gold | `#E8A93C` | The rim, the letter, the circuit traces. |
+| Deep gold | `#B07818` | Shadow side of the rim and the letter bevel. |
+| Field | `#141210` | The near-black behind the map. |
+
+For anything needing a flat colour — a single-ink stamp, an engraving, a
+terminal — use the gold on the field and do not try to reproduce the bevels.
+They do not survive the reduction.
 
 ---
 
-## Design decisions, and why
+## `legacy/`
 
-**Flat, always.** No gradients, bevels, or drop shadows anywhere. A logo that needs a
-gradient breaks the moment it is embroidered, foil-stamped, printed in one colour, faxed to
-a regulator, or rendered at 16px. Every asset here survives all of those.
+Everything under `legacy/` is a **superseded** design: a flat green hexagon,
+with an SVG pipeline and the PNGs it generated. It was replaced by the coin
+above and is kept only so the history is not lost.
 
-**Hexagon, not a circle.** The block motif, and a silhouette that is actually
-distinguishable in a market where nearly every mark is a circle with a letter in it.
+Nothing there should be used. If you are looking for a logo, it is in `png/`.
 
-**The W's centre vertex rises above its arms**, at a 1:6 proportion. This is the whole
-identity in one decision: symmetric, because a currency should read as balanced rather than
-tilted; but rising, because a static W is forgettable. The wordmark's W repeats it at the
-same ratio, which is what ties mark and type into one system.
-
-**The wordmark is drawn, never typeset.** There is no `<text>` element and no font
-dependency in any file. It renders identically on a machine that has never heard of the
-font, and cannot be silently substituted by a PDF pipeline.
-
-**The favicon is a different drawing.** The hexagon is enlarged to fill the tile (optical
-margin is wasted pixels at 16px), the stroke is thickened 11 → 14 so it survives one-pixel
-rendering, and the centre spire is shortened — at that size the extra height reads as an
-artefact rather than as intent.
-
-**The monochrome variant knocks the W out** rather than drawing it on top, so the mark is
-one solid shape in one ink. It uses a mask referencing the identical W path, so it can
-never drift out of sync with the primary.
-
----
-
-## Which coin, where
-
-**`wam-coin-marketing.jpg` is the coin.** Website, social, presentations,
-exchange artwork, anywhere the currency is shown — it is the one people should
-recognise.
-
-**`wam-coin-face.svg` is for email, and only email.** Mail clients composite a
-transparent image onto the reader's theme background, and several rewrite or
-strip anything they consider decorative. A flat three-ink asset survives that;
-a dark photographic render does not.
-
-The marketing coin is a 3D render, so it is raster and always will be. That
-costs three things, none of which are email:
-
-- It cannot be the favicon. Use `wam-favicon.svg`, redrawn for 16–48px.
-- It cannot be printed in one ink, embroidered, or engraved. Use
-  `wam-icon-mono.svg`.
-- It cannot be enlarged past its master. `make_marketing_sizes.py` derives
-  every size downward and refuses to invent detail upward; replacing the
-  master with a larger render is the only way to get bigger.
-
-## The coin face
-
-Four positions. They do not move between variants:
-
-```
-        22,000,000          the supply ceiling
-            W               the mark
-     WAMCOIN.15.9.2026      the name and the genesis date
-```
-
-**Colour, finish and ornament may vary. These positions may not.** That single
-rule is what lets a flat asset and a rich marketing image read as the same
-coin rather than as two identities. A silver edition, a print edition, an
-anniversary edition — all of them keep the four positions and change whatever
-else they like.
-
-**Only what can be checked goes on the coin.** The ceiling is enforced by
-consensus and the date is the genesis timestamp; both can be verified against
-a running node. No price, no slogan, and specifically not "decentralized
-digital currency" — a claim every coin makes and none of them proves.
-
-`make_coin_face.py` generates both files, extracting the legends from the font
-as outlines. Nothing font-dependent survives into the shipped SVG, because an
-asset carrying `<text>` renders with whatever the viewer happens to have
-installed, and a coin whose legend reflows on someone else's machine is worse
-than no coin at all. The script refuses to write a file that still contains
-`<text>`, `font-family` or `textPath`.
-
-The arc is built one glyph at a time rather than with `<textPath>`. librsvg,
-which renders every PNG in this directory, ignores `textPath` completely and
-emits a coin with no legend and no warning.
-
-## Clear space and minimum sizes
-
-- **Clear space:** at least the height of the hexagon on every side of the lockup.
-- **Minimum lockup width:** 120px. Below that use `wam-icon.svg` alone.
-- **Minimum icon size:** 24px for `wam-icon.svg`; use `wam-favicon.svg` below that.
-
-## Don't
-
-- Don't recolour the hexagon outside the palette above.
-- Don't place `#0B7C5C` on a dark background — use `#14B88A`.
-- Don't stretch, skew, rotate, or add effects.
-- Don't reconstruct the wordmark in a system font.
-- Don't use the coin face in UI; it is a listing asset.
-
----
-
-## Producing raster files
-
-```bash
-# PNGs for exchange listings (they usually want 200 and 400 px, circular)
-rsvg-convert -w 400 -h 400 brand/wam-coin.svg -o wam-coin-400.png
-rsvg-convert -w 200 -h 200 brand/wam-coin.svg -o wam-coin-200.png
-
-# favicon.ico
-rsvg-convert -w 48 -h 48 brand/wam-favicon.svg -o f48.png
-rsvg-convert -w 32 -h 32 brand/wam-favicon.svg -o f32.png
-rsvg-convert -w 16 -h 16 brand/wam-favicon.svg -o f16.png
-convert f16.png f32.png f48.png favicon.ico
-```
-
----
-
-## A note on a currency symbol
-
-WAM ships **without** an invented currency glyph, on purpose. The obvious candidate — a W
-with a horizontal bar — is one stroke away from **₩** (Korean won, U+20A9), which is a W
-with two bars. A symbol that is misread as an existing national currency is worse than no
-symbol at all.
-
-Use the ticker `WAM`, or the hexagon mark where a glyph is needed.
+The scripts that produced it are kept alongside it for the same reason:
+`legacy/make_coin_face.py`, `legacy/make_marketing_sizes.py` and
+`legacy/render.sh`.

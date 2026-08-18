@@ -2,7 +2,9 @@
 // Distributed under the MIT software license, see COPYING.
 //
 // Drop-in replacement for Bitcoin Core's src/kernel/chainparams.cpp.
-// Applied by scripts/apply-patches.sh; see patches/README.md.
+// Copied into the build tree by scripts/fetch-upstream.sh, which also applies
+// every other change through scripts/patch_upstream.py. Run that with --list
+// to read all of them with their reasons.
 
 #include <kernel/chainparams.h>
 

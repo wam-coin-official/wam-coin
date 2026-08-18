@@ -63,13 +63,19 @@ class WamGenesisTest(BitcoinTestFramework):
             total += value
         assert_equal(total, PREMINE_TOTAL)
 
-        self.log.info('tranche 1 is spendable, with no lock on it')
-        first = bytes.fromhex(coinbase['vout'][0]['scriptPubKey']['hex'])
-        assert OP_CHECKLOCKTIMEVERIFY not in first, \
-            'the first tranche must not be time-locked; it funds the launch'
+        self.log.info('not one tranche is spendable at launch')
+        for i in range(TRANCHE_COUNT):
+            script = bytes.fromhex(coinbase['vout'][i]['scriptPubKey']['hex'])
+            assert OP_CHECKLOCKTIMEVERIFY in script, (
+                f'tranche {i + 1} carries no time lock. This test used to require '
+                'the opposite of exactly this for the first output, which was the '
+                'launch working capital; nothing in the reserve is liquid now.')
+            assert len(script) != 25, (
+                f'tranche {i + 1} is a bare 25-byte P2PKH, which means it can be '
+                'spent on launch day')
 
-        self.log.info('tranches 2 to 5 are locked to the promised dates')
-        for i in range(1, TRANCHE_COUNT):
+        self.log.info('every tranche is locked to a promised date')
+        for i in range(TRANCHE_COUNT):
             script = bytes.fromhex(coinbase['vout'][i]['scriptPubKey']['hex'])
 
             # <locktime> OP_CHECKLOCKTIMEVERIFY OP_DROP <p2pkh...>
