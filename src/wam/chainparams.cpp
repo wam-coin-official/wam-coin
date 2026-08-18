@@ -77,10 +77,17 @@ using namespace wam;
 //  build log, or in any chat transcript.
 // ===========================================================================
 
-// hash160 = 20 zero bytes -- an unspendable burn address. REPLACE BEFORE LAUNCH.
-static const std::string WAM_FOUNDER_ADDRESS_MAINNET = "WNg2svm2qApxheBKndKGQ9sRwporvRgRpT";
-// Real testnet founder address, generated 2026-08-06. The mainnet one above is
-// still the burn placeholder and must be generated offline before launch.
+// Generated 2026-08-17 by gen_founder_key.py on a live system running from RAM,
+// with the network disabled, on a machine whose disk was never written to. The
+// private key exists on paper and nowhere else: four handwritten copies, each
+// one read back and checked against this address with --verify-backup while the
+// screen still showed the original, before the machine was powered off.
+//
+// It has never been photographed, never typed into a networked device, and
+// never transmitted to anyone.
+static const std::string WAM_FOUNDER_ADDRESS_MAINNET = "WWWEvpC98mfzjRMZHtaRaucMjopqH2viQz";
+// Testnet founder address, generated 2026-08-06. Testnet coins have no value,
+// so this one was generated on an ordinary machine.
 static const std::string WAM_FOUNDER_ADDRESS_TESTNET = "TK34fTbuMCXrwnmq72AE1EMMmdrkUtzUvq";
 
 /**
