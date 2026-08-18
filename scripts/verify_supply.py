@@ -253,15 +253,17 @@ def main() -> int:
 
     check("tranche count matches the unlock table", len(UNLOCKS), TRANCHES)
     check("tranches sum to exactly the premine", TRANCHES * TRANCHE_AMT, PREMINE)
-    check("the first tranche is unlocked at genesis", UNLOCKS[0], 0)
-    check("every later lock is read as a timestamp, not a height",
-          all(t > 500_000_000 for t in UNLOCKS[1:]))
+    check("no tranche is unlocked at genesis", any(t == 0 for t in UNLOCKS), False)
+    check("every lock is read as a timestamp, not a height",
+          all(t > 500_000_000 for t in UNLOCKS))
+    check("every lock is after the launch",
+          all(t > GTIME for t in UNLOCKS))
     check("unlock times strictly increase",
-          all(UNLOCKS[i] < UNLOCKS[i + 1] for i in range(1, len(UNLOCKS) - 1)))
-    check("the schedule spans 4 years",
-          round((UNLOCKS[-1] - GTIME) / 86400 / 365.25), 4)
-    check("liquid at launch is 20% of the reserve",
-          round(100 * TRANCHE_AMT / PREMINE), 20)
+          all(UNLOCKS[i] < UNLOCKS[i + 1] for i in range(len(UNLOCKS) - 1)))
+    check("the schedule spans 5 years",
+          round((UNLOCKS[-1] - GTIME) / 86400 / 365.25), 5)
+    check("liquid at launch is 0% of the reserve",
+          sum(TRANCHE_AMT for t in UNLOCKS if t <= GTIME), 0)
 
     # -- 5. timing ----------------------------------------------------------
     print("\n[5] timing")

@@ -182,13 +182,16 @@ def test_vesting() -> None:
     check("every tranche is 400,000 WAM",
           all(v == 400_000 * 100_000_000 for v, _ in outputs), True)
 
-    # Tranche 1 must be a plain P2PKH -- launch working capital.
-    check("tranche 1 is unlocked P2PKH", outputs[0][1], p2pkh_script(fake_hash))
-    check("tranche 1 script is 25 bytes", len(outputs[0][1]), 25)
+    # Not one output may be spendable at launch. This assertion is the whole
+    # point of the change that locked tranche 1: it used to be a plain P2PKH
+    # described as working capital, and the test used to require that it was.
+    check("no tranche is a plain unlocked P2PKH",
+          any(s == p2pkh_script(fake_hash) for _, s in outputs), False)
 
-    # Tranches 2-5 must be bare CLTV, not P2SH: the unlock date has to be
-    # readable straight out of the genesis block.
-    for i in range(1, PREMINE_TRANCHES):
+    # Every tranche must be bare CLTV, not P2SH: the unlock date has to be
+    # readable straight out of the genesis block, by anyone, without a redeem
+    # script we would have to distribute and they would have to trust.
+    for i in range(PREMINE_TRANCHES):
         script = outputs[i][1]
         locktime = PREMINE_UNLOCK_TIMES[i]
         expected = (push_data(script_num(locktime))
@@ -202,16 +205,18 @@ def test_vesting() -> None:
 
     check("unlock times are strictly increasing",
           all(PREMINE_UNLOCK_TIMES[i] < PREMINE_UNLOCK_TIMES[i + 1]
-              for i in range(1, PREMINE_TRANCHES - 1)), True)
+              for i in range(PREMINE_TRANCHES - 1)), True)
+    # Below this threshold CLTV reads the value as a block height, so the coins
+    # would unlock within hours while the number still looks like a date.
     check("every lock is read as a timestamp, not a height",
-          all(t > 500_000_000 for t in PREMINE_UNLOCK_TIMES[1:]), True)
+          all(t > 500_000_000 for t in PREMINE_UNLOCK_TIMES), True)
 
     # The dates the whitepaper publishes.
     import datetime as dt
     dates = [dt.datetime.fromtimestamp(t, dt.timezone.utc).strftime("%Y-%m-%d")
-             for t in PREMINE_UNLOCK_TIMES[1:]]
+             for t in PREMINE_UNLOCK_TIMES]
     check("published unlock dates", dates,
-          ["2027-09-15", "2028-09-15", "2029-09-15", "2030-09-15"])
+          ["2027-09-15", "2028-09-15", "2029-09-15", "2030-09-15", "2031-09-15"])
     check("genesis time is 2026-09-15",
           dt.datetime.fromtimestamp(GENESIS_TIME, dt.timezone.utc).strftime("%Y-%m-%d"),
           "2026-09-15")

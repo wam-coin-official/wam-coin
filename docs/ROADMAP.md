@@ -122,7 +122,7 @@ committed miners beat ten thousand impressions.
 
 ### 3. Publish the uncomfortable numbers yourself
 
-12.50% founder allocation. 1.82% liquid at launch. §8 of the whitepaper, unedited. If a
+12.50% founder allocation. Nothing liquid at launch. §8 of the whitepaper, unedited. If a
 critic discovers a number you presented gently, you lose the argument permanently. If you
 published it first, you win it permanently. **This is the cheapest credibility available
 and most projects refuse to buy it.**

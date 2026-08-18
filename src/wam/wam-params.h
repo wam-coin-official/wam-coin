@@ -217,19 +217,41 @@ static constexpr int64_t WAM_PREMINE_TRANCHE_AMOUNT = 400'000 * WAM_COIN;
  * Every non-zero value is far above 500,000,000, which is what makes CLTV
  * interpret it as a Unix timestamp rather than a block height.
  */
+// Every tranche is locked. Not one coin of the founder reserve can move on
+// launch day, or in the first year.
+//
+// The first tranche used to be liquid at genesis, described as working capital
+// for listings, audits and infrastructure. That justification does not survive
+// looking at the other half of the design: the 5% treasury pays from block 1
+// and delivers 750,000 WAM over roughly eighteen months, and *that* is the
+// operating money. The reserve was never needed for it.
+//
+// So the only thing an unlocked tranche bought was 400,000 WAM that the founder
+// could sell on day one into a market with no liquidity -- which is the exact
+// shape of the objection every premine attracts, granted for no benefit. It
+// costs nothing to remove: the same coins arrive a year later, and the treasury
+// covers the interval.
+//
+// This is now a rule the network enforces rather than an intention anyone has
+// to be believed about.
 static constexpr int64_t WAM_PREMINE_UNLOCK_TIMES[WAM_PREMINE_TRANCHES] = {
-             0,   // tranche 1 -- genesis, 2026-09-15: launch working capital
-    1820966400,   // tranche 2 -- 2027-09-15
-    1852588800,   // tranche 3 -- 2028-09-15
-    1884124800,   // tranche 4 -- 2029-09-15
-    1915660800,   // tranche 5 -- 2030-09-15
+    1820966400,   // tranche 1 -- 2027-09-15
+    1852588800,   // tranche 2 -- 2028-09-15
+    1884124800,   // tranche 3 -- 2029-09-15
+    1915660800,   // tranche 4 -- 2030-09-15
+    1947196800,   // tranche 5 -- 2031-09-15
 };
 
 static_assert(WAM_PREMINE_TRANCHES * WAM_PREMINE_TRANCHE_AMOUNT == WAM_GENESIS_PREMINE,
               "the vesting tranches must sum to exactly the genesis premine");
 
-static_assert(WAM_PREMINE_UNLOCK_TIMES[0] == 0,
-              "the first tranche is the launch working capital and is unlocked");
+// The inverse of the assertion that used to be here, which required the first
+// tranche to be unlocked. Nothing in the reserve may be spendable at launch,
+// and 500000000 is the CLTV threshold above which a value is read as a Unix
+// time rather than a block height -- a lock below it would be a height, would
+// be satisfied almost immediately, and would look like a lock while being none.
+static_assert(WAM_PREMINE_UNLOCK_TIMES[0] > 500000000,
+              "every founder tranche must carry a real time lock; none is liquid at launch");
 
 // ---------------------------------------------------------------------------
 // Block timing and difficulty

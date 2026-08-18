@@ -26,12 +26,18 @@
 #
 #  What this proves, on a live chain:
 #
-#     1. tranche 1 (unlocked)  CAN be spent   -> change WAM-005 really applied,
-#                                                the premine is not burned
-#     2. tranches 2-5 (CLTV)   CANNOT be spent yet
-#     3. after time passes     tranche 2 CAN be spent
-#                                                -> the lock releases, it does
-#                                                   not merely refuse forever
+#     1. all five tranches   CANNOT be spent at launch -> nothing is liquid,
+#                                                         which is the claim
+#     2. after time passes   tranche 1 CAN be spent    -> the lock releases,
+#                                                         it does not merely
+#                                                         refuse forever, and
+#                                                         change WAM-005 really
+#                                                         applied: the premine
+#                                                         is not burned
+#
+#  The second half matters as much as the first. A lock that never opens and a
+#  burn look identical from outside, and the difference would not be discovered
+#  until 2027 -- when there would be nothing to do about it.
 # ===========================================================================
 
 set -uo pipefail

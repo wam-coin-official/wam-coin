@@ -73,7 +73,7 @@ static RPCHelpMan getsupplyinfo()
                         {
                             {RPCResult::Type::NUM, "tranche", "1-based index"},
                             {RPCResult::Type::STR_AMOUNT, "amount", "size of this tranche"},
-                            {RPCResult::Type::NUM_TIME, "unlock_time", "unix time it unlocks; 0 means unlocked at genesis"},
+                            {RPCResult::Type::NUM_TIME, "unlock_time", "unix time this tranche unlocks; every founder tranche is locked, so this is never 0 on mainnet"},
                             {RPCResult::Type::BOOL, "unlocked", "whether the tip's timestamp has passed that time"},
                         }},
                     }},

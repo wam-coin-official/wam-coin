@@ -178,12 +178,15 @@ fees, and the treasury 2.5 WAM. Total emission is unchanged, which is what keeps
 **Both founder allocations are bounded by consensus, not by promise:**
 
 ```
-Founder reserve   2,000,000 WAM   5 tranches, 20% liquid at launch,
-                                  the rest behind OP_CHECKLOCKTIMEVERIFY:
-                                  2027-09-15 / 2028-09-15 / 2029-09-15 / 2030-09-15
+Founder reserve   2,000,000 WAM   5 tranches, NONE liquid at launch.
+                                  Every one behind OP_CHECKLOCKTIMEVERIFY:
+                                  2027-09-15 / 2028-09-15 / 2029-09-15 /
+                                  2030-09-15 / 2031-09-15
 
 Operating fee       750,000 WAM   5% of the subsidy for heights 1..400,000 only.
                                   From block 400,001 miners keep 100%.
+                                  This is the operating money -- which is why
+                                  the reserve does not need to be liquid.
 ```
 
 The vesting locks are **bare CLTV scripts in the genesis block**, not P2SH — the unlock
@@ -191,8 +194,10 @@ date is readable straight out of block 0 (`wam-cli getblock <genesis> 2`), so th
 is verifiable rather than promised. `wam-cli getsupplyinfo` shows the locked/unlocked split
 at any moment.
 
-Total founder + operating allocation: **12.50%** of the cap, of which only **1.82%** is
-liquid on launch day. Stated here so nobody has to assemble it from footnotes.
+Total founder + operating allocation: **12.50%** of the cap, of which **none** is liquid on
+launch day. The entire 2,000,000 reserve is time-locked until 2027 at the earliest, and the
+operating fee has to be mined block by block like everyone else's coins. Stated here so
+nobody has to assemble it from footnotes.
 
 ---
 

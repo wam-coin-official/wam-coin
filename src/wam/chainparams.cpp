@@ -175,10 +175,13 @@ static CScript TimeLockedFounderScript(const std::string& address, int64_t nLock
 /**
  * The five founder-reserve outputs of the genesis coinbase.
  *
- * Tranche 1 is liquid at launch (working capital for listings, audits and
- * infrastructure); tranches 2-5 unlock on exact calendar anniversaries of the
- * launch date. All five remain subject to the ordinary 100-block coinbase
- * maturity as well.
+ * All five are time-locked; none is spendable at launch. They unlock on exact
+ * calendar anniversaries of the launch date, one a year from 2027 to 2031, and
+ * all five remain subject to the ordinary 100-block coinbase maturity as well.
+ *
+ * Operating money comes from the 5% treasury, which pays from block 1 and stops
+ * at height 400,000 -- see WAM_DEVFEE_* in wam-params.h. The reserve is not
+ * working capital and is not treated as any.
  */
 static std::vector<CTxOut> BuildGenesisOutputs(const std::string& address)
 {

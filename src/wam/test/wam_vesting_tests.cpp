@@ -184,19 +184,45 @@ BOOST_AUTO_TEST_CASE(the_lock_releases_on_its_date)
     }
 }
 
-BOOST_AUTO_TEST_CASE(tranche_one_has_no_lock_at_all)
+BOOST_AUTO_TEST_CASE(no_tranche_is_spendable_at_launch)
 {
+    // This test used to be called tranche_one_has_no_lock_at_all and asserted
+    // the opposite: that the first tranche was plain P2PKH, spendable on day
+    // one, the "launch working capital". That justification never held up --
+    // the 5% treasury pays from block 1 and is the operating money -- so all
+    // it bought was 400,000 WAM the founder could sell into a market with no
+    // liquidity, which is the objection every premine attracts.
+    //
+    // Nothing in the reserve moves at launch, and this is where that is held.
     CKey key;
     key.MakeNewKey(true);
     const CKeyID keyid = key.GetPubKey().GetID();
 
-    // Tranche 1 is plain P2PKH -- the launch working capital.
-    CScript plain;
-    plain << OP_DUP << OP_HASH160 << ToByteVector(keyid) << OP_EQUALVERIFY << OP_CHECKSIG;
+    for (int i = 0; i < WAM_PREMINE_TRANCHES; ++i) {
+        const int64_t unlock = WAM_PREMINE_UNLOCK_TIMES[i];
 
-    ScriptError err = SCRIPT_ERR_OK;
-    BOOST_CHECK(SpendSucceeds(key, plain, 0, 0xFFFFFFFF, &err));
-    BOOST_CHECK_EQUAL(WAM_PREMINE_UNLOCK_TIMES[0], 0);
+        // Above the CLTV threshold, or the value is read as a block height and
+        // the coins unlock within hours while the number still looks like a
+        // date -- a lock that reads as a lock and is not one.
+        BOOST_CHECK_MESSAGE(unlock > 500000000,
+                            "tranche " << (i + 1) << " is not a real time lock");
+
+        CScript locked;
+        locked << unlock << OP_CHECKLOCKTIMEVERIFY << OP_DROP
+               << OP_DUP << OP_HASH160 << ToByteVector(keyid)
+               << OP_EQUALVERIFY << OP_CHECKSIG;
+
+        // At the genesis timestamp every tranche must refuse to be spent.
+        ScriptError err = SCRIPT_ERR_OK;
+        BOOST_CHECK_MESSAGE(!SpendSucceeds(key, locked, WAM_GENESIS_TIME, 0, &err),
+                            "tranche " << (i + 1) << " was spendable at launch");
+
+        // And each must become spendable once its own date arrives, so the
+        // lock is a delay and not a burn.
+        err = SCRIPT_ERR_OK;
+        BOOST_CHECK_MESSAGE(SpendSucceeds(key, locked, unlock, 0, &err),
+                            "tranche " << (i + 1) << " never unlocks");
+    }
 }
 
 // ---------------------------------------------------------------------------

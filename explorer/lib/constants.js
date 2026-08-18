@@ -27,16 +27,23 @@ module.exports = {
     POW_TARGET_SPACING: 120,
     COINBASE_MATURITY: 100,
 
-    // Founder reserve vesting -- 2026-09-15 launch, exact calendar anniversaries.
+    // Founder reserve vesting -- exact calendar anniversaries of the launch.
+    // Every tranche is time-locked; none is spendable at launch.
+    //
+    // A third copy of the table in wam-params.h, kept in step by
+    // scripts/check_vesting_sync.py. The explorer showing a different schedule
+    // from the one the chain enforces would be worse than showing none: people
+    // check this page precisely because they do not want to take our word for
+    // it, and a stale number here reads as a lie rather than a bug.
     GENESIS_TIME: 1789430400,
     PREMINE_TRANCHES: 5,
     PREMINE_TRANCHE_AMOUNT_WAM: 400000,
     PREMINE_UNLOCK_TIMES: [
-        0,           // tranche 1 -- 2026-09-15, unlocked at genesis
-        1820966400,  // tranche 2 -- 2027-09-15
-        1852588800,  // tranche 3 -- 2028-09-15
-        1884124800,  // tranche 4 -- 2029-09-15
-        1915660800   // tranche 5 -- 2030-09-15
+        1820966400,  // tranche 1 -- 2027-09-15
+        1852588800,  // tranche 2 -- 2028-09-15
+        1884124800,  // tranche 3 -- 2029-09-15
+        1915660800,  // tranche 4 -- 2030-09-15
+        1947196800   // tranche 5 -- 2031-09-15
     ],
 
     RANDOMX_EPOCH_BLOCKS: 2048,

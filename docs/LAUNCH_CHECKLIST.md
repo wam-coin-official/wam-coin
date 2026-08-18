@@ -56,7 +56,11 @@ Everything here is irreversible once the first block is mined. Work through it i
 - [ ] Genesis mined:
       `python3 genesis/genesis_generator.py --network mainnet --address W... --patch ...`
 - [ ] The generator printed **five** premine outputs with the expected unlock dates
-      (2027/2028/2029/2030-09-15) and the first one unlocked.
+      (2027/2028/2029/2030/2031-09-15) and **not one of them unlocked**. Every
+      script must be 32 bytes, not 25: a 25-byte output is a bare P2PKH, which
+      means that tranche is spendable on launch day.
+- [ ] `python3 scripts/check_vesting_sync.py` passes — the schedule in
+      wam-params.h, the generator and the explorer are the same table.
 - [ ] The generator's self-check passed (mined hash ≤ target, header exactly 80 bytes).
 - [ ] `chainparams.cpp` now contains a real `nNonce` and both assertions have real hashes.
 - [ ] A **second person** independently re-ran the generator with the same `--time`,

@@ -284,10 +284,17 @@ blocks" only equals one year if the chain sustains exactly 120 seconds per block
 if hash rate falls, a four-year commitment silently becomes five. Timestamps are what the
 public will hold this schedule to, so timestamps are what consensus enforces.
 
-**Why 20% is liquid at launch.** Listings, audits and infrastructure have to be paid before
-there is a market. But note that the operating fee (§3.2) already delivers ~1,800 WAM per
-day unlocked from block 1 — so the reserve does not need to fund operations, and does not
-pretend to. It is a strategic reserve, held long.
+**Why none of it is liquid at launch.** An earlier version of this schedule released the
+first tranche at genesis, and justified it as working capital for listings, audits and
+infrastructure. That justification did not survive the paragraph after it: the operating fee
+(§3.2) already delivers ~1,800 WAM per day, unlocked from block 1, and *that* is what pays
+for operations. The reserve was never needed for it.
+
+So the only thing an unlocked tranche bought was 400,000 WAM the founder could sell on day
+one into a market with no depth — which is precisely the fear a premine creates, granted
+voluntarily, for no benefit. Removing it costs nothing: the same coins arrive twelve months
+later, and the operating fee covers the interval. The reserve is strategic and held long,
+and now the chain enforces that rather than asking anyone to believe it.
 
 **Why locking matters more than the size of the number.** The fear a premine creates is not
 "the founder owns 9%" — it is "the founder can sell 9% into a thin market tomorrow." A
@@ -305,8 +312,9 @@ Stated plainly, in one place, so that nobody has to assemble it from footnotes:
 | **Founder + operating total** | **2,750,000 WAM** | **12.50%** | — |
 | **Public mining** | **19,250,000 WAM** | **87.50%** | — |
 
-Twelve and a half percent. Of that, only **1.82%** of the total supply (400,000 WAM) is
-liquid on launch day; the rest is either time-locked or has not been mined yet.
+Twelve and a half percent. Of that, **none** is liquid on launch day: the entire 2,000,000
+reserve is time-locked until 2027 at the earliest, and the operating fee has to be mined
+block by block on the same schedule as everyone else's coins.
 
 For comparison, and without claiming that comparison is a justification: Zcash allocated
 20% to founders for four years, Dash directs 10% to a treasury permanently, and Decred
@@ -475,10 +483,10 @@ the vesting schedule and the fee's expiry are enforced by code. The *use* of tho
 not, and cannot be — no consensus rule can compel a particular expenditure. Holders should
 evaluate the team, not only the protocol.
 
-**Vesting constrains selling, not everything.** The four locked tranches cannot move before
-their dates, and that is enforced by script. But 400,000 WAM is liquid at launch, the
-operating fee accrues unlocked, and nothing prevents borrowing against locked coins
-off-chain. Vesting is a real constraint, not a complete one.
+**Vesting constrains selling, not everything.** All five tranches are locked and cannot move
+before their dates, and that is enforced by script rather than promised. But the operating
+fee accrues unlocked from block 1, and nothing prevents borrowing against locked coins
+off-chain, or selling a claim on them. Vesting is a real constraint, not a complete one.
 
 **The treasury address is a single point of failure.** If its private key is lost, the
 premine and all future fee income are permanently unspendable — and the time-locked

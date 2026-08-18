@@ -74,21 +74,34 @@ TESTNET_GENESIS_TIME = 1785542400   # 2026-08-01
 REGTEST_GENESIS_TIME = 1296688602   # 2011-02-02, Bitcoin's own regtest time
 
 # Founder-reserve vesting. Mirrors WAM_PREMINE_* in wam-params.h.
-# Tranche 1 is unlocked (launch working capital); the rest are behind
-# OP_CHECKLOCKTIMEVERIFY until an exact calendar anniversary of the launch.
+#
+# This table and the C++ one must agree exactly. They are separate copies
+# because a Python miner cannot read a C++ header at run time, and if they ever
+# disagree the generator mines a genesis block the node then refuses -- the
+# hashes will not match and nothing will start. scripts/check_vesting_sync.py
+# compares all copies and is the reason a divergence is caught here rather than
+# on launch day.
+#
+# Every tranche is locked; none is spendable at launch. See the note on
+# WAM_PREMINE_UNLOCK_TIMES in wam-params.h for why the first one stopped being
+# liquid: the 5% treasury is the operating money, so the reserve never needed
+# to be.
 PREMINE_TRANCHES = 5
 PREMINE_TRANCHE_AMOUNT = 400_000 * COIN
 PREMINE_UNLOCK_TIMES = [
-             0,   # tranche 1 -- genesis, 2026-09-15
-    1820966400,   # tranche 2 -- 2027-09-15
-    1852588800,   # tranche 3 -- 2028-09-15
-    1884124800,   # tranche 4 -- 2029-09-15
-    1915660800,   # tranche 5 -- 2030-09-15
+    1820966400,   # tranche 1 -- 2027-09-15
+    1852588800,   # tranche 2 -- 2028-09-15
+    1884124800,   # tranche 3 -- 2029-09-15
+    1915660800,   # tranche 4 -- 2030-09-15
+    1947196800,   # tranche 5 -- 2031-09-15
 ]
 
 assert len(PREMINE_UNLOCK_TIMES) == PREMINE_TRANCHES
 assert PREMINE_TRANCHES * PREMINE_TRANCHE_AMOUNT == GENESIS_PREMINE, \
     "vesting tranches must sum to exactly the genesis premine"
+assert all(t > 500_000_000 for t in PREMINE_UNLOCK_TIMES), \
+    "every tranche must carry a real time lock -- a value below the CLTV " \
+    "threshold would be read as a block height and unlock almost at once"
 assert all(t == 0 or t > 500_000_000 for t in PREMINE_UNLOCK_TIMES), \
     "a non-zero lock below 500,000,000 would be read by CLTV as a block height"
 
