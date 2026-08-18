@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WAM Coin — a CPU-mineable proof-of-work currency</title>
+<link rel="icon" href="favicon.png" type="image/png">
 <meta name="description" content="A CPU-mineable proof-of-work currency with a hard 22,000,000 cap. RandomX, two-minute blocks, a disclosed and time-locked founder reserve. Launching 15 September 2026.">
 
 <!-- No fonts, no analytics, no CDN, nothing loaded from anywhere else. A page
@@ -122,12 +123,8 @@ footer { margin-top:60px; padding-top:22px; border-top:1px solid var(--line); co
 <div class="wrap">
 
 <header>
-  <svg class="mark" viewBox="0 0 100 100" aria-label="WAM Coin">
-    <circle cx="50" cy="50" r="46" fill="none" stroke="var(--gold)" stroke-width="5"/>
-    <circle cx="50" cy="50" r="38" fill="var(--gold)" opacity=".14"/>
-    <text x="50" y="66" text-anchor="middle" font-size="46" font-weight="700"
-          font-family="ui-sans-serif,system-ui,sans-serif" fill="var(--gold)">W</text>
-  </svg>
+  <img class="mark" src="wam-coin.png" width="256" height="256"
+       alt="WAM Coin" decoding="async">
   <h1>WAM Coin</h1>
   <p class="tag en">A CPU-mineable proof-of-work currency with a hard 22,000,000 cap.</p>
   <p class="tag ar">عملة إثبات عمل تُعدَّن بالمعالجات العادية، بسقف نهائي قدره 22,000,000 وحدة.</p>
@@ -180,10 +177,12 @@ lines are genuinely ours, and every one of them is
   <tr><th>Proof of work</th><td class="num">RandomX</td></tr>
 </table>
 
-<p class="dim">The founder reserve is locked in the genesis block itself by
-<code>OP_CHECKLOCKTIMEVERIFY</code>, releasing 20% a year to September 2030. The 5% treasury
-fee is a consensus rule that stops permanently at block 400,000, after which miners receive
-the entire subsidy. Neither is a promise; both are enforced by every node.</p>
+<p class="dim"><strong>None of the founder reserve is spendable at launch.</strong> All
+2,000,000 are locked in the genesis block itself by <code>OP_CHECKLOCKTIMEVERIFY</code>,
+releasing 20% a year from September 2027 to September 2031. The 5% treasury fee is a
+consensus rule that stops permanently at block 400,000, after which miners receive the
+entire subsidy. Neither is a promise; both are enforced by every node, and you can read the
+lock out of block 0 yourself.</p>
 
 <h2 class="sec">Do not take our word for it</h2>
 <p>Every claim above has a command that proves or disproves it. These read the shipped
@@ -227,6 +226,18 @@ no way to acquire it at launch except by mining it or by trading with someone wh
 <p class="dim">Mainnet opens 15 September 2026. Until then the testnet is running, and its
 coins are worth nothing by design.</p>
 
+<h2 class="sec">Trading</h2>
+<p><strong>WAM is not listed anywhere, and there is no price.</strong> It cannot be bought.</p>
+<p class="dim">Enquiries have been sent to six decentralised venues — Komodo Wallet,
+BasicSwap DEX, Bisq, Maya Protocol, Haveno and Block DX — asking what they require in order
+to list a chain like this. <strong>None of them has agreed to anything.</strong> They are
+requests for requirements, sent before launch because reviews at venues of this kind take
+weeks, and this line will say something different only when one of them says yes.</p>
+<p class="dim">WAM is its own layer 1 rather than a token on someone else's chain, so it
+settles by atomic swap or a peer-to-peer order book. It cannot appear on an automated market
+maker such as Uniswap without a bridge and a wrapped representation, which is the same
+reason Monero does not.</p>
+
 </div><!-- /en -->
 
 
@@ -264,10 +275,11 @@ coins are worth nothing by design.</p>
   <tr><th>إثبات العمل</th><td class="num">RandomX</td></tr>
 </table>
 
-<p class="dim">احتياطي المؤسس مقفل داخل بلوك التكوين نفسه بـ<code>OP_CHECKLOCKTIMEVERIFY</code>،
-ويُفرج عنه بنسبة 20% سنوياً حتى سبتمبر 2030. ورسوم التشغيل البالغة 5% قاعدة إجماع تتوقّف
+<p class="dim"><strong>لا شيء من احتياطي المؤسس قابل للصرف يوم الإطلاق.</strong> المليونان
+كلّها مقفلة داخل بلوك التكوين نفسه بـ<code>OP_CHECKLOCKTIMEVERIFY</code>، ويُفرج عنها بنسبة
+20% سنوياً من سبتمبر 2027 إلى سبتمبر 2031. ورسوم التشغيل البالغة 5% قاعدة إجماع تتوقّف
 نهائياً عند البلوك 400,000، وبعدها يأخذ المعدّنون المكافأة كاملة. لا هذا وعد ولا ذاك — كلاهما
-تفرضه كل عقدة على الشبكة.</p>
+تفرضه كل عقدة، ويمكنك قراءة القفل من البلوك صفر بنفسك.</p>
 
 <h2 class="sec">لا تصدّقنا — تحقّق بنفسك</h2>
 <p>كل رقم أعلاه له أمر يُثبته أو ينفيه. هذه الأوامر تقرأ الملف التنفيذي نفسه، لا هذه الصفحة:</p>
@@ -309,6 +321,16 @@ coins are worth nothing by design.</p>
 عليها يوم الإطلاق إلا بتعدينها أو بمبادلتها مع من عدّنها.</p>
 <p class="dim">تُفتح الشبكة الرئيسية في 15 سبتمبر 2026. وحتى ذلك الحين تعمل الشبكة التجريبية،
 وعملاتها لا تساوي شيئاً بالتصميم.</p>
+
+<h2 class="sec">التداول</h2>
+<p><strong>WAM غير مُدرجة في أي منصّة، ولا سعر لها.</strong> ولا يمكن شراؤها.</p>
+<p class="dim">أُرسلت استفسارات إلى ستّ منصّات لا مركزية — Komodo Wallet وBasicSwap DEX
+وBisq وMaya Protocol وHaveno وBlock DX — سؤالاً عمّا تشترطه لإدراج سلسلة كهذه.
+<strong>ولم يوافق أيٌّ منها على شيء.</strong> هي طلب متطلّبات، أُرسل قبل الإطلاق لأن المراجعة
+في مثل هذه المنصّات تستغرق أسابيع، ولن يتغيّر هذا السطر إلّا يوم يقول أحدها نعم.</p>
+<p class="dim">WAM سلسلة مستقلّة بذاتها لا عملة رمزية على سلسلة غيرها، فتداولها يكون بمبادلة
+ذرّية أو بدفتر أوامر بين الأطراف. ولا يمكن إدراجها في منصّة صانع سوق آلي مثل Uniswap بلا
+جسر ونسخة ملفوفة — وهو نفس سبب غياب مونيرو عنها.</p>
 
 </div><!-- /ar -->
 

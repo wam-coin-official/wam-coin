@@ -18,7 +18,7 @@ The founder and operating allocations are stated up front, separately, with thei
 | Allocation | Amount | Share | Status |
 |---|---:|---:|---|
 | **Public mining** | 19,250,000 WAM | **87.50%** | issued to miners over ~25 years |
-| Founder reserve | 2,000,000 WAM | 9.09% | genesis block, **vested over 4 years** |
+| Founder reserve | 2,000,000 WAM | 9.09% | genesis block, **locked 5 years, none liquid at launch** |
 | Operating budget | 750,000 WAM | 3.41% | 5% of subsidy, **ends at block 400,000** |
 | *Founder + operating* | *2,750,000 WAM* | ***12.50%*** | — |
 
@@ -89,7 +89,7 @@ Adding the genesis premine:
 
 | What the coinbase creates | Amount | Of which goes to | |
 |---|---:|---|---:|
-| Genesis premine (block 0) | 2,000,000 WAM | founder reserve, vested 4 years | 2,000,000 |
+| Genesis premine (block 0) | 2,000,000 WAM | founder reserve, locked 5 years | 2,000,000 |
 | Mined emission (blocks 1 →) | 20,000,000 WAM | **miners** | **19,250,000** |
 | | | operating treasury (blocks 1–400,000) | 750,000 |
 | **Absolute maximum supply** | **22,000,000 WAM** | | |
@@ -129,7 +129,7 @@ Bitcoin.
 | Blocks per day | 720 |
 | Launch date | 2026-09-15 00:00 UTC |
 | Operating fee | 5% of the block subsidy, heights 1–400,000 only |
-| Founder reserve vesting | 5 tranches, 20% per year to 2030-09-15 |
+| Founder reserve vesting | 5 tranches, 20% per year, 2027-09-15 to 2031-09-15 |
 | Coinbase maturity | 100 blocks (~3.3 hours) |
 | Emission ends | height 6,600,000 (~25.1 years) |
 | Proof of work | RandomX |
@@ -307,7 +307,7 @@ Stated plainly, in one place, so that nobody has to assemble it from footnotes:
 
 | Source | Amount | Share of cap | Constraint |
 |---|---:|---:|---|
-| Founder reserve (genesis) | 2,000,000 WAM | 9.09% | vested over 4 years, on-chain |
+| Founder reserve (genesis) | 2,000,000 WAM | 9.09% | locked 5 years, on-chain |
 | Operating fee (blocks 1–400,000) | 750,000 WAM | 3.41% | expires by consensus |
 | **Founder + operating total** | **2,750,000 WAM** | **12.50%** | — |
 | **Public mining** | **19,250,000 WAM** | **87.50%** | — |
@@ -542,7 +542,7 @@ Nothing in this document asks for trust. Each claim has a corresponding check:
 |---|---|
 | 22,000,000 hard cap | `python3 scripts/verify_supply.py` |
 | Founder total is 12.50% | `python3 scripts/verify_supply.py` (section 4) |
-| The reserve really is vested 4 years | `python3 scripts/verify_supply.py` (section 4b) |
+| The reserve really is locked 5 years, with nothing liquid at launch | `python3 scripts/verify_supply.py` (section 4b) |
 | The fee really does expire at 400,000 | `python3 scripts/verify_supply.py` (section 4) |
 | Vesting scripts are bare CLTV, not P2SH | `python3 genesis/test_serialization.py` |
 | Live locked/unlocked split | `wam-cli getsupplyinfo` |

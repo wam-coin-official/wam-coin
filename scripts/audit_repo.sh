@@ -136,6 +136,35 @@ fi
 [ "$PLACEHOLDER" = 0 ] && ok "no launch-blocking placeholders"
 
 # ---------------------------------------------------------------------------
+step "7. claims about maturity and duration are current"
+
+# The founder reserve was locked over five years, not four, on 2026-08-18. The
+# whole documentation set said four, in seven places, and none of the earlier
+# checks noticed -- they searched for "liquid at launch" and this is a duration.
+# A reader comparing "vested over 4 years" against a schedule ending in 2031
+# concludes the project cannot keep its own numbers straight.
+DURATION=$(grep -rniE '(vested|locked|vesting).{0,24}(4 years|four years)|20% per year to 2030|to 2030-09-15' \
+           "${SEARCH[@]}" . 2>/dev/null | grep -vE "$EXCLUDE|audit_repo" \
+           | grep -viE 'zcash|dash|decred|monero|for comparison' || true)
+if [ -n "$DURATION" ]; then
+    fail "the reserve is described as four years somewhere; it is five:"
+    printf '%s\n' "$DURATION" | head -6 | sed 's/^/          /'
+else
+    ok "the reserve is described as five years everywhere"
+fi
+
+# Claims that were true before the code was first compiled. They are the first
+# thing a reviewer reads about maturity, and they age badly and silently.
+MATURITY=$(grep -rniE 'nothing has been compiled|never been through a compiler|have never been applied|no chain exists yet' \
+           "${SEARCH[@]}" . 2>/dev/null | grep -vE "$EXCLUDE|audit_repo" || true)
+if [ -n "$MATURITY" ]; then
+    fail "text still says the project has never been compiled:"
+    printf '%s\n' "$MATURITY" | head -4 | sed 's/^/          /'
+else
+    ok "no stale claim that nothing has been built"
+fi
+
+# ---------------------------------------------------------------------------
 printf '\n%s\n' "$(printf '=%.0s' {1..70})"
 if [ "$FAILURES" = 0 ]; then
     printf ' %sthe repository agrees with itself%s\n' "$GRN" "$OFF"

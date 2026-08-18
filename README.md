@@ -48,7 +48,7 @@ genesis/
 
 explorer/                network dashboard — zero dependencies, `node server.js`
 pool/                    stratum mining pool (Node.js) + live pool dashboard
-brand/                   logo system (SVG), palette, usage rules
+brand/                   the coin mark, transparent PNG from 32 to 2048
 install.sh               one-command deployment on Ubuntu 22.04 / 24.04 LTS
 WHITEPAPER.md            the full public specification
 ```
@@ -79,14 +79,25 @@ curl -fs localhost:8081/api/health || echo "WAM node is down"
 
 ## Project status
 
-**Nothing has been compiled yet.** The 2,792 lines of C++ in `src/wam/` have never been
-through a compiler, and the 12 upstream patch anchors have never been applied. Everything
-that can be verified without a compiler *has* been, and passes — but the gate between "a
-repository" and "a chain" is still ahead.
+**Testnet is live. Mainnet launches 2026-09-15 00:00 UTC.**
 
-- **[PROGRESS.md](PROGRESS.md)** — live status, session log, and the single next action.
+| | |
+|---|---|
+| Consensus code | compiles; 29 Boost tests pass |
+| Testnet | running, seed nodes in France and Singapore, found by DNS |
+| Mainnet genesis | mined and committed — `d8d3debe…` |
+| Founder key | generated offline, on paper, never on a networked machine |
+| Founder reserve | fully time-locked; nothing spendable at launch |
+| Release | [v0.1.0](https://github.com/wam-coin-official/wam-coin/releases), built and published by CI from a tag |
+| Third-party audit | **none** |
+
+What is not done: mainnet has never run, no exchange lists WAM, and no
+independent party has reviewed the consensus changes. The last of those is the
+one worth volunteering for — see [SECURITY.md](SECURITY.md), there is a bounty.
+
 - **[docs/ROADMAP.md](docs/ROADMAP.md)** — the phased plan from here to a running network.
 - **[docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md)** — the irreversible steps.
+- **[docs/LISTING_PACKAGE.md](docs/LISTING_PACKAGE.md)** — every parameter an integrator needs.
 
 ---
 
@@ -131,7 +142,7 @@ hashes per version byte to prove that mainnet addresses *always* start with `W`.
 ```bash
 node pool/test/rewards.test.js
 ```
-37 tests over the payout logic, including the one that matters most: the pool refuses to
+53 tests over the payout logic, including the one that matters most: the pool refuses to
 distribute the consensus treasury output.
 
 ```bash
@@ -149,7 +160,7 @@ Every single change made to Bitcoin Core, with its rationale.
 |---|---|
 | Maximum supply | **22,000,000 WAM** (hard-coded, unreachable by 0.022 WAM) |
 | **Public mining** | **19,250,000 WAM — 87.50%** |
-| Founder reserve | 2,000,000 WAM (9.09%) — **vested over 4 years, on-chain** |
+| Founder reserve | 2,000,000 WAM (9.09%) — **locked 5 years, on-chain, none of it liquid at launch** |
 | Operating budget | 750,000 WAM (3.41%) — 5% fee, **expires at block 400,000** |
 | *Founder + operating* | *2,750,000 WAM — **12.50%*** |
 | Initial subsidy | 50 WAM |
