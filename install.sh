@@ -43,6 +43,20 @@ BUILD_DIR="$REPO_ROOT/build"
 CORE_DIR="$BUILD_DIR/wam-core"
 RANDOMX_DIR="$BUILD_DIR/randomx"
 PREFIX="${PREFIX:-/usr/local}"
+
+# HOME is not guaranteed. This script is meant to run unattended -- the release
+# workflow runs it, and so does systemd-run, which starts a unit with almost no
+# environment at all. Under `set -u` an unset HOME is not a warning, it is an
+# immediate exit on line 46 with "unbound variable", before a single check has
+# run and with nothing said about what to do.
+#
+# Fall back to the invoking user's home from the password database, and to /root
+# only if even that is unavailable.
+if [ -z "${HOME:-}" ]; then
+    HOME="$(getent passwd "$(id -u)" 2>/dev/null | cut -d: -f6)"
+    HOME="${HOME:-/root}"
+    export HOME
+fi
 DATA_DIR="${WAM_DATA_DIR:-$HOME/.wam}"
 
 RED=$'\033[0;31m'; GRN=$'\033[0;32m'; YLW=$'\033[0;33m'; CYN=$'\033[0;36m'; OFF=$'\033[0m'

@@ -80,16 +80,19 @@ Everything here is irreversible once the first block is mined. Work through it i
 - [ ] Genesis validated: start `wamd`, confirm it does not assert, and that
       `getblockhash 0` matches the value in `chainparams.cpp`.
 - [ ] `getsupplyinfo` reports `circulating = 2,000,000` at height 0.
-- [ ] `getsupplyinfo` reports `founder_vesting.unlocked = 400,000` and `locked = 1,600,000`
-      at launch.
-- [ ] **Tranche 1 is spendable**: after 100 confirmations, spend from the unlocked
-      400,000 WAM output on a private copy of the chain. If WAM-005 did not apply, this is
-      where you find out — and it is unfixable after launch.
-- [ ] **Tranches 2–5 are NOT spendable**: attempt to spend a locked output and confirm the
-      node rejects it (`non-final` / CLTV failure). A lock you have not seen refuse a spend
-      is a lock you do not have.
-- [ ] `getblock <genesis> 2` shows five outputs, and the four locked `scriptPubKey`s
-      visibly contain their unlock timestamps in bare CLTV form (no P2SH hash).
+- [ ] `getsupplyinfo` reports `founder_vesting.unlocked = 0` and `locked = 2,000,000`
+      at launch. Not one coin of the reserve is spendable on the day.
+- [ ] **No tranche is spendable at launch**: attempt to spend each of the five outputs on
+      a private copy of the chain and confirm the node rejects every one (`non-final` /
+      CLTV failure). A lock you have not seen refuse a spend is a lock you do not have.
+- [ ] **The locks do open**: on a throwaway chain with the clock moved past 2027-09-15,
+      spend tranche 1 after 100 confirmations. This is the other half and it matters as
+      much: a lock that never opens and a burn are identical from outside, and if WAM-005
+      did not apply, the entire 2,000,000 is gone. You find out here or in 2027, and only
+      one of those is fixable.
+- [ ] `getblock <genesis> 2` shows five outputs, **all five** with `scriptPubKey` of 32
+      bytes carrying their unlock timestamp in bare CLTV form (no P2SH hash). A 25-byte
+      script anywhere in that list means a tranche is liquid on launch day.
 - [ ] Mine blocks 1–30 and confirm with `getdevfeeinfo "<hash>"` that every one paid the
       treasury and reports `compliant: true`.
 - [ ] Deliberately mine an **invalid** block that omits the treasury output and confirm the
