@@ -254,26 +254,40 @@ BOOST_AUTO_TEST_CASE(vesting_locks_are_timestamps_not_heights)
     // CLTV reads anything below 500,000,000 as a block height. A vesting
     // schedule that silently became "unlock at block 1,820,966,400" would
     // never release at all.
-    BOOST_CHECK_EQUAL(WAM_PREMINE_UNLOCK_TIMES[0], 0);
-    for (int i = 1; i < WAM_PREMINE_TRANCHES; ++i) {
+    //
+    // This used to exempt index 0, which was the unlocked launch tranche. Every
+    // tranche is locked now, so the rule applies to all of them without
+    // exception -- and the exemption is what a future edit would most plausibly
+    // reintroduce, so its absence is the thing being asserted.
+    for (int i = 0; i < WAM_PREMINE_TRANCHES; ++i) {
         BOOST_CHECK(WAM_PREMINE_UNLOCK_TIMES[i] > 500'000'000);
         BOOST_CHECK(WAM_PREMINE_UNLOCK_TIMES[i] > WAM_GENESIS_TIME);
     }
-    for (int i = 2; i < WAM_PREMINE_TRANCHES; ++i) {
+    for (int i = 1; i < WAM_PREMINE_TRANCHES; ++i) {
         BOOST_CHECK(WAM_PREMINE_UNLOCK_TIMES[i] > WAM_PREMINE_UNLOCK_TIMES[i - 1]);
     }
 }
 
 BOOST_AUTO_TEST_CASE(vesting_releases_on_schedule)
 {
-    // At launch only the working-capital tranche is spendable.
-    BOOST_CHECK_EQUAL(GetVestedPremine(WAM_GENESIS_TIME), WAM_PREMINE_TRANCHE_AMOUNT);
+    // At launch, nothing. This is the whole point of the reserve being locked:
+    // on the day the chain starts, the founder holds 2,000,000 WAM and can
+    // move none of it. The line used to read TRANCHE_AMOUNT, when the first
+    // tranche was liquid.
+    BOOST_CHECK_EQUAL(GetVestedPremine(WAM_GENESIS_TIME), 0);
 
-    // One second before the first anniversary, still just the one.
-    BOOST_CHECK_EQUAL(GetVestedPremine(WAM_PREMINE_UNLOCK_TIMES[1] - 1),
+    // A day before launch is meaningless but must not underflow into a
+    // negative or wrap into the whole reserve.
+    BOOST_CHECK_EQUAL(GetVestedPremine(WAM_GENESIS_TIME - 86400), 0);
+
+    // One second before the first anniversary, still nothing.
+    BOOST_CHECK_EQUAL(GetVestedPremine(WAM_PREMINE_UNLOCK_TIMES[0] - 1), 0);
+
+    // Exactly on it, the first tranche and only that.
+    BOOST_CHECK_EQUAL(GetVestedPremine(WAM_PREMINE_UNLOCK_TIMES[0]),
                       WAM_PREMINE_TRANCHE_AMOUNT);
 
-    // Exactly on it, two.
+    // And on the second, two.
     BOOST_CHECK_EQUAL(GetVestedPremine(WAM_PREMINE_UNLOCK_TIMES[1]),
                       2 * WAM_PREMINE_TRANCHE_AMOUNT);
 
