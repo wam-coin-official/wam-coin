@@ -42,6 +42,18 @@ import sys
 from dataclasses import dataclass, field
 
 # ===========================================================================
+# The version this node reports
+# ===========================================================================
+#
+# One string, read by the configure.ac edit below and by the release workflow,
+# which refuses to build a tag that disagrees with it. Before that gate existed
+# the two drifted: v0.1.1 was tagged, built and published while the binary
+# inside reported /WAM:0.1.0/ to every peer it met.
+#
+# Raise it in the same commit that gets tagged, never separately.
+WAM_CLIENT_VERSION = "0.1.2"
+
+# ===========================================================================
 # Framework
 # ===========================================================================
 
@@ -684,8 +696,16 @@ def build_changes() -> list[Change]:
             ),
             Edit(
                 file="configure.ac",
-                description="version 28.1.0 -> 0.1.0",
-                marker="define(_CLIENT_VERSION_MAJOR, 0)",
+                description=f"version 28.1.0 -> {WAM_CLIENT_VERSION}",
+                # The marker carries the build number. It used to be just
+                # `define(_CLIENT_VERSION_MAJOR, 0)`, which stays true for every
+                # version this project will ever have -- so raising the version
+                # left the marker satisfied, the edit was skipped as already
+                # applied, and the build produced the old number in silence.
+                # v0.1.1 was published carrying /WAM:0.1.0/ for exactly that
+                # reason. A marker must describe what the edit produces, not the
+                # family it belongs to.
+                marker=f"define(_CLIENT_VERSION_BUILD, {WAM_CLIENT_VERSION.split('.')[2]})",
                 anchor=("define(_CLIENT_VERSION_MAJOR, 28)\n"
                         "define(_CLIENT_VERSION_MINOR, 1)\n"
                         "define(_CLIENT_VERSION_BUILD, 0)"),
@@ -698,9 +718,14 @@ def build_changes() -> list[Change]:
                     "dnl minversion against FEATURE_LATEST, a separate compile-time\n"
                     "dnl constant, not against CLIENT_VERSION. CLIENT_VERSION is recorded\n"
                     "dnl in the wallet only as metadata.\n"
-                    "define(_CLIENT_VERSION_MAJOR, 0)\n"
-                    "define(_CLIENT_VERSION_MINOR, 1)\n"
-                    "define(_CLIENT_VERSION_BUILD, 0)"),
+                    "dnl\n"
+                    "dnl Raising this needs a clean upstream tree: on an already-patched\n"
+                    "dnl one the anchor below is gone and this edit fails loudly, which is\n"
+                    "dnl the correct outcome -- the alternative is a binary whose version\n"
+                    "dnl is a guess. CI checks out fresh every run and never meets it.\n"
+                    f"define(_CLIENT_VERSION_MAJOR, {WAM_CLIENT_VERSION.split('.')[0]})\n"
+                    f"define(_CLIENT_VERSION_MINOR, {WAM_CLIENT_VERSION.split('.')[1]})\n"
+                    f"define(_CLIENT_VERSION_BUILD, {WAM_CLIENT_VERSION.split('.')[2]})"),
             ),
             Edit(
                 file="configure.ac",

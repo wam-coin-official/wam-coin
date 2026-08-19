@@ -57,6 +57,29 @@ jobs:
             echo "publish=no" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: The tag must match the version the binary will report
+        run: |
+          set -euo pipefail
+          # v0.1.1 was tagged, built, published and verified -- and the binary
+          # inside announced itself as /WAM:0.1.0/ to every peer, because the
+          # version lives in the source and nothing compared the two. A release
+          # whose name disagrees with the software in it is the same class of
+          # fault as a node on the wrong chain: everything looks right until
+          # someone tries to tell two builds apart.
+          tag="${{ steps.v.outputs.version }}"
+          src="$(python3 -c "
+          import re, pathlib
+          t = pathlib.Path('scripts/patch_upstream.py').read_text(encoding='utf-8')
+          m = re.search(r'^WAM_CLIENT_VERSION\s*=\s*\"([^\"]+)\"', t, re.M)
+          print(m.group(1) if m else '')
+          ")"
+          echo "tag=$tag  source=$src"
+          [ -n "$src" ] || { echo "::error::WAM_CLIENT_VERSION not found in scripts/patch_upstream.py"; exit 1; }
+          if [ "${tag#v}" != "$src" ]; then
+            echo "::error::tag $tag does not match WAM_CLIENT_VERSION $src -- raise the version in the commit you tag"
+            exit 1
+          fi
+
       - name: Build node, RandomX and miner
         run: |
           # The same script a user runs. --build-only stops before starting
