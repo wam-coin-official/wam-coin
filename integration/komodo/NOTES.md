@@ -8,7 +8,7 @@ not a web form. Four things go in, and one of them does not exist yet.
 | Coin entry | appended to `coins` | [`coin-entry.json`](coin-entry.json) |
 | Icon, 200×200 PNG | `icons/wam.png` | `brand/png/wam-platform-200.png` |
 | Explorer | `explorers/WAM` | `https://explorer.wamcoin.org` |
-| **Electrum servers** | `electrums/WAM` | **missing — see below** |
+| Electrum servers | `electrums/WAM` | [`electrums-WAM.json`](electrums-WAM.json) — see below |
 
 They also ask for contact details for service alerts, since a listed coin whose
 infrastructure goes quiet is their support problem as much as ours.
@@ -49,14 +49,39 @@ is not possible before it.
 
 ---
 
-## The blocker
+## Electrum servers
 
 Komodo Wallet requires ElectrumX servers with valid SSL for a UTXO coin. Their
 repository has an `electrums/` directory and a UTXO coin without an entry there
 is not usable by the wallet — it has no way to read balances.
 
-WAM has no Electrum server. That is the whole of what stands between this
-submission and being sendable; everything else on this page is finished.
+One now runs. `electrum.wamcoin.org` serves the Electrum protocol on 50001 and
+50002 behind a Let's Encrypt certificate, and was verified from outside the
+machine rather than on it: the TLS handshake completes for a client with no
+override, `server.version` answers, `blockchain.headers.subscribe` returns the
+height the node reports with an 80-byte header, and `server.features` returns
+this chain's genesis hash. `integration/electrumx/install.sh` reproduces it.
+
+Three things are still not true, and the entry cannot be sent until they are.
+
+**It serves testnet.** Komodo lists mainnet, and mainnet does not exist until
+launch. The same installer run with `--network mainnet` produces the mainnet
+server; nothing else about it changes.
+
+**`electrum2.wamcoin.org` does not exist.** The file lists two hosts because
+one Electrum server is a single point of failure — if it stops, every light
+wallet holding WAM goes blind at once, and that becomes Komodo's support
+problem, which is exactly what they are protecting against. The second belongs
+on a different provider from the first: the two current nodes are at Contabo
+and Hetzner, and the measured difference between those two networks is already
+recorded in `scripts/check_reachable.sh`.
+
+**Port 50004 serves nothing.** `ws_url` is how Komodo's *web* wallet reaches an
+Electrum server; the desktop and mobile builds use 50002 directly. Serving it
+means adding `wss://:50004` to `SERVICES` in the ElectrumX environment file,
+with the same certificate. The field is in the JSON because leaving it out
+quietly drops web users, which is a worse way to find out.
 
 The two venues ranked most likely to fit — BasicSwap and Block DX — run `wamd`
-itself and never speak the Electrum protocol, so neither is blocked by it.
+itself and never speak the Electrum protocol, so neither was ever blocked by
+any of this.

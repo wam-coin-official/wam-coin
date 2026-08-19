@@ -8,7 +8,7 @@ take a pull request with a config file rather than a web form.
 
 | Venue | What it consumes | Ready |
 |---|---|---|
-| [Komodo Wallet](komodo/) | PR to `KomodoPlatform/coins`: coin entry, electrum servers, explorer, icon | coin entry ✅ · **electrum servers ❌** |
+| [Komodo Wallet](komodo/) | PR to `KomodoPlatform/coins`: coin entry, electrum servers, explorer, icon | written ✅ · sendable only after mainnet |
 | [BasicSwap DEX](basicswap/) | coin definition; it runs `wamd` itself | ✅ |
 | [Block DX](blockdx/) | XBridge config entry; it runs `wamd` itself | ✅ |
 | Bisq | PR plus a maintainer and a BSQ listing fee | waiting on their reply |
@@ -22,17 +22,26 @@ written.
 
 ---
 
-## The one thing missing
+## The Electrum server, which was the one thing missing
 
 Komodo Wallet requires **ElectrumX servers with valid SSL** for a UTXO coin —
-it is a directory in their repository, not an optional field. WAM does not have
-one yet.
+it is a directory in their repository, not an optional field.
 
-That also blocks nothing else: BasicSwap and Block DX run the daemon directly
-and never speak the Electrum protocol.
+One runs now, at `electrum.wamcoin.org`, and was verified from a machine other
+than itself: valid certificate, protocol answers, and a genesis hash matching
+what the node reports. `integration/electrumx/` builds it from nothing.
 
-An Electrum server would additionally let light wallets read balances without
-downloading the chain, which is worth having on its own.
+It serves testnet, because that is the only WAM network that exists. The entry
+in `komodo/electrums-WAM.json` is written against mainnet and cannot be sent
+before there is one — along with a second server on a different provider and a
+`wss://` port for Komodo's web wallet. `komodo/NOTES.md` says exactly what each
+of those needs.
+
+None of this ever blocked the other two: BasicSwap and Block DX run the daemon
+directly and never speak the Electrum protocol.
+
+Light wallets reading a balance without downloading the chain is worth having
+whether or not any venue asks for it.
 
 ---
 
