@@ -159,8 +159,8 @@ NET=$NETWORK
 DB_ENGINE=leveldb
 DB_DIRECTORY=$DB_DIR
 DAEMON_URL=http://$RPCU:$RPCP@127.0.0.1:$RPC_PORT/
-SERVICES=tcp://:50001,ssl://:50002,rpc://127.0.0.1:8000
-REPORT_SERVICES=tcp://$DOMAIN:50001,ssl://$DOMAIN:50002
+SERVICES=tcp://:50001,ssl://:50002,wss://:50004,rpc://127.0.0.1:8000
+REPORT_SERVICES=tcp://$DOMAIN:50001,ssl://$DOMAIN:50002,wss://$DOMAIN:50004
 SSL_CERTFILE=/etc/letsencrypt/live/$DOMAIN/fullchain.pem
 SSL_KEYFILE=/etc/letsencrypt/live/$DOMAIN/privkey.pem
 PEER_DISCOVERY=self
@@ -179,5 +179,13 @@ systemctl daemon-reload
 ok "installed wam-electrumx.service"
 
 printf '\n  Start it with:\n\n      sudo systemctl enable --now wam-electrumx\n\n'
-printf '  Then open 50001 and 50002 in the firewall, and check with:\n\n'
-printf '      openssl s_client -connect %s:50002 </dev/null 2>/dev/null | head -3\n\n' "$DOMAIN"
+printf '  Then open 50001, 50002 and 50004 -- and open them TWICE. ufw is only\n'
+printf '  half of it: Contabo drops inbound TCP to any port that is not on an\n'
+printf '  allow-list in their control panel, and a dropped packet is silent, so\n'
+printf '  the server looks perfect from the inside while nothing can reach it.\n\n'
+printf '      sudo ufw allow 50001/tcp && sudo ufw allow 50002/tcp && sudo ufw allow 50004/tcp\n\n'
+printf '  Then prove it from a DIFFERENT machine, never from this one:\n\n'
+printf '      bash scripts/check_reachable.sh --host <this ip> --from <other ip> \\\n'
+printf '          50001 50002 50004\n\n'
+printf '  50004 carries the Electrum protocol over WebSocket, which is how the\n'
+printf '  web build of Komodo Wallet connects. Desktop and mobile use 50002.\n\n'
