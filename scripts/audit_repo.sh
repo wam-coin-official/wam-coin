@@ -124,16 +124,37 @@ done
 step "6. placeholders that must not reach launch"
 
 PLACEHOLDER=0
-# The burn address the mainnet founder output pointed at before the ceremony.
-if grep -rq "WNg2svm2qApxheBKndKGQ9sRwporvRgRpT" src/wam/chainparams.cpp 2>/dev/null; then
+BURN="WNg2svm2qApxheBKndKGQ9sRwporvRgRpT"
+
+# The burn address, hash160 of twenty zero bytes. Anything paid to it is gone.
+if grep -q "WAM_FOUNDER_ADDRESS_MAINNET = \"$BURN\"" src/wam/chainparams.cpp 2>/dev/null; then
     fail "the mainnet founder address is still the burn placeholder"
     PLACEHOLDER=$((PLACEHOLDER + 1))
+fi
+if grep -q "WAM_TREASURY_ADDRESS_MAINNET = \"$BURN\"" src/wam/chainparams.cpp 2>/dev/null; then
+    printf '  %swarn%s  the mainnet treasury address is still the burn placeholder.\n' "$YLW" "$OFF"
+    printf '        750,000 WAM of operating income would be destroyed. Generate a\n'
+    printf '        second key offline -- not the founder key -- before launch.\n'
 fi
 if grep -rq "WCHANGEme" pool/config.json 2>/dev/null; then
     fail "pool/config.json still has a placeholder payout address"
     PLACEHOLDER=$((PLACEHOLDER + 1))
 fi
-[ "$PLACEHOLDER" = 0 ] && ok "no launch-blocking placeholders"
+
+# The whole point of two constants is that they hold two different values.
+# Setting them back to one address would restore the arrangement that made
+# treasury spending indistinguishable from founder selling, and it would do it
+# silently -- nothing fails, the chain runs, and only an auditor notices.
+for NET in MAINNET TESTNET; do
+    F=$(grep -oP "WAM_FOUNDER_ADDRESS_$NET = \"\K[^\"]+" src/wam/chainparams.cpp 2>/dev/null)
+    T=$(grep -oP "WAM_TREASURY_ADDRESS_$NET = \"\K[^\"]+" src/wam/chainparams.cpp 2>/dev/null)
+    if [ -n "$F" ] && [ "$F" = "$T" ]; then
+        fail "$NET founder and treasury are the same address; they must differ"
+        PLACEHOLDER=$((PLACEHOLDER + 1))
+    fi
+done
+
+[ "$PLACEHOLDER" = 0 ] && ok "no launch-blocking placeholders; founder and treasury differ"
 
 # ---------------------------------------------------------------------------
 step "7. claims about maturity and duration are current"

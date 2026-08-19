@@ -59,11 +59,29 @@ sect "The launch gate -- these cannot pass before the key ceremony"
 
 FOUNDER="$(awk '/^static const std::string WAM_FOUNDER_ADDRESS_MAINNET/{
     if (match($0, /"[^"]*"/)) print substr($0, RSTART+1, RLENGTH-2)}' src/wam/chainparams.cpp)"
+TREASURY="$(awk '/^static const std::string WAM_TREASURY_ADDRESS_MAINNET/{
+    if (match($0, /"[^"]*"/)) print substr($0, RSTART+1, RLENGTH-2)}' src/wam/chainparams.cpp)"
+
 if [ "$FOUNDER" = "WNg2svm2qApxheBKndKGQ9sRwporvRgRpT" ]; then
     gate "mainnet founder address is still the burn placeholder"
     gate "mainnet genesis cannot be mined until that address exists"
 else
     ok "mainnet founder address is set: $FOUNDER"
+fi
+
+# The treasury is a separate gate because it fails differently and later. A
+# burn address here does not stop the chain or show up in any test: blocks are
+# valid, the rule is satisfied, and 750,000 WAM of operating income is
+# destroyed one block at a time for eighteen months before anyone notices the
+# balance never moved.
+if [ "$TREASURY" = "WNg2svm2qApxheBKndKGQ9sRwporvRgRpT" ]; then
+    gate "mainnet treasury address is still the burn placeholder"
+    gate "every 5% fee would be destroyed -- 750,000 WAM, silently, over 400,000 blocks"
+elif [ "$TREASURY" = "$FOUNDER" ]; then
+    gate "mainnet treasury and founder are the same address"
+    gate "treasury spending would be indistinguishable from the founder selling"
+else
+    ok "mainnet treasury address is set and separate: $TREASURY"
 fi
 
 # ---------------------------------------------------------------------------

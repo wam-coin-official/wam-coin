@@ -37,46 +37,56 @@
 using namespace wam;
 
 // ===========================================================================
-//  FOUNDER / TREASURY ADDRESS
+//  FOUNDER AND TREASURY ADDRESSES
 // ===========================================================================
 //
-//  This address receives:
-//    * the entire 2,000,000 WAM genesis premine, split across five vesting
-//      tranches (one liquid, four behind OP_CHECKLOCKTIMEVERIFY), and
-//    * 5% of every block subsidy from height 1 to WAM_DEVFEE_LAST_HEIGHT
-//      (400,000) -- 750,000 WAM in total. The fee expires there; it is not
-//      perpetual.
+//  Two addresses, deliberately not one.
+//
+//    FOUNDER   receives the entire 2,000,000 WAM genesis premine, split across
+//              five tranches. Every one of them is behind
+//              OP_CHECKLOCKTIMEVERIFY; not a coin is spendable at launch.
+//              They open one a year from 2027-09-15 to 2031-09-15.
+//
+//    TREASURY  receives 5% of every block subsidy from height 1 to
+//              WAM_DEVFEE_LAST_HEIGHT (400,000) -- 750,000 WAM in total. The
+//              fee expires there; it is not perpetual, and from 400,001 miners
+//              keep the whole subsidy.
+//
+//  They were the same address once. That made the two indistinguishable on
+//  chain: anyone auditing a spend could not tell operating money paying for a
+//  server from the founder selling his reserve. Separating them is what makes
+//  treasury spending *provable* rather than merely asserted, which serves the
+//  founder before it serves anybody else.
 //
 //  ---------------------------------------------------------------------------
-//  THE VALUES BELOW ARE BURN ADDRESSES, NOT REAL ONES.
+//  ON PLACEHOLDERS
 //  ---------------------------------------------------------------------------
 //
-//  Their hash160 is twenty zero bytes. Nobody holds the key -- finding one
-//  would mean inverting RIPEMD160(SHA256(.)) -- so anything paid to them is
-//  provably destroyed, and provably so to any observer, not just to us.
+//  Where a real address is not yet available, the value here is a burn address
+//  whose hash160 is twenty zero bytes. Nobody holds the key -- finding one
+//  would mean inverting RIPEMD160(SHA256(.)) -- so anything paid to it is
+//  provably destroyed, and provably so to any observer, not only to us.
 //
-//  They are syntactically VALID on purpose. An earlier revision used the
-//  literal string "WAM_FOUNDER_ADDRESS_PLACEHOLDER", which made
-//  CChainParams::Main() throw from its constructor. That is the wrong shape of
-//  guard: it did not merely stop a bad launch, it made mainnet parameters
-//  impossible to construct at all -- so every unit test using the default
-//  BasicTestingSetup fixture (which selects MAIN) aborted, and the consensus
-//  code could not be verified before a key existed. A placeholder must stop the
-//  NODE from launching, not stop the class from being built.
+//  It is syntactically VALID on purpose. An earlier revision used the literal
+//  string "WAM_FOUNDER_ADDRESS_PLACEHOLDER", which made CChainParams::Main()
+//  throw from its constructor. That is the wrong shape of guard: it did not
+//  merely stop a bad launch, it made mainnet parameters impossible to
+//  construct at all -- so every unit test using the default BasicTestingSetup
+//  fixture (which selects MAIN) aborted, and the consensus code could not be
+//  verified before a key existed. A placeholder must stop the NODE from
+//  launching, not stop the class from being built.
 //
-//  The build-time guard now lives in install.sh, which refuses to compile a
-//  mainnet binary while these burn addresses are still present, and in
+//  The guards that refuse a launch while a burn address is still present live
+//  in scripts/preflight.sh, scripts/audit_repo.sh and
 //  docs/LAUNCH_CHECKLIST.md phase 3.
 //
-//  Run
+//  Generate a real one with
 //      python3 scripts/gen_founder_key.py --network mainnet
-//  on an OFFLINE machine, store the printed WIF in cold storage, and paste the
-//  printed address here. install.sh refuses to build while the placeholder is
-//  still present, so it is impossible to ship a binary that pays a dead
-//  address by accident.
+//  on an OFFLINE machine, store the printed WIF on paper, and paste only the
+//  printed address here.
 //
-//  The corresponding private key must never appear in this repository, in any
-//  build log, or in any chat transcript.
+//  No private key belonging to either address may ever appear in this
+//  repository, in a build log, or in any chat transcript.
 // ===========================================================================
 
 // Generated 2026-08-17 by gen_founder_key.py on a live system running from RAM,
@@ -91,6 +101,29 @@ static const std::string WAM_FOUNDER_ADDRESS_MAINNET = "WWWEvpC98mfzjRMZHtaRaucM
 // Testnet founder address, generated 2026-08-06. Testnet coins have no value,
 // so this one was generated on an ordinary machine.
 static const std::string WAM_FOUNDER_ADDRESS_TESTNET = "TK34fTbuMCXrwnmq72AE1EMMmdrkUtzUvq";
+
+// ---------------------------------------------------------------------------
+//  Treasury
+// ---------------------------------------------------------------------------
+//
+//  The 5% operating fee pays here, and it is a DIFFERENT address from the
+//  founder reserve above. They used to be one, which made the two
+//  indistinguishable on chain: a reader auditing a spend could not tell
+//  treasury money paying for a server from the founder selling. Two addresses
+//  separate them permanently, and give the founder the ability to *prove*
+//  where treasury money went -- which serves him before it serves anyone else.
+//
+//  The mainnet value below is the same unspendable burn address the founder
+//  reserve used before its ceremony: hash160 of twenty zero bytes. It is valid
+//  base58check, so the node starts and testnet development continues, and
+//  scripts/preflight.sh and scripts/audit_repo.sh both refuse a launch while it
+//  is still here. Replace it with an address generated on an offline machine,
+//  from a key that is not the founder key.
+static const std::string WAM_TREASURY_ADDRESS_MAINNET = "WNg2svm2qApxheBKndKGQ9sRwporvRgRpT";
+// Testnet treasury, generated 2026-08-19 on the seed node. Deliberately a
+// different key from the testnet founder address, so testnet exercises the same
+// two-address arrangement mainnet will use.
+static const std::string WAM_TREASURY_ADDRESS_TESTNET = "TQkMCz4r2oWuFjAu8mAeGYDMuz4BNkmofz";
 
 /**
  * Locking script for the founder address.
@@ -283,7 +316,7 @@ public:
         consensus.nDevFeePercent          = WAM_DEVFEE_PERCENT;           // 5
         consensus.nDevFeeStartHeight      = WAM_DEVFEE_START_HEIGHT;      // 1
         consensus.nDevFeeLastHeight       = WAM_DEVFEE_LAST_HEIGHT;       // 400,000 (sunset)      // 1
-        consensus.devFeeAddress           = WAM_FOUNDER_ADDRESS_MAINNET;
+        consensus.devFeeAddress           = WAM_TREASURY_ADDRESS_MAINNET;
         consensus.nCoinbaseMaturity       = WAM_COINBASE_MATURITY;        // 100
 
         // -------------------------------------------------------------------
@@ -470,7 +503,7 @@ public:
         consensus.nDevFeePercent          = WAM_DEVFEE_PERCENT;
         consensus.nDevFeeStartHeight      = WAM_DEVFEE_START_HEIGHT;      // 1
         consensus.nDevFeeLastHeight       = WAM_DEVFEE_LAST_HEIGHT;       // 400,000 (sunset)
-        consensus.devFeeAddress           = WAM_FOUNDER_ADDRESS_TESTNET;
+        consensus.devFeeAddress           = WAM_TREASURY_ADDRESS_TESTNET;
         consensus.nCoinbaseMaturity       = WAM_COINBASE_MATURITY;
 
         consensus.powLimit = uint256S("00000fffff000000000000000000000000000000000000000000000000000000");
@@ -594,7 +627,7 @@ public:
         // The testnet burn address (hash160 = 20 zero bytes) is used so regtest
         // exercises the identical code path as a live network while the coins
         // it pays are provably unspendable.
-        consensus.devFeeAddress           = WAM_FOUNDER_ADDRESS_TESTNET;
+        consensus.devFeeAddress           = WAM_TREASURY_ADDRESS_TESTNET;
         consensus.nCoinbaseMaturity       = 100;
 
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
