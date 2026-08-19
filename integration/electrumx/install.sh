@@ -91,12 +91,22 @@ ok "$(cd "$EX_DIR" && git log --oneline -1)"
 [ -d "$EX_DIR/venv" ] || python3 -m venv "$EX_DIR/venv"
 "$EX_DIR/venv/bin/pip" install -q --upgrade pip setuptools wheel
 
-# Their setup.py imports the package to read its version, and the package
-# imports aiorpcx -- so a clean isolated build environment cannot resolve it.
-# Install the requirements first, then build in place.
-"$EX_DIR/venv/bin/pip" install -q -r "$EX_DIR/requirements.txt"
+# spesmilo's fork uses pyproject.toml and resolves its own dependencies, so the
+# normal isolated build works. The older kyuupichan layout did not: its
+# setup.py imported the package to read its version, and the package imported
+# aiorpcx, which an isolated build environment cannot resolve. Both paths are
+# kept because the failure is silent-looking -- pip reports a build error, not
+# a missing dependency, and the first reading sends you after the wrong thing.
+if ! "$EX_DIR/venv/bin/pip" install -q "$EX_DIR" 2>/dev/null; then
+    warn "isolated build failed; retrying without isolation"
+    [ -f "$EX_DIR/requirements.txt" ] && \
+        "$EX_DIR/venv/bin/pip" install -q -r "$EX_DIR/requirements.txt"
+    "$EX_DIR/venv/bin/pip" install -q --no-build-isolation "$EX_DIR"
+fi
+
+# plyvel is the leveldb binding and is an extra rather than a dependency, so it
+# is never pulled in by either path above.
 "$EX_DIR/venv/bin/pip" install -q plyvel
-"$EX_DIR/venv/bin/pip" install -q --no-build-isolation "$EX_DIR"
 ok "installed"
 
 python3 "$REPO/integration/electrumx/wam_coins.py" \
