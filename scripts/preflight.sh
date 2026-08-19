@@ -6,8 +6,10 @@
 #  preflight.sh -- is this actually ready to launch?
 # ===========================================================================
 #
-#      bash scripts/preflight.sh            # local checks only
-#      bash scripts/preflight.sh --host IP  # also check a running server
+#      bash scripts/preflight.sh                     # local checks only
+#      bash scripts/preflight.sh --host IP           # also check a server
+#      bash scripts/preflight.sh --nodes "IP1 IP2"   # also compare nodes
+#                                                     against each other
 #
 #  WHY THIS EXISTS
 #
@@ -32,9 +34,11 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$HERE"
 
 HOST=""
+NODES=""
 while [ $# -gt 0 ]; do
     case "$1" in
-        --host) HOST="$2"; shift 2 ;;
+        --host)  HOST="$2";  shift 2 ;;
+        --nodes) NODES="$2"; shift 2 ;;
         -h|--help) sed -n '5,28p' "$0"; exit 0 ;;
         *) printf 'unknown option: %s\n' "$1" >&2; exit 2 ;;
     esac
@@ -148,13 +152,22 @@ bash scripts/test/test_exec_bits.sh >/dev/null 2>&1 \
     && ok "every shebang file is executable in the index" \
     || bad "some scripts are not executable in the index"
 
-if bash scripts/check_dns_seeds.sh --offline >/dev/null 2>&1 \
-   || bash scripts/check_dns_seeds.sh >/dev/null 2>&1; then
-    ok "every DNS seed answers the prefixed query Core actually sends"
-else
-    bad "a DNS seed does not answer x9.<name> -- new nodes find nobody,
-           silently, with no error"
-fi
+# One call, and the status is read rather than reinterpreted. This used to try
+# a `--offline` flag first and fall back with `||`. That flag never existed:
+# check_dns_seeds.sh took it as an unknown target, matched no branch, queried
+# no seed and exited 0 -- so the fallback was never reached and this printed a
+# green line for a check that had not run. Both ends are fixed; the script now
+# refuses an argument it does not know and fails outright if it checked
+# nothing, and nothing here converts a non-zero status into a pass.
+bash scripts/check_dns_seeds.sh >/dev/null 2>&1
+case $? in
+    0) ok "every DNS seed answers the prefixed query Core actually sends" ;;
+    2) bad "check_dns_seeds.sh rejected its argument -- this call is wrong" ;;
+    3) bad "dig is missing, so seeding could not be checked at all:
+           sudo apt-get install -y dnsutils" ;;
+    *) bad "a DNS seed does not answer x9.<name> -- new nodes find nobody,
+           silently, with no error" ;;
+esac
 
 # ---------------------------------------------------------------------------
 sect "Can a release actually be built?"
@@ -247,6 +260,24 @@ fi
 
 # ---------------------------------------------------------------------------
 sect "Single points of failure"
+
+# Two nodes that disagree are worse than one node: the chain forks the moment
+# either mines. On 2026-08-19 exactly that happened -- one node still enforced
+# the pre-separation treasury address and rejected every block the other made,
+# for hours, while both reported active and both reported /WAM:0.1.0/. Nothing
+# a node says about itself can find this, so it is checked between nodes or
+# not at all. Not passing --nodes is reported, never assumed harmless.
+if [ -n "$NODES" ]; then
+    if bash scripts/check_nodes_agree.sh $NODES >/dev/null 2>&1; then
+        ok "every deployed node runs the same binaries and the same chain"
+    else
+        bad "the deployed nodes DISAGREE -- run:
+           bash scripts/check_nodes_agree.sh $NODES"
+    fi
+else
+    gate "node agreement unchecked -- pass --nodes \"ip1 ip2\" to compare the
+           deployed nodes against each other"
+fi
 
 if [ -n "$HOST" ]; then
     NSEEDS=$(dig +short x9.seed1.wamcoin.org A 2>/dev/null | sort -u | wc -l)

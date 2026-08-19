@@ -41,12 +41,24 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CHAINPARAMS="$HERE/src/wam/chainparams.cpp"
 TARGET="${1:-all}"
 
+# An unrecognised target used to fall through both branches below, check
+# nothing, and exit 0 announcing that every seed answered. preflight.sh called
+# this with a `--offline` flag that never existed and got a green line for it
+# for weeks. Refuse the argument instead of interpreting it generously.
+case "$TARGET" in
+    mainnet|testnet|all) ;;
+    *) printf 'usage: %s [mainnet|testnet|all]\n' "${0##*/}" >&2; exit 2 ;;
+esac
+
 GREEN=$'\033[32m'; RED=$'\033[31m'; YLW=$'\033[33m'; OFF=$'\033[0m'
 FAIL=0
+CHECKED=0
 
+# Exit 3, not 1: a missing dig means this could not answer the question, which
+# a caller must be able to tell apart from having answered it badly.
 command -v dig >/dev/null 2>&1 || {
     printf 'dig is not installed:  sudo apt-get install -y dnsutils\n' >&2
-    exit 1
+    exit 3
 }
 
 # x9 = NODE_NETWORK (1) | NODE_WITNESS (8). This is what Core asks for; if
@@ -56,6 +68,7 @@ PREFIX="x9"
 check_seed() {
     local seed="$1" net="$2" bare prefixed
     seed="${seed%.}"                       # chainparams writes a trailing dot
+    CHECKED=$((CHECKED + 1))
 
     bare="$(dig +short +time=3 +tries=2 "$seed" A 2>/dev/null | head -3 | tr '\n' ' ')"
     prefixed="$(dig +short +time=3 +tries=2 "${PREFIX}.${seed}" A 2>/dev/null | head -3 | tr '\n' ' ')"
@@ -102,8 +115,19 @@ mapfile -t TEST_SEEDS < <(
          }' "$CHAINPARAMS" 2>/dev/null
 )
 
-[ "${#MAIN_SEEDS[@]}" -gt 0 ] || printf '  %swarn%s  no mainnet seeds found in chainparams\n' "$YLW" "$OFF"
-[ "${#TEST_SEEDS[@]}" -gt 0 ] || printf '  %swarn%s  no testnet seeds found in chainparams\n' "$YLW" "$OFF"
+# Finding no seeds is a failure, not a warning, whenever that network is in
+# scope. The awk above and the source it reads can drift apart -- a renamed
+# seed, a reformatted emplace_back -- and the symptom is identical to a chain
+# that genuinely declares no seeds: an empty list, nothing queried, and a
+# cheerful summary. Only the network not being asked about may be empty.
+if [ "${#MAIN_SEEDS[@]}" -eq 0 ] && [ "$TARGET" != "testnet" ]; then
+    printf '  %sFAIL%s  no mainnet seeds parsed out of chainparams.cpp\n' "$RED" "$OFF"
+    FAIL=$((FAIL + 1))
+fi
+if [ "${#TEST_SEEDS[@]}" -eq 0 ] && [ "$TARGET" != "mainnet" ]; then
+    printf '  %sFAIL%s  no testnet seeds parsed out of chainparams.cpp\n' "$RED" "$OFF"
+    FAIL=$((FAIL + 1))
+fi
 
 if [ "$TARGET" = "testnet" ] || [ "$TARGET" = "all" ]; then
     for s in "${TEST_SEEDS[@]:-}"; do [ -n "$s" ] && check_seed "$s" testnet; done
@@ -114,8 +138,20 @@ if [ "$TARGET" = "mainnet" ] || [ "$TARGET" = "all" ]; then
 fi
 
 echo "=================================================================="
+# The load-bearing line. Everything above can be defeated by some future way of
+# arriving here having queried nothing -- a bad argument, a parse that drifted,
+# a loop that skipped. A check that checked nothing must never report success,
+# whatever the reason, so this asks the one question that covers all of them.
+if [ "$CHECKED" -eq 0 ]; then
+    printf ' %sno seed was checked -- this proves nothing%s\n' "$RED" "$OFF"
+    echo
+    echo ' Target was "'"$TARGET"'". Nothing was queried, so nothing is known.'
+    echo "=================================================================="
+    exit 1
+fi
+
 if [ "$FAIL" -eq 0 ]; then
-    printf ' %sall seeds answer the prefixed query%s\n' "$GREEN" "$OFF"
+    printf ' %sall %d seed(s) answer the prefixed query%s\n' "$GREEN" "$CHECKED" "$OFF"
 else
     printf ' %s%d seed(s) unusable -- a new node would find nobody%s\n' "$RED" "$FAIL" "$OFF"
     echo
