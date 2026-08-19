@@ -1,0 +1,75 @@
+{
+  "name": "wamcoin",
+  "ticker": "WAM",
+  "display_name": "WAM Coin",
+  "chain_type": "bitcoin_fork",
+  "upstream": "Bitcoin Core v28.1",
+
+  "network": {
+    "mainnet": {
+      "message_start": "57414d21",
+      "p2p_port": 9555,
+      "rpc_port": 9554,
+      "genesis_hash": "d8d3debea987b62a0934c3980d62bffbb6e16aa797d19891d4fcc9b9fb11d7e9",
+      "pubkey_address": 73,
+      "script_address": 135,
+      "secret_key": 190,
+      "bech32_hrp": "wam",
+      "ext_public_key": "0488b21e",
+      "ext_secret_key": "0488ade4",
+      "dns_seeds": [
+        "seed1.wamcoin.org",
+        "seed2.wamcoin.org",
+        "seed3.wamcoin.org"
+      ]
+    },
+    "testnet": {
+      "message_start": "77616d21",
+      "p2p_port": 19555,
+      "rpc_port": 19554,
+      "genesis_hash": "ce81c20a59a9586946d46177317658575b9d1c1fc07912b5488ab76202f59bcb",
+      "pubkey_address": 65,
+      "script_address": 128,
+      "secret_key": 239,
+      "bech32_hrp": "twam",
+      "ext_public_key": "043587cf",
+      "ext_secret_key": "04358394",
+      "dns_seeds": [
+        "testnet-seed.wamcoin.org"
+      ]
+    },
+    "regtest": {
+      "p2p_port": 29555,
+      "rpc_port": 29554,
+      "genesis_hash": "b88f3d262f285e38e184f50bf3eea1c8e615486ae67d3d9eaf0976fbd6d3d30d"
+    }
+  },
+
+  "chain": {
+    "block_time_seconds": 120,
+    "coinbase_maturity": 100,
+    "decimals": 8,
+    "max_supply": 22000000,
+    "proof_of_work": "RandomX",
+    "difficulty_algorithm": "DarkGravityWave v3"
+  },
+
+  "atomic_swap_support": {
+    "csv": true,
+    "cltv": true,
+    "segwit": true,
+    "taproot": true,
+    "psbt": true,
+    "note": "All active from height 1. There is no legacy chain to stay compatible with, so none of Bitcoin's activation scaffolding is carried. HTLCs work unmodified."
+  },
+
+  "software": {
+    "daemon": "wamd",
+    "cli": "wam-cli",
+    "releases": "https://github.com/wam-coin-official/wam-coin/releases",
+    "source": "https://github.com/wam-coin-official/wam-coin",
+    "runtime_dependencies": ["libevent", "libsqlite3"],
+    "build": "./install.sh --build-only",
+    "reproducible": "release binaries are built by GitHub Actions on ubuntu-22.04 from a pushed tag; see .github/workflows/release.yml"
+  }
+}

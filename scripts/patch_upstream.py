@@ -647,6 +647,30 @@ def build_changes() -> list[Change]:
                     'const std::string CLIENT_NAME("WAM");'),
             ),
             Edit(
+                file="src/common/signmessage.cpp",
+                description="signed messages say WAM, so they cannot be replayed as Bitcoin",
+                marker='MESSAGE_MAGIC = "WAM Coin Signed Message:\\n"',
+                anchor='const std::string MESSAGE_MAGIC = "Bitcoin Signed Message:\\n";',
+                replacement=(
+                    '// WAM_MESSAGE_MAGIC\n'
+                    '//\n'
+                    '// This string is hashed with the message before signing, and it is the\n'
+                    '// only thing that ties a signature to a chain. Leaving Bitcoin\'s value\n'
+                    '// here means a message signed by a WAM key verifies as a Bitcoin signed\n'
+                    '// message and the reverse -- so a signature produced to prove control of\n'
+                    '// a WAM address can be presented, unchanged, as proof of control of the\n'
+                    '// corresponding Bitcoin address. Exchanges and custody services ask for\n'
+                    '// exactly that kind of proof.\n'
+                    '//\n'
+                    '// Every serious fork changes it: Litecoin, Dogecoin and DigiByte each\n'
+                    '// have their own. It is also a field wallet integrators ask for by name\n'
+                    '// -- Komodo\'s coin definition has a sign_message_prefix entry.\n'
+                    '//\n'
+                    '// Changed before mainnet launch on purpose. After launch it would\n'
+                    '// invalidate every signature anyone had already produced.\n'
+                    'const std::string MESSAGE_MAGIC = "WAM Coin Signed Message:\\n";'),
+            ),
+            Edit(
                 file="src/clientversion.cpp",
                 description="point --version at this project's source, not Bitcoin's",
                 marker="github.com/wam-coin-official/wam-coin",

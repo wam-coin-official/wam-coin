@@ -186,6 +186,49 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+step "8. the integration files still match the chain"
+
+# integration/ duplicates chain parameters for venues that consume a config
+# file rather than a form. They cannot share a definition -- one is JSON that
+# Komodo reads, one is an ini that Block DX reads, and the source of truth is
+# C++. So they are copies, and a copy that drifts is an integration that fails
+# on the first connection, from a venue that does not come back to ask why.
+INTEG=0
+if [ -d integration ]; then
+    GEN_MAIN=$(grep -oP 'hashGenesisBlock == uint256S\("0x\K[0-9a-f]{64}' src/wam/chainparams.cpp | head -1)
+    GEN_TEST=$(grep -oP 'hashGenesisBlock == uint256S\("0x\K[0-9a-f]{64}' src/wam/chainparams.cpp | sed -n 2p)
+
+    grep -q "$GEN_MAIN" integration/basicswap/wam.json 2>/dev/null \
+        || { fail "basicswap/wam.json has the wrong mainnet genesis hash"; INTEG=$((INTEG+1)); }
+    grep -q "$GEN_TEST" integration/basicswap/wam.json 2>/dev/null \
+        || { fail "basicswap/wam.json has the wrong testnet genesis hash"; INTEG=$((INTEG+1)); }
+
+    # Address prefixes, in every file that repeats them.
+    for f in integration/komodo/coin-entry.json integration/blockdx/xbridge.conf; do
+        [ -f "$f" ] || continue
+        grep -q "73" "$f" && grep -q "135" "$f" && grep -q "190" "$f" \
+            || { fail "$f is missing one of the address prefixes 73/135/190"; INTEG=$((INTEG+1)); }
+    done
+
+    # The message prefix Komodo asks for by name, against the patch rule.
+    if grep -q 'WAM Coin Signed Message' scripts/patch_upstream.py 2>/dev/null; then
+        grep -q 'WAM Coin Signed Message' integration/komodo/coin-entry.json 2>/dev/null \
+            || { fail "komodo/coin-entry.json does not carry the WAM message prefix"; INTEG=$((INTEG+1)); }
+    fi
+
+    # A derivation path without a registered SLIP-44 type would send funds to a
+    # branch no other wallet looks at.
+    if grep -q 'derivation_path' integration/komodo/coin-entry.json 2>/dev/null; then
+        fail "komodo/coin-entry.json has a derivation_path but no SLIP-44 type is registered"
+        INTEG=$((INTEG+1))
+    fi
+
+    [ "$INTEG" = 0 ] && ok "integration/ agrees with the consensus source"
+else
+    ok "no integration/ directory yet"
+fi
+
+# ---------------------------------------------------------------------------
 printf '\n%s\n' "$(printf '=%.0s' {1..70})"
 if [ "$FAILURES" = 0 ]; then
     printf ' %sthe repository agrees with itself%s\n' "$GRN" "$OFF"

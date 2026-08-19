@@ -1,0 +1,25 @@
+{
+  "coin": "WAM",
+  "name": "wamcoin",
+  "fname": "WAM Coin",
+  "sign_message_prefix": "WAM Coin Signed Message:\n",
+  "rpcport": 9554,
+  "pubtype": 73,
+  "p2shtype": 135,
+  "wiftype": 190,
+  "txfee": 0,
+  "dust": 546,
+  "segwit": true,
+  "bech32_hrp": "wam",
+  "mm2": 1,
+  "wallet_only": false,
+  "required_confirmations": 6,
+  "avg_blocktime": 120,
+  "protocol": {
+    "type": "UTXO"
+  },
+  "links": {
+    "github": "https://github.com/wam-coin-official/wam-coin",
+    "homepage": "https://wamcoin.org"
+  }
+}
