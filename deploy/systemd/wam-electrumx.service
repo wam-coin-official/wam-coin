@@ -1,0 +1,85 @@
+# ===========================================================================
+#  ElectrumX for WAM Coin
+# ===========================================================================
+#
+#  Installed by integration/electrumx/install.sh, which also creates the user,
+#  the database directory and the environment file.
+#
+#  This server exists for two reasons. Komodo Wallet requires ElectrumX servers
+#  with valid SSL before a UTXO coin can be listed at all -- it is a directory
+#  in their repository, not an optional field. And separately, it is what lets
+#  a light wallet read a balance without downloading the chain, which is worth
+#  having whether or not any venue ever asks for it.
+#
+#  It reads the node over RPC and serves the Electrum protocol. It holds no
+#  keys and can spend nothing.
+# ===========================================================================
+
+[Unit]
+Description=ElectrumX server for WAM Coin
+Documentation=https://github.com/wam-coin-official/wam-coin/blob/main/integration/electrumx/README.md
+After=network-online.target wamd.service
+Wants=network-online.target
+Requires=wamd.service
+# Requires, not Wants: without the node this server has nothing to index and
+# nothing true to say. Better absent than answering from a stale database.
+
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=electrumx
+Group=electrumx
+
+# Holds the node's RPC credentials, so it is 0640 and owned by root:electrumx.
+EnvironmentFile=/etc/wam/electrumx.env
+
+WorkingDirectory=/opt/electrumx
+ExecStart=/opt/electrumx/venv/bin/python /opt/electrumx/electrumx_server
+
+# ElectrumX flushes its database on SIGTERM and the flush is not instant. Kill
+# it early and the index is left half-written, which costs a resync from
+# genesis rather than a restart.
+KillSignal=SIGTERM
+TimeoutStopSec=300
+
+Restart=always
+RestartSec=30
+
+# ---- confinement ----------------------------------------------------------
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+ProtectSystem=strict
+ReadWritePaths=/var/lib/electrumx-wam
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+
+# MemoryDenyWriteExecute is NOT set. CPython's ctypes and any C extension that
+# maps executable memory need the transition it forbids, exactly as V8 does in
+# the announcement bot -- see the note in wam-announce.service.
+
+# ---- limits ---------------------------------------------------------------
+# ElectrumX holds many sockets at once by design.
+LimitNOFILE=1048576
+MemoryMax=4G
+TasksMax=256
+
+[Install]
+WantedBy=multi-user.target
