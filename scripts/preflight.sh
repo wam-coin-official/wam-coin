@@ -179,16 +179,29 @@ else
     bad "package_release.sh hardcodes a home directory and fails on any other machine"
 fi
 
+# What people download is the published release, not a tarball on the machine
+# that happens to be running this. That distinction was invisible while both
+# were built by hand; it stopped being invisible when CI took over publishing,
+# and this check went on failing for a stale local file nobody would ever
+# receive -- red every run, for a fact about nothing, which is how a report
+# teaches people to skim past its red lines.
+#
+# check_release_matches.sh asks the question that has consequences: it
+# downloads the published artifact and looks inside it for the constants this
+# source declares.
+if bash scripts/check_release_matches.sh >/dev/null 2>&1; then
+    ok "the published download carries this source's chains and addresses"
+else
+    bad "the published download is NOT this network -- run:
+           bash scripts/check_release_matches.sh --source"
+fi
+
+# A local tarball is a build artifact, so it is reported and never graded.
 if [ -d out/release ]; then
     NEWEST=$(find out/release -name '*.tar.gz' -printf '%T@\n' 2>/dev/null | sort -rn | head -1)
     if [ -n "$NEWEST" ]; then
         BEHIND=$(git log --since="@${NEWEST%.*}" --oneline 2>/dev/null | wc -l)
-        if [ "$BEHIND" -eq 0 ]; then
-            ok "the packaged release matches the current code"
-        else
-            bad "the packaged release is $BEHIND commits behind -- it predates
-           the RPC port change, the share-difficulty fix and the boot fix"
-        fi
+        [ "$BEHIND" -gt 0 ] && printf '  %sinfo%s   out/release holds a local build %s commits old; it is\n         nobody'"'"'s download\n' "$YLW" "$OFF" "$BEHIND"
     fi
 fi
 

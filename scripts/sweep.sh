@@ -86,6 +86,12 @@ run "supply arithmetic"          python3 scripts/verify_supply.py
 run "executable bits in index"   bash scripts/test/test_exec_bits.sh
 run "service hardening"          bash scripts/test/test_harden.sh
 
+# Asked before a chain is started, not after. A consensus value that changes
+# once blocks exist invalidates every block mined under the old one, and the
+# running nodes are the last to notice.
+run "testnet consensus is final"  bash scripts/check_consensus_final.sh testnet
+run "mainnet consensus is final"  bash scripts/check_consensus_final.sh mainnet
+
 # ---------------------------------------------------------------------------
 printf '\n%sthe network as strangers meet it%s\n' "$BLD" "$OFF"
 
@@ -114,6 +120,14 @@ else
         skip "ports reachable from outside" "--nodes needs two or more hosts"
     else
         run "nodes agree with each other" bash scripts/check_nodes_agree.sh $NODES
+
+        # The one question the nodes themselves cannot answer. They agreed with
+        # each other, ran identical binaries, held the same block at the same
+        # height -- and the chain could not be validated from genesis by anyone
+        # who did not already have it.
+        set -- $NODES
+        run "a new node can sync from genesis" \
+            bash scripts/check_fresh_sync.sh --network testnet --peer "$1" --timeout 120
         # Each node is probed from the next one round-robin, so every host is
         # examined from a machine that is not itself.
         i=0
