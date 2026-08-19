@@ -36,7 +36,19 @@ const B1 = '\u0012';
 const I0 = '\u0013';
 const I1 = '\u0014';
 
-const MARKS = new RegExp(`[${B0}${B1}${I0}${I1}]`, 'g');
+// Code, added after a release announcement reached Telegram with its fences
+// showing as three literal backticks. The vocabulary had bold and italic and
+// nothing else, so a fenced block had no way to survive two renderers: Telegram
+// is sent as HTML, where a fence means nothing and <pre> is the tag, while
+// Discord reads Markdown, where the reverse is true. Text that is code has to
+// be marked as code, exactly like text that is bold -- passing the author's
+// Markdown through and hoping is what put the backticks on the screen.
+const C0 = '\u0015';   // block
+const C1 = '\u0016';
+const K0 = '\u0017';   // inline
+const K1 = '\u0018';
+
+const MARKS = new RegExp(`[${B0}${B1}${I0}${I1}${C0}${C1}${K0}${K1}]`, 'g');
 
 /**
  * Strip anything that could forge a mark or break a line unexpectedly.
@@ -74,16 +86,36 @@ function t(text) {
 }
 
 /**
+ * A block of code: a command to run, a checksum, a config line.
+ *
+ * Newlines survive clean(), so a multi-line block passes through whole.
+ */
+function code(text) {
+    return C0 + clean(text) + C1;
+}
+
+/** Code inside a sentence -- a commit hash, a filename, a flag. */
+function kbd(text) {
+    return K0 + clean(text) + K1;
+}
+
+/**
  * Walk a message, handing plain runs to `escape` and marks to `open`/`close`.
  *
  * Shared by both renderers so they cannot disagree about what a mark means, or
  * about which parts of a message count as text.
  */
-function render(message, { escape, bold, italic }) {
+function render(message, { escape, escapeCode, bold, italic, block, inline }) {
     let out = '';
     let plain = '';
+    let inCode = false;
 
-    const flush = () => { out += escape(plain); plain = ''; };
+    // Text inside code is escaped by different rules than text outside it. On
+    // Telegram both need HTML entities; on Discord a backslash inside a code
+    // block is printed rather than consumed, so escaping there would put the
+    // backslashes on screen -- the same visible failure that over-escaping
+    // '+' produced in every heartbeat.
+    const flush = () => { out += (inCode ? escapeCode : escape)(plain); plain = ''; };
 
     for (const ch of String(message)) {
         switch (ch) {
@@ -91,6 +123,13 @@ function render(message, { escape, bold, italic }) {
         case B1: flush(); out += bold[1]; break;
         case I0: flush(); out += italic[0]; break;
         case I1: flush(); out += italic[1]; break;
+        // flush() runs before the state changes in both directions, so the
+        // text on each side of a mark is escaped by the rules of the side it
+        // is actually on.
+        case C0: flush(); inCode = true;  out += block[0];  break;
+        case C1: flush(); inCode = false; out += block[1];  break;
+        case K0: flush(); inCode = true;  out += inline[0]; break;
+        case K1: flush(); inCode = false; out += inline[1]; break;
         default: plain += ch;
         }
     }
@@ -100,10 +139,16 @@ function render(message, { escape, bold, italic }) {
 
 /** Telegram's HTML parse mode: only &, < and > are special. */
 function toTelegram(message) {
+    // The same escape inside and outside code: <pre> is HTML like everything
+    // else here, so an unescaped '<' in a command would still break the message.
+    const html = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     return render(message, {
-        escape: (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
+        escape: html,
+        escapeCode: html,
         bold: ['<b>', '</b>'],
-        italic: ['<i>', '</i>']
+        italic: ['<i>', '</i>'],
+        block: ['<pre>', '</pre>'],
+        inline: ['<code>', '</code>']
     });
 }
 
@@ -135,8 +180,15 @@ function toDiscord(message) {
             // A lone pipe is a pipe.
             .replace(/~~/g, '\\~\\~')
             .replace(/\|\|/g, '\\|\\|'),
+        // Nothing is escaped inside code -- Discord prints the backslash there
+        // instead of consuming it. The only thing that must not survive is a
+        // run of backticks long enough to close the block early, and that
+        // cannot legitimately appear inside one.
+        escapeCode: (s) => s.replace(/`{3,}/g, '``'),
         bold: ['**', '**'],
-        italic: ['*', '*']
+        italic: ['*', '*'],
+        block: ['```\n', '\n```'],
+        inline: ['`', '`']
     });
 }
 
@@ -145,4 +197,4 @@ function toPlain(message) {
     return String(message).replace(MARKS, '');
 }
 
-module.exports = { b, i, t, clean, toTelegram, toDiscord, toPlain };
+module.exports = { b, i, t, code, kbd, clean, toTelegram, toDiscord, toPlain };

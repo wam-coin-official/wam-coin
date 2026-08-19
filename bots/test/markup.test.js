@@ -136,6 +136,81 @@ test('an empty message stays empty everywhere', () => {
     }
 });
 
+// ---------------------------------------------------------------------------
+// Code
+//
+// The v0.1.1 release announcement reached Telegram with three literal
+// backticks above and below the verification command. The vocabulary had no
+// mark for code, so a GitHub release body's Markdown was passed through to a
+// renderer that sends HTML, where a fence means nothing.
+// ---------------------------------------------------------------------------
+
+test('a code block becomes each service\'s own syntax', () => {
+    const m = M.code('sha256sum -c SHA256SUMS');
+    assert.match(M.toTelegram(m), /<pre>sha256sum -c SHA256SUMS<\/pre>/);
+    assert.match(M.toDiscord(m), /```\nsha256sum -c SHA256SUMS\n```/);
+    assert.strictEqual(M.toPlain(m), 'sha256sum -c SHA256SUMS');
+});
+
+test('inline code is inline on both', () => {
+    const m = `built from ${M.kbd('d22913b')} today`;
+    assert.match(M.toTelegram(m), /<code>d22913b<\/code>/);
+    assert.match(M.toDiscord(m), /`d22913b`/);
+});
+
+test('Discord does not escape inside code, because it would show', () => {
+    // Outside a block Discord needs the backslash; inside one it prints it.
+    // Getting this wrong is what put "\~275 days" in every heartbeat.
+    const out = M.toDiscord(M.code('grep -E "a*_b" file'));
+    assert.ok(!out.includes('\\'), out);
+    assert.ok(M.toDiscord('a*_b').includes('\\'));
+});
+
+test('a fence inside code cannot close the block early', () => {
+    const out = M.toDiscord(M.code('echo ```oops```'));
+    assert.strictEqual((out.match(/```/g) || []).length, 2);   // ours only
+});
+
+test('Telegram still escapes HTML inside code', () => {
+    // <pre> is HTML like everything else: an unescaped '<' would break it.
+    const out = M.toTelegram(M.code('if [ 1 < 2 ]; then echo & fi'));
+    assert.ok(out.includes('&lt;') && out.includes('&amp;'), out);
+    assert.ok(!/<(?!\/?pre>)/.test(out), out);
+});
+
+test('code cannot be forged by text from outside', () => {
+    // A release note that literally contains the mark characters. Built with
+    // fromCharCode rather than typed: lib/markup.js writes its own marks as
+    // escapes for the same reason -- a raw control character in a source file
+    // is invisible in every editor and the first thing a formatter strips.
+    const C0 = String.fromCharCode(0x15);
+    const C1 = String.fromCharCode(0x16);
+    const hostile = M.t(`${C0}rm -rf /${C1}`);
+    assert.ok(!M.toTelegram(hostile).includes('<pre>'));
+    assert.ok(!M.toDiscord(hostile).includes('```'));
+    assert.ok(M.toPlain(hostile).includes('rm -rf /'));   // the text itself survives
+});
+
+test('marks do not nest, and say so by stripping', () => {
+    // clean() removes control characters from a mark's own content, so code
+    // inside italic is italic text reading "x", not italic code. Worth
+    // pinning: the alternative is a renderer emitting <i><code> and only one
+    // closing tag.
+    assert.strictEqual(M.toTelegram(M.i(M.kbd('x'))), '<i>x</i>');
+});
+
+test('every mark closes, whatever the mix', () => {
+    const m = `${M.b('title')}\n${M.code('cmd')}\n${M.i('note')} ${M.kbd('flag')}`;
+    const tg = M.toTelegram(m);
+    for (const tag of ['b', 'i', 'pre', 'code']) {
+        assert.strictEqual(
+            (tg.match(new RegExp(`<${tag}>`, 'g')) || []).length,
+            (tg.match(new RegExp(`</${tag}>`, 'g')) || []).length,
+            `${tag} unbalanced in ${tg}`);
+    }
+    assert.ok(tg.includes('<pre>cmd</pre>') && tg.includes('<code>flag</code>'), tg);
+});
+
 console.log('\n' + '='.repeat(66));
 if (fail.length === 0) {
     console.log(`\x1b[32m${pass} passed\x1b[0m`);

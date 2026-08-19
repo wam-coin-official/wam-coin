@@ -55,7 +55,7 @@ const path = require('path');
 
 const { NodeRpc, latestRelease } = require('./lib/clients');
 const { buildSinks } = require('./lib/sinks');
-const { b, i, t, toTelegram, toDiscord, toPlain } = require('./lib/markup');
+const { b, i, t, code, kbd, toTelegram, toDiscord, toPlain } = require('./lib/markup');
 
 const COIN = 100000000;
 
@@ -309,8 +309,37 @@ function rotationMessage(seedHeight, height) {
     ].join('\n');
 }
 
+/**
+ * Turn a GitHub release body into marked-up message text.
+ *
+ * The body is Markdown written for GitHub's own renderer. It used to be passed
+ * through untouched, which is why the v0.1.1 announcement arrived on Telegram
+ * showing three literal backticks above and below the verification command:
+ * Telegram messages are sent as HTML, where a fence means nothing at all.
+ *
+ * Fenced blocks become code() and inline spans become kbd(), so each service
+ * renders them in its own syntax. Every branch below emits a matched pair of
+ * marks, so an unbalanced fence in someone's release note -- or a body cut off
+ * mid-block by the line limit -- can never leave a tag hanging open.
+ */
+function fromMarkdown(text) {
+    // Odd indexes are the insides of fenced blocks; even indexes are prose.
+    return String(text || '')
+        .split(/```[a-zA-Z0-9_-]*\n?/)
+        .map((part, idx) => {
+            if (idx % 2 === 1) return code(part.replace(/\n+$/, ''));
+            // Same alternation again, for single-backtick spans in prose.
+            return part.split(/`([^`\n]+)`/)
+                .map((seg, j) => (j % 2 === 1 ? kbd(seg) : t(seg)))
+                .join('');
+        })
+        .join('');
+}
+
 function releaseMessage(release) {
-    const body = t(String(release.body || '').split('\n').slice(0, 8).join('\n')).slice(0, 700);
+    // Truncated by line before conversion, never after: the marks are single
+    // characters and slicing a rendered string can cut one off from its pair.
+    const body = fromMarkdown(String(release.body || '').split('\n').slice(0, 12).join('\n'));
     return [
         `\u{1F680} ${b(release.name || release.tag)}`,
         // Said plainly rather than left for the reader to notice on the page.
