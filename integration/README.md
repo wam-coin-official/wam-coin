@@ -11,14 +11,17 @@ take a pull request with a config file rather than a web form.
 | [Komodo Wallet](komodo/) | PR to `KomodoPlatform/coins`: coin entry, electrum servers, explorer, icon | written ✅ · sendable only after mainnet |
 | [BasicSwap DEX](basicswap/) | coin definition; it runs `wamd` itself | ✅ |
 | [Block DX](blockdx/) | XBridge config entry; it runs `wamd` itself | ✅ |
-| Bisq | PR plus a maintainer and a BSQ listing fee | waiting on their reply |
+| [Bisq](bisq/) | PR to `bisq-network/bisq`: asset class, test, service entry | written ✅ · fee and DAO terms to confirm |
 | Maya Protocol | chain integration by governance, not a listing | unlikely — not pursued |
 | Haveno | Monero-centric; WAM is out of scope there | not pursued |
 
-**Nothing here has been submitted.** Enquiries asking each venue what it
-requires were sent 2026-08-18; none has replied and none has agreed to
-anything. These files exist so that when a reply arrives, the answer is already
-written.
+**Nothing here has been submitted, and nobody has agreed to list WAM.**
+Enquiries asking each venue what it requires were sent 2026-08-18. Bisq replied
+and pointed at their repository, which is where their listings are made; that
+is an answer about process, not a decision about WAM, and their fee and DAO
+terms are still to be confirmed. The other five have not replied.
+
+These files exist so that when a reply arrives, the answer is already written.
 
 ---
 
