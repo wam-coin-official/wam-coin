@@ -14,6 +14,12 @@ but a chain client inside their node.
 | [Block DX](blockdx/) | PR to `blocknetdx/blockchain-configuration-files`: 2 confs + manifest | written ✅ |
 | [Bisq](bisq/) | PR to `bisq-network/bisq`: asset class, test, service entry | written ✅ · fee and DAO terms to confirm |
 | [Maya Protocol](maya/) | a node chain client in Go, not a listing | months, and theirs to want |
+
+And one that is not a venue at all but blocks three of them:
+
+| Registry | What it consumes | Ready |
+|---|---|---|
+| [SLIP-0044 and SLIP-0173](slips/) | one table row each, to `satoshilabs/slips` | written ✅ · send first |
 | [Haveno](haveno/) | PR to `haveno-dex/haveno`: asset class, test, service entry | written ✅ · their list is 11 major coins |
 
 **Nothing here has been submitted, and nobody has agreed to list WAM.**
