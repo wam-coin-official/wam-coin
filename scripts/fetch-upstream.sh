@@ -59,10 +59,34 @@ else
 fi
 git -C "$RANDOMX_DIR" checkout --quiet "$RANDOMX_TAG"
 
+# ARCH=x86-64, not native.
+#
+# This said native, and the node links librandomx.a statically, so the node
+# inherited whatever the build machine's CPU could do. On 2026-08-20 that
+# produced a published release carrying 746 AVX-512 instructions -- GitHub's
+# runner has AVX-512 -- and it died with SIGILL on an AMD EPYC that does not:
+#
+#     wamd.service: Main process exited, code=dumped, status=4/ILL
+#
+# Every other shipped program was clean, because only the node links RandomX.
+# Anyone downloading that release on a CPU older than the builder's got a node
+# that crashed, which on launch day is most of the miners the coin is for.
+#
+# Nothing is lost by lowering it: RandomX detects AES-NI and the rest at
+# RUNTIME and takes the fast path when the CPU has it. ARCH only decides what
+# the compiler may assume unconditionally, which for a binary other people run
+# must be the baseline.
+#
+# WAM_RANDOMX_ARCH=native is available for a local build that will never leave
+# the machine. Releases must never set it -- scripts/check_isa_baseline.sh
+# refuses to package a binary that carries instructions above the baseline,
+# so a slip fails loudly instead of being discovered by a stranger's crash.
+RANDOMX_ARCH="${WAM_RANDOMX_ARCH:-x86-64}"
+
 if [ ! -f "$RANDOMX_DIR/build/librandomx.a" ]; then
-    log "     building librandomx"
+    log "     building librandomx (ARCH=$RANDOMX_ARCH)"
     cmake -S "$RANDOMX_DIR" -B "$RANDOMX_DIR/build" \
-          -DCMAKE_BUILD_TYPE=Release -DARCH=native >/dev/null
+          -DCMAKE_BUILD_TYPE=Release -DARCH="$RANDOMX_ARCH" >/dev/null
     cmake --build "$RANDOMX_DIR/build" -j"$(nproc 2>/dev/null || echo 4)" >/dev/null
 else
     log "     librandomx.a already built"

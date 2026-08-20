@@ -163,6 +163,20 @@ for a in "${WANT_ADDR[@]}"; do
 done
 
 # ---------------------------------------------------------------------------
+# Carrying the right chain is not the same as running at all. v0.1.2 carried
+# every correct constant and died with SIGILL on the first CPU without AVX-512,
+# because the node links a RandomX that had been built with ARCH=native on the
+# machine that produced the release. The tarball is already unpacked here, so
+# the question costs nothing to ask.
+printf '\n%swill it run on the CPU someone has?%s\n' "$BLD" "$OFF"
+if bash "$HERE/scripts/check_isa_baseline.sh" "$(dirname "$BIN")"/* >"$TMP/isa.log" 2>&1; then
+    ok "no instruction above the x86-64 baseline"
+else
+    sed -n '/^  [a-z]/p' "$TMP/isa.log" | sed 's/^/         /'
+    bad "the published binaries carry instructions many CPUs do not have"
+fi
+
+# ---------------------------------------------------------------------------
 if [ "$ALSO_SOURCE" -eq 1 ] && [ -n "${TAG:-}" ]; then
     printf '\n%swhat changed since the tag%s\n' "$BLD" "$OFF"
     if git rev-parse -q --verify "$TAG^{commit}" >/dev/null 2>&1; then

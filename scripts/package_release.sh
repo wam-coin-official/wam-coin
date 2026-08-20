@@ -432,6 +432,32 @@ ok "$TARBALL_NODE  ($(( $(stat -c%s "$OUT/$TARBALL_NODE") / 1024 / 1024 )) MB)"
 ok "$TARBALL_MINER  ($(( $(stat -c%s "$OUT/$TARBALL_MINER") / 1024 )) KB)"
 
 # ---------------------------------------------------------------------------
+step "4d. instructions the machine downloading this may not have"
+
+# 4c asks whether the loader will accept the binary. This asks whether the CPU
+# will accept its instructions, and it is a separate question that was answered
+# wrongly for a whole release.
+#
+# v0.1.2 passed every check in this file. Step 1 confirmed the node carried no
+# -march= flag, which was true. Step 2 rebuilt RandomX for the baseline -- and
+# gave that copy to the miner, while the node kept the ARCH=native library it
+# had been linked against during the build. So a release went out with 746
+# AVX-512 instructions inside wamd, and died with SIGILL on the first machine
+# that lacked them:
+#
+#     wamd.service: Main process exited, code=dumped, status=4/ILL
+#
+# Flags describe intent. This reads the file.
+if bash "$REPO/scripts/check_isa_baseline.sh" \
+        "$WORK/stage/wam-coin-$VERSION/bin/"* \
+        "$WORK/stage/wam-miner-$VERSION/"* >/tmp/wam_isa.log 2>&1; then
+    ok "every packaged binary stays within the x86-64 baseline"
+else
+    sed 's/^/  /' /tmp/wam_isa.log
+    fail "a packaged binary carries instructions the baseline does not have"
+fi
+
+# ---------------------------------------------------------------------------
 step "5. checksums"
 
 ( cd "$OUT" && sha256sum "$TARBALL_NODE" "$TARBALL_MINER" > SHA256SUMS )
