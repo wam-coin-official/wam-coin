@@ -172,21 +172,37 @@ patched_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 EOF
 
 # ===========================================================================
-log "4/4  Checking the founder address"
+log "4/4  Checking the treasury address"
 # ===========================================================================
 
-if grep -qE "WNg2svm2qApxheBKndKGQ9sRwporvRgRpT|T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb" \
+# This said "founder address" and told you to run gen_founder_key.py and
+# re-mine the genesis block. Both were true once and neither is now: the
+# founder ceremony happened, the mainnet founder address is real, and the
+# mainnet genesis is mined. Following those instructions today would discard
+# all three. What is still a placeholder is the *treasury*, which the two were
+# separated into so that treasury spending could be told from founder
+# spending -- and the warning was never updated to notice.
+if grep -q "WNg2svm2qApxheBKndKGQ9sRwporvRgRpT" \
         "$CORE_DIR/src/kernel/chainparams.cpp"; then
-    warn "The founder address is still the burn placeholder (hash160 = 20 zero bytes)."
+    warn "The mainnet TREASURY address is still the burn placeholder"
+    warn "(hash160 = 20 zero bytes). Every 5% fee this chain collects would be"
+    warn "destroyed -- 750,000 WAM across 400,000 blocks."
     warn ""
-    warn "  Before this tree can build a usable mainnet binary you must:"
-    warn "    1. python3 scripts/gen_founder_key.py --network mainnet   (OFFLINE)"
-    warn "    2. paste the address into src/wam/chainparams.cpp"
-    warn "    3. python3 genesis/genesis_generator.py --network mainnet \\"
-    warn "           --address W... --patch src/wam/chainparams.cpp"
-    warn "    4. re-run this script"
+    warn "  Before a mainnet binary is usable:"
+    warn "    1. python3 scripts/gen_founder_key.py --network mainnet   (OFFLINE,"
+    warn "       and a DIFFERENT key from the founder's)"
+    warn "    2. paste it over WAM_TREASURY_ADDRESS_MAINNET in src/wam/chainparams.cpp"
+    warn "    3. re-run this script"
     warn ""
-    warn "  A regtest build works fine in the meantime."
+    warn "  The genesis block is NOT re-mined for this. Genesis outputs pay the"
+    warn "  founder address, and the treasury rule starts at height 1, so the"
+    warn "  genesis hash does not depend on it."
+    warn ""
+    warn "  It must happen before the first mainnet block and not after: the"
+    warn "  rule is consensus, so changing it later invalidates every block"
+    warn "  already mined under the old address."
+    warn ""
+    warn "  Testnet and regtest builds are unaffected."
 fi
 
 log "done"

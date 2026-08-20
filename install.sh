@@ -224,8 +224,9 @@ fi
 # and expected. Saying so is not: a binary that carries a burn address for a
 # network it can still be pointed at is worth one loud sentence.
 if [ "$NETWORK" != "mainnet" ] && grep -q "$BURN_MAINNET" src/kernel/chainparams.cpp; then
-    warn "this binary still carries the burn placeholder as the MAINNET founder"
-    warn "address. It is fine for ${NETWORK}. Never run it with -chain=main."
+    warn "this binary still carries the burn placeholder as the MAINNET TREASURY"
+    warn "address -- not the founder address, which is real. It is fine for"
+    warn "${NETWORK}. Never run it with -chain=main: every 5% fee would burn."
 fi
 
 if [ -n "$FOUNDER_SYM" ] \
