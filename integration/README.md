@@ -3,8 +3,9 @@
 Everything a venue needs from us, written out before it is asked for, so that
 answering a listing enquiry is copying a file rather than starting work.
 
-Each subdirectory holds what that venue actually consumes. Three of the six
-take a pull request with a config file rather than a web form.
+Each subdirectory holds what that venue actually consumes. Five of the six take
+a pull request rather than a web form; the sixth, Maya, is not a listing at all
+but a chain client inside their node.
 
 | Venue | What it consumes | Ready |
 |---|---|---|
@@ -12,16 +13,20 @@ take a pull request with a config file rather than a web form.
 | [BasicSwap DEX](basicswap/) | coin definition; it runs `wamd` itself | ✅ |
 | [Block DX](blockdx/) | XBridge config entry; it runs `wamd` itself | ✅ |
 | [Bisq](bisq/) | PR to `bisq-network/bisq`: asset class, test, service entry | written ✅ · fee and DAO terms to confirm |
-| Maya Protocol | chain integration by governance, not a listing | unlikely — not pursued |
-| Haveno | Monero-centric; WAM is out of scope there | not pursued |
+| [Maya Protocol](maya/) | a node chain client in Go, not a listing | months, and theirs to want |
+| [Haveno](haveno/) | PR to `haveno-dex/haveno`: asset class, test, service entry | written ✅ · their list is 11 major coins |
 
 **Nothing here has been submitted, and nobody has agreed to list WAM.**
-Enquiries asking each venue what it requires were sent 2026-08-18. Bisq replied
-and pointed at their repository, which is where their listings are made; that
-is an answer about process, not a decision about WAM, and their fee and DAO
-terms are still to be confirmed. The other five have not replied.
 
-These files exist so that when a reply arrives, the answer is already written.
+Enquiries asking each venue what it requires were sent 2026-08-18. All six
+replied on 2026-08-19, within hours of each other, and every one of them
+pointed at a GitHub repository: their listings are made by pull request, not by
+application. That is an answer about process. None of them said anything about
+WAM.
+
+So the work is the same in all six cases -- read what their repository actually
+consumes, and write it correctly -- and the decision in all six cases is
+theirs, later.
 
 ---
 
