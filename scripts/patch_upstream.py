@@ -209,6 +209,13 @@ class Patcher:
 WAM_MARKER = "WAM_CONSENSUS_PATCH"
 
 
+# WAM-023 anchors. Kept out of the change so the C++ reads as C++ and a
+# stray indentation change cannot silently stop the anchor from matching.
+ANCHOR_WAM023 = '    // Mainnet derives at 0\', testnet and regtest derive at 1\'\n    if (Params().IsTestChain()) {\n        desc_prefix += "/1h";\n    } else {\n        desc_prefix += "/0h";\n    }'
+
+REPLACEMENT_WAM023 = '    // Mainnet derives at WAM\'s own coin type; testnet and regtest at 1.\n    //\n    // Upstream hardcodes 0 here, and 0 is Bitcoin\'s. A fork that leaves this\n    // alone has every one of its seeds derive on Bitcoin\'s branch, producing\n    // the addresses a Bitcoin wallet would produce for the same words. WAM did\n    // exactly that until this edit.\n    //\n    // The number, its provenance, and why it can never change once anyone\n    // holds coins are all in wam/wam-params.h. 1 stays as it is: SLIP-44\n    // reserves it for every test chain so that test keys cannot be mistaken\n    // for real ones.\n    if (Params().IsTestChain()) {\n        desc_prefix += "/1h";\n    } else {\n        desc_prefix += "/" + std::to_string(WAM_BIP44_COIN_TYPE) + "h";\n    }'
+
+
 def build_changes() -> list[Change]:
     changes: list[Change] = []
 
@@ -1458,6 +1465,45 @@ def build_changes() -> list[Change]:
             replacement="# WAM_BINARY_NAMES\nbin_PROGRAMS =",
             required=False,
         )]))
+
+    changes.append(Change(
+        id="WAM-023",
+        title="BIP-44 coin type: WAM's own branch, not Bitcoin's",
+        rationale=(
+            "walletutil.cpp hardcodes the level-2 coin type of every descriptor a "
+            "wallet generates, and upstream's value is 0, which belongs to Bitcoin. "
+            "This fork inherited it, so a WAM wallet was deriving at m/84'/0'/0' -- "
+            "the same branch a Bitcoin wallet uses. The same twelve words opened a "
+            "WAM wallet and a Bitcoin wallet onto identical keys.\n\n"
+            "That is not merely untidy. It is why SLIP-44 exists: a registry so that "
+            "two coins cannot claim one branch and a user restoring a seed cannot be "
+            "shown someone else's chain. Leaving it at 0 also makes registration "
+            "impossible, because the registry's own condition is that a wallet "
+            "implementing BIP-44 *for that coin* already exists.\n\n"
+            "0x57414D is 'WAM' in ASCII, unclaimed in slip-0044.md as of 2026-08-20, "
+            "and follows what recent entries do -- TNZO holds 0x544E5A4F, "
+            "Bitcoin-PoCX holds 0x504F4358 -- because the registry has no free "
+            "numbers left below a thousand.\n\n"
+            "This lands before mainnet and that timing is the point. A coin type "
+            "cannot change once anyone holds coins: the same seed on a different "
+            "branch yields different addresses, so a restored wallet simply looks "
+            "empty. Today there is nothing to strand."),
+        edits=[
+            Edit(
+                file="src/wallet/walletutil.cpp",
+                description="reach the coin type constant",
+                marker="#include <wam/wam-params.h>",
+                anchor="#include <chainparams.h>",
+                replacement="#include <chainparams.h>\n#include <wam/wam-params.h>",
+            ),
+            Edit(
+                file="src/wallet/walletutil.cpp",
+                description="derive at WAM's coin type instead of Bitcoin's 0",
+                marker="WAM_BIP44_COIN_TYPE",
+                anchor=ANCHOR_WAM023,
+                replacement=REPLACEMENT_WAM023,
+            ),
+        ]))
 
     return changes
 

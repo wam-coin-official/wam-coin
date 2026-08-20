@@ -146,6 +146,41 @@ static_assert(WAM_DEVFEE_LAST_HEIGHT >= WAM_DEVFEE_START_HEIGHT,
               "the dev fee window must be non-empty");
 
 // ---------------------------------------------------------------------------
+// BIP-44 coin type
+// ---------------------------------------------------------------------------
+//
+//  Level 2 of the BIP-44 hierarchy: m / 44' / coin_type' / account' / ...
+//
+//  Bitcoin Core hardcodes 0 for mainnet, and this fork inherited it. A WAM
+//  wallet was deriving on Bitcoin's branch -- every WAM seed producing the
+//  addresses a Bitcoin wallet would produce for the same words.
+//
+//  0x57414D is "WAM" read as ASCII. Registries have no room left below a
+//  thousand, and the convention among recent entries is exactly this: TNZO
+//  holds 0x544E5A4F, Bitcoin-PoCX holds 0x504F4358. Checked against
+//  slip-0044.md on 2026-08-20 and unclaimed.
+//
+//  NOT YET REGISTERED. Registration is a pull request to satoshilabs/slips,
+//  whose own condition is that a wallet implementing BIP-44 for the coin must
+//  already exist -- which is why this lands before the request rather than
+//  after it. If they assign a different number, this changes and every wallet
+//  made in the meantime must be discarded.
+//
+//  THIS CANNOT CHANGE ONCE ANYONE HOLDS COINS. The same seed on a different
+//  coin type yields different addresses, so a wallet restored after a change
+//  looks empty. That is why it is settled before the first mainnet block and
+//  not on the day someone notices.
+//
+//  Testnet stays 1: SLIP-44 reserves it for every test chain, deliberately, so
+//  that test keys can never be confused with real ones.
+static constexpr uint32_t WAM_BIP44_COIN_TYPE = 0x57414D;   // 5'718'349
+
+static_assert(WAM_BIP44_COIN_TYPE < 0x80000000,
+              "a BIP-44 coin type is the index, not the hardened path component");
+static_assert(WAM_BIP44_COIN_TYPE != 0 && WAM_BIP44_COIN_TYPE != 1,
+              "0 is Bitcoin and 1 is every testnet; neither is WAM");
+
+// ---------------------------------------------------------------------------
 // Founder reserve vesting
 // ---------------------------------------------------------------------------
 
