@@ -40,23 +40,24 @@ RandomX does not enter into it. It changes how a header is proved, not how a
 transaction is built or spent, and no part of an atomic swap reads proof of
 work.
 
-## The one thing that blocks this, and it is not ours to fix quickly
+## The `bip44` field, and what is still pending
 
-Their params dict has a **`bip44`** field: the SLIP-44 coin type. Litecoin's is
-2, testnet is 1. **WAM has no registration**, so the field is written out as a
-comment rather than filled with a number.
+Their params dict carries the SLIP-44 coin type. Litecoin's is 2; testnet is 1
+for every chain. Ours says **5718349**, which is `0x57414D` — `WAM` in ASCII,
+the convention Wanchain used one number above at `0x57414E`.
 
-Inventing one collides with whatever real coin owns it and derives every user's
-keys onto a path no other wallet will ever look at. The same field is why
-`komodo/coin-entry.json` carries no `derivation_path`.
+It is not invented. `wamd` already derives there: a wallet reports
+`44h/5718349h`, `49h/5718349h`, `84h/5718349h` and `86h/5718349h`. The field
+describes the daemon BasicSwap will run, which is the only thing it can
+honestly describe. The number is declared once in `src/wam/wam-params.h`, and
+`scripts/audit_repo.sh` rejects any file here that disagrees with it.
 
-Registration is a pull request to
-[`satoshilabs/slips`](https://github.com/satoshilabs/slips) adding a line to
-`slip-0044.md`, in the founder's name. Their queue is measured in weeks, so it
-is worth opening early and separately from any listing — it blocks BasicSwap,
-it blocks hardware wallet support, and it blocks the Komodo field, and none of
-those can start until a number exists.
+**Registration with [`satoshilabs/slips`](https://github.com/satoshilabs/slips)
+is open and not yet granted** — see `integration/slips/`. Say that in the pull
+request rather than letting them discover it. If a different number is
+assigned, it changes in one place and every wallet made in the meantime is
+discarded: free today, ruinous after mainnet.
 
-**Ask BasicSwap in the reply whether they will take the pull request with the
-registration pending**, since everything else in it is complete. That is a
-question with two possible answers and both are useful; guessing at it is not.
+**Worth asking them directly:** whether they will merge with the registration
+pending, or would rather wait for it. Both answers are useful and neither is
+worth guessing.

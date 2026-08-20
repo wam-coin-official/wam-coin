@@ -237,15 +237,31 @@ if [ -d integration ]; then
             || { fail "$f is missing an address prefix (73 pubkey / 135 script)"; INTEG=$((INTEG+1)); }
     done
 
-    # Nowhere may a SLIP-44 coin type be invented while none is registered.
-    # A wrong one derives every user's keys onto a branch no other wallet
-    # looks at, and it is the kind of number that gets copied once and lives
-    # forever.
-    if grep -rEn '^[^#]*"?(bip44|derivation_path|coin_type)"?[[:space:]]*[:=][[:space:]]*[0-9]' \
-            integration/ 2>/dev/null | grep -v ': 1,' | head -3 | grep -q .; then
-        grep -rEn '^[^#]*"?(bip44|derivation_path|coin_type)"?[[:space:]]*[:=][[:space:]]*[0-9]' \
-            integration/ 2>/dev/null | grep -v ': 1,' | head -3 | sed 's/^/         /'
-        fail "a SLIP-44 coin type is set somewhere in integration/, and none is registered"
+    # Every SLIP-44 coin type written in integration/ must be the one the
+    # source declares. Not "must be absent" -- the files now carry it, because
+    # wamd derives there and a venue's config describes the wallet it will
+    # talk to. What must not happen is a second opinion: a number typed into
+    # one file and forgotten when the other changes.
+    #
+    # 1 is exempt. SLIP-44 reserves it for every test chain, so it means
+    # "testnet" rather than "WAM" and is correct in the testnet and regtest
+    # blocks of the same files.
+    WANT_BIP44="$(grep -oE 'WAM_BIP44_COIN_TYPE[[:space:]]*=[[:space:]]*(0x[0-9A-Fa-f]+|[0-9]+)' \
+        src/wam/wam-params.h 2>/dev/null | grep -oE '(0x[0-9A-Fa-f]+|[0-9]+)$' | tail -1)"
+    if [ -n "$WANT_BIP44" ]; then
+        WANT_DEC=$(printf '%d' "$WANT_BIP44" 2>/dev/null)
+        while IFS= read -r hit; do
+            [ -n "$hit" ] || continue
+            n="$(printf '%s' "$hit" | grep -oE '[0-9]+' | tail -1)"
+            [ "$n" = "1" ] && continue
+            [ "$n" = "$WANT_DEC" ] && continue
+            fail "$hit"
+            fail "  ...is not $WANT_DEC, which src/wam/wam-params.h declares"
+            INTEG=$((INTEG+1))
+        done <<< "$(grep -rEn "^[^#]*\"?(bip44|derivation_path|coin_type)\"?[[:space:]]*[:=][[:space:]]*[\"']?m?/?4?4?'?/?[0-9]" \
+            integration/ 2>/dev/null)"
+    else
+        fail "WAM_BIP44_COIN_TYPE is not declared in src/wam/wam-params.h"
         INTEG=$((INTEG+1))
     fi
 
@@ -255,12 +271,11 @@ if [ -d integration ]; then
             || { fail "komodo/coin-entry.json does not carry the WAM message prefix"; INTEG=$((INTEG+1)); }
     fi
 
-    # A derivation path without a registered SLIP-44 type would send funds to a
-    # branch no other wallet looks at.
-    if grep -q 'derivation_path' integration/komodo/coin-entry.json 2>/dev/null; then
-        fail "komodo/coin-entry.json has a derivation_path but no SLIP-44 type is registered"
-        INTEG=$((INTEG+1))
-    fi
+    # A derivation_path used to be forbidden outright here, because there was
+    # no number to put in it. There is one now -- wamd derives at it -- so the
+    # question changed from "is it present" to "does it agree with the source",
+    # which the check above asks of every file at once. Two checks answering
+    # the same question differently is how one of them ends up wrong.
 
     [ "$INTEG" = 0 ] && ok "integration/ agrees with the consensus source"
 else

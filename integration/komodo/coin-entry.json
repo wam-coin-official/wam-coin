@@ -11,6 +11,7 @@
   "dust": 546,
   "segwit": true,
   "bech32_hrp": "wam",
+  "derivation_path": "m/44'/5718349'",
   "mm2": 1,
   "wallet_only": false,
   "required_confirmations": 6,

@@ -18,12 +18,15 @@ params = {
         "script_address": 135,
         "key_prefix": 190,
         "hrp": "wam",
-        # "bip44": <a registered SLIP-44 coin type>,
+        # 0x57414D, which is "WAM" in ASCII. Not invented: wamd already derives
+        # here -- listdescriptors returns 44h/5718349h -- so this describes the
+        # wallet rather than asking for something.
         #
-        # Deliberately absent rather than invented. WAM has no SLIP-44
-        # registration yet; a made-up number collides with a real coin and
-        # derives every user's keys onto a path no other wallet will look at.
-        # Registration is a pull request to satoshilabs/slips.
+        # Registration with satoshilabs/slips is open and not yet granted. If
+        # they assign a different number this changes, and so does
+        # WAM_BIP44_COIN_TYPE in src/wam/wam-params.h, which is the one place
+        # it is decided.
+        "bip44": 5718349,
         "min_amount": 100000,
         "max_amount": 1000000 * COIN,
     },
@@ -33,7 +36,7 @@ params = {
         "script_address": 128,
         "key_prefix": 239,
         "hrp": "twam",
-        # "bip44": 1,
+        "bip44": 1,
         "min_amount": 100000,
         "max_amount": 1000000 * COIN,
         "name": "testnet3",
@@ -44,7 +47,7 @@ params = {
         "script_address": 128,
         "key_prefix": 239,
         "hrp": "wamrt",
-        # "bip44": 1,
+        "bip44": 1,
         "min_amount": 100000,
         "max_amount": 1000000 * COIN,
     },

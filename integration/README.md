@@ -9,8 +9,8 @@ but a chain client inside their node.
 
 | Venue | What it consumes | Ready |
 |---|---|---|
-| [Komodo Wallet](komodo/) | PR to `KomodoPlatform/coins`: coin entry, electrum servers, explorer, icon | written ✅ · sendable only after mainnet |
-| [BasicSwap DEX](basicswap/) | PR to `tecnovert/basicswap`: a Python interface package | written ✅ · blocked on SLIP-44 |
+| [Komodo Wallet](komodo/) | PR to `KomodoPlatform/coins`: coin entry, electrum servers, explorer, icon | written ✅ · sendable after mainnet |
+| [BasicSwap DEX](basicswap/) | PR to `tecnovert/basicswap`: a Python interface package | written ✅ · SLIP-44 pending, not blocking |
 | [Block DX](blockdx/) | PR to `blocknetdx/blockchain-configuration-files`: 2 confs + manifest | written ✅ |
 | [Bisq](bisq/) | PR to `bisq-network/bisq`: asset class, test, service entry | written ✅ · fee and DAO terms to confirm |
 | [Maya Protocol](maya/) | a node chain client in Go, not a listing | months, and theirs to want |

@@ -37,15 +37,28 @@ reorg cost on this chain's timing.
 
 ---
 
-## Two fields deliberately absent
+## The derivation path, and the one field still absent
 
-**`derivation_path`.** It needs a registered SLIP-44 coin type and WAM has
-none. Inventing a number would collide with a real coin and put user funds on a
-path no other wallet would find. Registration is a pull request to
-`satoshilabs/slips`; it has not been made, and their queue takes weeks.
+**`derivation_path` is `m/44'/5718349'`.** It was blank until 2026-08-20 for a
+good reason and is filled now for a better one: `wamd` derives there. A wallet
+reports `44h/5718349h`, `49h/5718349h`, `84h/5718349h` and `86h/5718349h`, so
+the field describes the software Komodo would be talking to rather than
+requesting something of it.
 
-**`trezor_coin`.** Follows from the same registration. Hardware wallet support
-is not possible before it.
+`5718349` is `0x57414D`, which is `WAM` in ASCII — the convention Wanchain used
+one number above at `0x57414E`. It is declared once, in
+`src/wam/wam-params.h`, and `scripts/audit_repo.sh` rejects any file here that
+disagrees with it.
+
+**Registration is open and not yet granted.** Say so in the pull request rather
+than leaving them to find out: `integration/slips/` holds the submission. If
+SatoshiLabs assign a different number it changes in one place and every wallet
+made in the meantime is discarded, which costs nothing before mainnet and
+everything after.
+
+**`trezor_coin` stays absent.** Hardware wallet support needs the registration
+finished, not merely requested, and there is nothing truthful to write until
+then.
 
 ---
 
