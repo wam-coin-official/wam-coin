@@ -10,8 +10,8 @@ but a chain client inside their node.
 | Venue | What it consumes | Ready |
 |---|---|---|
 | [Komodo Wallet](komodo/) | PR to `KomodoPlatform/coins`: coin entry, electrum servers, explorer, icon | written ✅ · sendable only after mainnet |
-| [BasicSwap DEX](basicswap/) | coin definition; it runs `wamd` itself | ✅ |
-| [Block DX](blockdx/) | XBridge config entry; it runs `wamd` itself | ✅ |
+| [BasicSwap DEX](basicswap/) | PR to `tecnovert/basicswap`: a Python interface package | written ✅ · blocked on SLIP-44 |
+| [Block DX](blockdx/) | PR to `blocknetdx/blockchain-configuration-files`: 2 confs + manifest | written ✅ |
 | [Bisq](bisq/) | PR to `bisq-network/bisq`: asset class, test, service entry | written ✅ · fee and DAO terms to confirm |
 | [Maya Protocol](maya/) | a node chain client in Go, not a listing | months, and theirs to want |
 | [Haveno](haveno/) | PR to `haveno-dex/haveno`: asset class, test, service entry | written ✅ · their list is 11 major coins |
