@@ -173,6 +173,28 @@ and the build is reproducible from source with `./install.sh --build-only`.
 Runtime dependencies: libevent and libsqlite3. Nothing else — ZMQ is disabled
 deliberately.
 
+### Electrum protocol
+
+An ElectrumX server runs, so a light wallet can read a balance without holding
+the chain. Komodo Wallet requires one before it will list a UTXO coin at all;
+it is useful whether or not any venue asks.
+
+| | |
+|---|---|
+| Host | `electrum.wamcoin.org` |
+| TCP | 50001 |
+| SSL | 50002 (Let's Encrypt, renewing automatically) |
+| WebSocket | 50004 |
+| Implementation | spesmilo/electrumx, with the WAM coin class in `integration/electrumx/` |
+
+It serves testnet today, because that is the only WAM network that exists. The
+same installer produces the mainnet server; `integration/electrumx/install.sh`
+is the whole recipe, and `integration/komodo/electrums-WAM.json` is the entry
+their repository takes.
+
+The server holds no keys and can spend nothing. It reads the node and answers
+questions.
+
 ---
 
 ## 7. Assets
