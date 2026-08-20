@@ -55,7 +55,12 @@ trap 'rm -rf "$LOGDIR"' EXIT
 # run NAME -- COMMAND...
 run() {
     local name="$1"; shift
-    local log="$LOGDIR/${name// /_}.log"
+    # Every character that is not a letter, digit or dash becomes an
+    # underscore. This replaced spaces only, so the first check whose name
+    # contained a '/' -- "deployed code is origin/main" -- turned into a path
+    # through a directory that does not exist, and the runner reported a
+    # failure of its own making on top of whatever the check actually said.
+    local log="$LOGDIR/$(printf '%s' "$name" | tr -c 'A-Za-z0-9-' '_').log"
     printf '  %-34s ' "$name"
     if "$@" >"$log" 2>&1; then
         printf '%sok%s\n' "$GRN" "$OFF"
