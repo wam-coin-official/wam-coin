@@ -198,17 +198,56 @@ if [ -d integration ]; then
     GEN_MAIN=$(grep -oP 'hashGenesisBlock == uint256S\("0x\K[0-9a-f]{64}' src/wam/chainparams.cpp | head -1)
     GEN_TEST=$(grep -oP 'hashGenesisBlock == uint256S\("0x\K[0-9a-f]{64}' src/wam/chainparams.cpp | sed -n 2p)
 
-    grep -q "$GEN_MAIN" integration/basicswap/wam.json 2>/dev/null \
-        || { fail "basicswap/wam.json has the wrong mainnet genesis hash"; INTEG=$((INTEG+1)); }
-    grep -q "$GEN_TEST" integration/basicswap/wam.json 2>/dev/null \
-        || { fail "basicswap/wam.json has the wrong testnet genesis hash"; INTEG=$((INTEG+1)); }
+    # Every 64-hex string in the files venues read must be a chain hash this
+    # source declares -- or must say on the same line what else it is.
+    #
+    # This used to name integration/basicswap/wam.json and check two hashes in
+    # it. When BasicSwap turned out to consume a Python package rather than
+    # JSON and the file went away, the check reported "wrong mainnet genesis
+    # hash" about a file that did not exist: a true failure with a false
+    # reason, which sends the next reader looking in the wrong place.
+    #
+    # Asking the question of every file instead means no filename here can go
+    # stale, and a genesis hash that survives a re-mine anywhere in the
+    # published material is caught wherever it is hiding.
+    GEN_ALL="$(grep -oP 'hashGenesisBlock == uint256S\("0x\K[0-9a-f]{64}' src/wam/chainparams.cpp)"
+    while IFS= read -r line; do
+        [ -n "$line" ] || continue
+        f="${line%%:*}"; rest="${line#*:}"
+        h="$(printf '%s' "$rest" | grep -oE '\b[0-9a-f]{64}\b' | head -1)"
+        printf '%s\n' "$GEN_ALL" | grep -qx "$h" && continue
+        # Not a genesis hash. It may still be legitimate -- the listing package
+        # quotes the genesis merkle root -- but it has to say so where it sits,
+        # so a stale hash can never pass as a labelled one.
+        printf '%s' "$rest" | grep -qiE 'merkle' && continue
+        fail "$f carries ${h:0:16}..., which is neither a genesis hash nor labelled"
+        INTEG=$((INTEG+1))
+    done <<< "$(grep -rEn '\b[0-9a-f]{64}\b' integration/ docs/ 2>/dev/null)"
 
-    # Address prefixes, in every file that repeats them.
-    for f in integration/komodo/coin-entry.json integration/blockdx/xbridge.conf; do
-        [ -f "$f" ] || continue
-        grep -q "73" "$f" && grep -q "135" "$f" && grep -q "190" "$f" \
-            || { fail "$f is missing one of the address prefixes 73/135/190"; INTEG=$((INTEG+1)); }
+    # Address prefixes, in every file that repeats them. A named file that has
+    # gone missing is reported as missing rather than as wrong.
+    for f in integration/komodo/coin-entry.json \
+             integration/blockdx/xbridge-confs/wamcoin--v0.1.3.conf \
+             integration/basicswap/chainparams.py; do
+        if [ ! -f "$f" ]; then
+            fail "$f is gone -- either it moved and this list is stale, or a venue's files were lost"
+            INTEG=$((INTEG+1)); continue
+        fi
+        grep -q '\b73\b' "$f" && grep -q '\b135\b' "$f" \
+            || { fail "$f is missing an address prefix (73 pubkey / 135 script)"; INTEG=$((INTEG+1)); }
     done
+
+    # Nowhere may a SLIP-44 coin type be invented while none is registered.
+    # A wrong one derives every user's keys onto a branch no other wallet
+    # looks at, and it is the kind of number that gets copied once and lives
+    # forever.
+    if grep -rEn '^[^#]*"?(bip44|derivation_path|coin_type)"?[[:space:]]*[:=][[:space:]]*[0-9]' \
+            integration/ 2>/dev/null | grep -v ': 1,' | head -3 | grep -q .; then
+        grep -rEn '^[^#]*"?(bip44|derivation_path|coin_type)"?[[:space:]]*[:=][[:space:]]*[0-9]' \
+            integration/ 2>/dev/null | grep -v ': 1,' | head -3 | sed 's/^/         /'
+        fail "a SLIP-44 coin type is set somewhere in integration/, and none is registered"
+        INTEG=$((INTEG+1))
+    fi
 
     # The message prefix Komodo asks for by name, against the patch rule.
     if grep -q 'WAM Coin Signed Message' scripts/patch_upstream.py 2>/dev/null; then
