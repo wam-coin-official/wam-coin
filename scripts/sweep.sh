@@ -121,6 +121,12 @@ else
     else
         run "nodes agree with each other" bash scripts/check_nodes_agree.sh $NODES
 
+        # The node binaries are only part of what this repository deploys. The
+        # pool, the bot and the dashboard drift the same way and are noticed
+        # far later, because the wrong version of working software produces no
+        # symptom at all.
+        run "deployed code is origin/main" bash scripts/check_deployed_code.sh $NODES
+
         # The one question the nodes themselves cannot answer. They agreed with
         # each other, ran identical binaries, held the same block at the same
         # height -- and the chain could not be validated from genesis by anyone
