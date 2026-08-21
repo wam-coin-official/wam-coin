@@ -149,6 +149,24 @@ else
             run "ports reachable: $target" bash scripts/check_reachable.sh \
                 --host "$target" --from "$vantage" 22 19555 '!19554'
         done
+
+        # The service every check here had been ignoring.
+        #
+        # On 2026-08-20 the Electrum server was stopped during the testnet
+        # reset and never restarted. It stayed down 39 hours, and this sweep
+        # was run in that window and reported 14 passed -- because nothing in
+        # it had ever asked. A light wallet cannot read the chain itself: when
+        # this is down it shows nothing, and when it is behind it shows a
+        # wrong balance, which is worse.
+        #
+        # Both names are listed even though electrum2 is not built yet. One
+        # Electrum server is a single point of failure and Komodo Wallet
+        # requires two for a UTXO coin, so a red line here is the accurate
+        # report of where this stands rather than a gap nothing mentions.
+        set -- $NODES
+        run "electrum servers answer and agree" \
+            python3 scripts/check_electrum.py --node "$1" --network testnet \
+            electrum.wamcoin.org electrum2.wamcoin.org
     fi
 fi
 
