@@ -9,18 +9,18 @@ but a chain client inside their node.
 
 | Venue | What it consumes | Ready |
 |---|---|---|
-| [Komodo Wallet](komodo/) | PR to `KomodoPlatform/coins`: coin entry, electrum servers, explorer, icon | written ✅ · sendable after mainnet |
-| [BasicSwap DEX](basicswap/) | PR to `tecnovert/basicswap`: a Python interface package | written ✅ · SLIP-44 pending, not blocking |
-| [Block DX](blockdx/) | PR to `blocknetdx/blockchain-configuration-files`: 2 confs + manifest | written ✅ |
-| [Bisq](bisq/) | PR to `bisq-network/bisq`: asset class, test, service entry | written ✅ · fee and DAO terms to confirm |
+| [Komodo Wallet](komodo/) | PR to `KomodoPlatform/coins`: coin entry, electrum servers, explorer, icon | written, sendable after mainnet |
+| [BasicSwap DEX](basicswap/) | PR to `tecnovert/basicswap`: a Python interface package | **submitted** [#2](https://github.com/tecnovert/basicswap/pull/2) |
+| [Block DX](blockdx/) | PR to `blocknetdx/blockchain-configuration-files`: 2 confs + manifest | **submitted** [#197](https://github.com/blocknetdx/blockchain-configuration-files/pull/197) |
+| [Bisq](bisq/) | PR to `bisq-network/bisq`: asset class, test, service entry | **submitted** [#8030](https://github.com/bisq-network/bisq/pull/8030) |
 | [Maya Protocol](maya/) | a node chain client in Go, not a listing | months, and theirs to want |
 
 And one that is not a venue at all but blocks three of them:
 
 | Registry | What it consumes | Ready |
 |---|---|---|
-| [SLIP-0044 and SLIP-0173](slips/) | one table row each, to `satoshilabs/slips` | written ✅ · send first |
-| [Haveno](haveno/) | PR to `haveno-dex/haveno`: asset class, test, service entry | written ✅ · their list is 11 major coins |
+| [SLIP-0044 and SLIP-0173](slips/) | one table row each, to `satoshilabs/slips` | **submitted** [#2051](https://github.com/satoshilabs/slips/pull/2051) |
+| [Haveno](haveno/) | PR to `haveno-dex/haveno`: asset class, test, service entry | **submitted** [#2528](https://github.com/haveno-dex/haveno/pull/2528) |
 
 **Nothing here has been submitted, and nobody has agreed to list WAM.**
 

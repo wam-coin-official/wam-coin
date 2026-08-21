@@ -88,7 +88,7 @@ L
 electrums-WAM.json  electrums/WAM
 L
         ;;
-    slips) : ;;   # both are edits to existing tables, handled below
+slips) : ;;   # both are edits to existing tables, handled below
     esac
 }
 
@@ -161,8 +161,20 @@ while read -r src dest; do
     # A destination directory that does not exist means their layout moved and
     # this script's idea of it is stale. Say so rather than inventing a tree.
     parent="$(dirname "$dest")"
-    [ "$parent" = "." ] || [ -d "$parent" ] \
-        || die "$UPSTREAM has no $parent/ -- their layout changed; re-read it before guessing"
+    # A venue whose files go into a new package -- BasicSwap wants
+    # basicswap/interface/wam/ -- needs that one directory made. Its parent
+    # must already exist: creating one level is adding a package, creating a
+    # tree is inventing a layout, and the second is how a patch lands somewhere
+    # nobody reads. This check ran before the mkdir that used to sit further
+    # down, so the first submission that needed a new directory died on it.
+    if [ "$parent" != "." ] && [ ! -d "$parent" ]; then
+        if [ -d "$(dirname "$parent")" ]; then
+            mkdir -p "$parent"
+            ok "created $parent/"
+        else
+            die "$UPSTREAM has no $(dirname "$parent")/ -- their layout changed; re-read it before guessing"
+        fi
+    fi
     cp "$SRCDIR/$src" "$dest"
     ok "$src -> $dest"
     COPIED=$((COPIED + 1))
@@ -177,7 +189,8 @@ bisq|haveno)
     python3 - "$SVC" "$NS.asset.coins.WAMCoin" <<'PY'
 import sys, pathlib
 p, entry = pathlib.Path(sys.argv[1]), sys.argv[2]
-lines = p.read_text(encoding="utf-8").splitlines()
+raw = p.read_text(encoding="utf-8")
+lines = raw.splitlines()
 if entry in lines:
     print("  ok     already registered"); raise SystemExit
 prefix = entry.rsplit(".", 1)[0] + "."
@@ -186,7 +199,12 @@ idx = next((i for i, l in enumerate(lines)
 if idx is None:
     idx = max(i for i, l in enumerate(lines) if l.startswith(prefix)) + 1
 lines.insert(idx, entry)
-p.write_text("\n".join(lines) + "\n", encoding="utf-8")
+# Their file ends without a newline. Adding one turns a one-line insertion
+# into a diff that also deletes and re-adds the last entry, and a reviewer
+# opening a two-line diff to find one of them is unrelated noise learns
+# something about the submitter that is not true and not helpful.
+p.write_text("\n".join(lines) + ("\n" if raw.endswith("\n") else ""),
+             encoding="utf-8")
 print("  ok     %s, between %s and %s"
       % (entry.rsplit('.', 1)[1], lines[idx-1].rsplit('.', 1)[1],
          lines[idx+1].rsplit('.', 1)[1] if idx+1 < len(lines) else "the end"))
@@ -197,10 +215,76 @@ basicswap)
     mkdir -p basicswap/interface/wam
     : > basicswap/interface/wam/__init__.py
     ok "basicswap/interface/wam/__init__.py"
-    warn "Coins enum member and the import in basicswap/chainparams.py are not"
-    warn "automated -- their file's shape is Python, not a list, and a script"
-    warn "that edits it blind is how a bad patch reaches a reviewer."
+    # Three anchored edits in basicswap/chainparams.py. Anchored on lines read
+    # out of their file rather than on line numbers, and every one of them must
+    # match or this stops: a Python file edited on a guess is how a patch that
+    # does not import reaches a reviewer.
+    python3 - basicswap/chainparams.py <<'PY'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1])
+t = p.read_text(encoding="utf-8")
+
+edits = [
+    # (what must be there, what replaces it, what to call it if it is missing)
+    ("from basicswap.interface.bch.chainparams import params as bch_params\n",
+     "from basicswap.interface.bch.chainparams import params as bch_params\n"
+     "from basicswap.interface.wam.chainparams import params as wam_params\n",
+     "the import block"),
+    ("    DOGE = 18\n",
+     "    DOGE = 18\n    WAM = 19\n",
+     "the Coins enum"),
+    ("    Coins.DOGE: doge_params,\n",
+     "    Coins.DOGE: doge_params,\n    Coins.WAM: wam_params,\n",
+     "the chainparams table"),
+]
+
+for anchor, replacement, name in edits:
+    if replacement.strip() in t and anchor != replacement:
+        print("  ok     %s: already there" % name)
+        continue
+    if anchor not in t:
+        print("  fail   %s: anchor not found -- their file changed shape" % name)
+        raise SystemExit(1)
+    t = t.replace(anchor, replacement, 1)
+    print("  ok     %s" % name)
+
+p.write_text(t, encoding="utf-8")
+
+# It has to still parse. A submission that does not import is worse than none.
+import ast
+ast.parse(t)
+print("  ok     chainparams.py still parses")
+PY
+    [ $? -eq 0 ] || die "the chainparams.py edits failed"
+    COPIED=$((COPIED + 1))
     ;;
+blockdx)
+# The two conf files are only two thirds of it: manifest-latest.json is
+# what makes Block DX read them at all, and the first run pushed a branch
+# without it -- two files that nothing points to.
+python3 - manifest-latest.json "$SRCDIR/manifest-entry.json" <<'PY'
+import json, sys, pathlib
+man, entry = pathlib.Path(sys.argv[1]), json.loads(pathlib.Path(sys.argv[2]).read_text())
+raw = man.read_text(encoding="utf-8")
+data = json.loads(raw)
+if any(x.get("ticker") == entry["ticker"] for x in data):
+print("  ok     manifest already lists %s" % entry["ticker"])
+else:
+ref = next((x for x in data if x.get("ticker") == "LTC"), data[0])
+missing = set(ref) - set(entry)
+if missing:
+    print("  fail   the entry lacks %s, which their own rows carry" % sorted(missing))
+    raise SystemExit(1)
+data.append(entry)
+# Their file's own indentation, measured rather than assumed.
+ind = len(raw.split("\n")[1]) - len(raw.split("\n")[1].lstrip()) if "\n" in raw else 2
+man.write_text(json.dumps(data, indent=ind or 2) + ("\n" if raw.endswith("\n") else ""),
+               encoding="utf-8")
+print("  ok     manifest-latest.json: %s appended (%d coins)" % (entry["ticker"], len(data)))
+PY
+[ $? -eq 0 ] || die "the manifest edit failed"
+COPIED=$((COPIED + 1))
+;;
 slips)
     # Two rows in two existing tables. Not files to add -- the repository's
     # "upload files" page is the wrong door, and a new file there would be
@@ -224,7 +308,8 @@ def widths(line):
 
 # ---- slip-0044.md : numeric order -----------------------------------------
 p = pathlib.Path("slip-0044.md")
-lines = p.read_text(encoding="utf-8").splitlines()
+raw44 = p.read_text(encoding="utf-8")
+lines = raw44.splitlines()
 rows = [(i, int(m.group(1))) for i, l in enumerate(lines)
         for m in [re.match(r"^\|\s*(\d+)\s*\|", l)] if m]
 if any(n == coin for _, n in rows):
@@ -245,7 +330,8 @@ else:
 
 # ---- slip-0173.md : alphabetical by coin name ------------------------------
 p = pathlib.Path("slip-0173.md")
-lines = p.read_text(encoding="utf-8").splitlines()
+raw173 = p.read_text(encoding="utf-8")
+lines = raw173.splitlines()
 if any("WAM Coin" in l for l in lines):
     print("  ok     slip-0173.md already has WAM Coin")
 else:
@@ -298,6 +384,33 @@ esac
 # ---------------------------------------------------------------------------
 step "3. commit"
 
+# Signed, because Bisq blocks a merge on it: "Commits must have verified
+# signatures." The first submission was unsigned, sat there red, and had to be
+# amended and force-pushed. Signing costs nothing when nobody asks and saves a
+# round trip when they do.
+#
+# The address is the project one, not a personal Gmail. GitHub verifies a
+# signature only when the signing key AND the committer email both belong
+# to the same account: a correctly signed commit under an address the
+# account does not own reports "unknown_key" and looks unsigned. The
+# signature was right, the key was registered, and it still showed as
+# unverified until the email changed -- two force-pushes were spent on the
+# key before the cause turned out to be the other half.
+#
+# SSH rather than GPG: the key that already pushes to these forks can sign as
+# well, so there is no new secret to make, hold or lose. GitHub treats
+# authentication and signing as separate registrations of the same key, so it
+# must also be added at github.com/settings/keys with type "Signing Key" --
+# until then a correctly signed commit reports "unknown_key" and looks
+# unsigned.
+SIGN=()
+SSHKEY="$HOME/.ssh/id_ed25519.pub"
+if [ -f "$SSHKEY" ]; then
+    SIGN=(-c gpg.format=ssh -c "user.signingkey=$SSHKEY")
+else
+    warn "no $SSHKEY -- committing unsigned; venues that require signatures will block"
+fi
+
 git add -A
 if git diff --cached --quiet; then
     if [ "$EXISTING" = 1 ]; then
@@ -310,8 +423,8 @@ if git diff --cached --quiet; then
     die "nothing changed -- the files may already be in their tree"
 fi
 git -c user.name="Waleed Ahmed Mare Alshaybani" \
-    -c user.email="waleedahmedmarealshaybani@gmail.com" \
-    commit -q -F "$SRCDIR/PR.md"
+    -c user.email="wam.coin.official@proton.me" \
+    "${SIGN[@]}" commit -q ${SIGN:+-S} -F "$SRCDIR/PR.md"
 git show --stat --oneline HEAD | tail -n +2 | sed 's/^/  /'
 
 # ---------------------------------------------------------------------------
