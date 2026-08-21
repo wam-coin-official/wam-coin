@@ -1,0 +1,68 @@
+# ===========================================================================
+#  WAM backup -- the megabyte that cannot be rebuilt
+# ===========================================================================
+#
+#  Triggered by wam-backup.timer, not enabled directly.
+#
+#  This one runs as root and is not confined the way wam-announce is, and the
+#  reason is worth stating rather than leaving as an inconsistency: it must
+#  read wallet.dat and the Redis dump, both of which are root-only by design,
+#  and it must talk to the node's RPC socket. A confined user with access to
+#  all of that would be a second root, which is not an improvement.
+#
+#  What it does NOT get is a network. A backup script that can reach the
+#  internet is a backup script that can be turned into an exfiltration tool
+#  by anything that compromises it. Copies leave this machine by being pulled
+#  from outside, over SSH, by a person who already has the key.
+# ===========================================================================
+
+[Unit]
+Description=WAM Coin encrypted backup (wallets, share ledger, config)
+Documentation=https://github.com/wam-coin-official/wam-coin/blob/main/deploy/wam-backup.sh
+
+# Wants, not Requires: if the node is down the script refuses to take a
+# wallet copy and says why, which is the correct outcome and should be
+# visible in the journal rather than skipped silently.
+After=wamd.service redis-server.service
+Wants=wamd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/wam-backup.sh
+
+# Everything below is host-specific and belongs in an override rather than
+# here, e.g. mainnet:
+#     systemctl edit wam-backup.service
+#     [Service]
+#     Environment=WAM_NETWORK=mainnet
+Environment=WAM_NETWORK=testnet
+
+# No network. See the header.
+PrivateNetwork=yes
+RestrictAddressFamilies=AF_UNIX
+
+NoNewPrivileges=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+
+# PrivateTmp is deliberately NOT set here.
+#
+# wamd runs with PrivateTmp=yes, so it already has a /tmp of its own. If this
+# service had one too, the two namespaces would differ and backupwallet would
+# fail with SQLite error 14, "cannot open file" -- which reads exactly like a
+# corrupt wallet and is not one. The script stages next to its destination
+# under /root for the same reason; this line exists so nobody adds the
+# directive back as a tidy-up and spends an evening on it.
+
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,28 @@
+# ===========================================================================
+#  Run the backup daily.
+# ===========================================================================
+#
+#      systemctl enable --now wam-backup.timer
+#      systemctl list-timers wam-backup.timer
+#      journalctl -u wam-backup.service -n 40
+# ===========================================================================
+
+[Unit]
+Description=Daily WAM Coin encrypted backup
+Documentation=https://github.com/wam-coin-official/wam-coin/blob/main/deploy/wam-backup.sh
+
+[Timer]
+OnCalendar=*-*-* 03:20:00
+RandomizedDelaySec=600
+
+# The one directive that matters most on a machine that reboots.
+#
+# Without it, a server that is down at 03:20 simply skips that day, and
+# nothing anywhere says a backup was missed. The gap is then discovered by
+# needing it.
+Persistent=yes
+
+Unit=wam-backup.service
+
+[Install]
+WantedBy=timers.target
