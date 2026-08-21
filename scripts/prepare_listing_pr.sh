@@ -389,6 +389,13 @@ step "3. commit"
 # amended and force-pushed. Signing costs nothing when nobody asks and saves a
 # round trip when they do.
 #
+# The identity is the project, not a person. The founder is not anonymous --
+# he is named in the legal brief and answers the project address -- but a
+# coin whose submissions carry one man's personal account reads as one man's
+# hobby, and the account that happened to own his personal address was named
+# with a -bot suffix, so the SLIP registration arrived attributed to a bot.
+# Every submission is from WAM Coin.
+#
 # The address is the project one, not a personal Gmail. GitHub verifies a
 # signature only when the signing key AND the committer email both belong
 # to the same account: a correctly signed commit under an address the
@@ -422,7 +429,7 @@ if git diff --cached --quiet; then
     fi
     die "nothing changed -- the files may already be in their tree"
 fi
-git -c user.name="Waleed Ahmed Mare Alshaybani" \
+git -c user.name="WAM Coin" \
     -c user.email="wam.coin.official@proton.me" \
     "${SIGN[@]}" commit -q ${SIGN:+-S} -F "$SRCDIR/PR.md"
 git show --stat --oneline HEAD | tail -n +2 | sed 's/^/  /'
