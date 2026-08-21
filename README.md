@@ -84,17 +84,30 @@ curl -fs localhost:8081/api/health || echo "WAM node is down"
 | | |
 |---|---|
 | Consensus code | compiles; 29 Boost tests pass |
-| Testnet | running, seed nodes in France and Singapore, found by DNS |
+| Testnet | running, seed nodes in Germany and Singapore, found by DNS |
 | Mainnet genesis | mined and committed — `d8d3debe…` |
 | Founder key | generated offline, on paper, never on a networked machine |
 | Founder reserve | fully time-locked; nothing spendable at launch |
-| Release | [v0.1.0](https://github.com/wam-coin-official/wam-coin/releases), built and published by CI from a tag |
-| Third-party audit | **none** |
+| Release | [v0.1.3](https://github.com/wam-coin-official/wam-coin/releases), built and published by CI from a tag |
+| Independent review | two developers outside the project, both still reading — [findings and what changed](review/REVIEW_RESPONSE.md) |
+| Paid security audit | **none** |
 
-What is not done: mainnet has never run, no exchange lists WAM, and no
-independent party has reviewed the consensus changes. The last of those is the
-one worth volunteering for — see [SECURITY.md](SECURITY.md), there is a bounty.
+Two developers outside the project have read this code. The first found two
+real security holes -- a Redis instance reachable without a password, and a
+share-accounting race -- both fixed, with the exchange on the record in
+[review/REVIEW_RESPONSE.md](review/REVIEW_RESPONSE.md); he still follows the
+repository and sends notes. The second began on 2026-08-21, intends to keep
+following it, and says he will bring colleagues who would each take a different
+area. That last part has not started and is written here as an intention, not a
+fact.
 
+That is peer review, and peer review is not a paid audit. Nobody has been
+engaged to attack the consensus changes methodically and publish what they
+find. The consensus layer is where a mistake costs most and where the fewest
+eyes have been, so it is the part most worth volunteering for: see
+[SECURITY.md](SECURITY.md), there is a bounty.
+
+- **[docs/START_HERE.md](docs/START_HERE.md)** — run a node and mine, written for someone who has never done either ([بالعربية](docs/START_HERE_AR.md)).
 - **[docs/ROADMAP.md](docs/ROADMAP.md)** — the phased plan from here to a running network.
 - **[docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md)** — the irreversible steps.
 - **[docs/LISTING_PACKAGE.md](docs/LISTING_PACKAGE.md)** — every parameter an integrator needs.

@@ -175,7 +175,8 @@ jobs:
             echo '```'
             echo
             echo "WAM has no market value and may never have one. This is testnet"
-            echo "software and has had no third-party security audit."
+            echo "software. Two independent developers have reviewed it and their"
+            echo "findings were adopted; no security firm has audited it."
             echo
             echo "Build it yourself instead, if you prefer -- the release above is"
             echo "produced by \`install.sh --build-only\`, the same script in this"

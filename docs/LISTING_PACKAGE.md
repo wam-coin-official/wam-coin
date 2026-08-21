@@ -219,8 +219,10 @@ noise.
 
 ## 8. What we do not claim
 
-WAM has no market value and is not listed on any exchange. There has been no
-third-party security audit. The chain has not launched. There is no presale, no
+WAM has no market value and is not listed on any exchange. Two independent
+developers have reviewed the code and their findings were adopted -- see
+review/REVIEW_RESPONSE.md -- but no security firm has been engaged to audit
+the consensus changes, and peer review is not an audit. The chain has not launched. There is no presale, no
 ICO, no private round and no allocation to anyone but the founder reserve and
 treasury described above — both disclosed here and enforced by every node.
 
