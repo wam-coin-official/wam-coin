@@ -51,7 +51,7 @@ from dataclasses import dataclass, field
 # inside reported /WAM:0.1.0/ to every peer it met.
 #
 # Raise it in the same commit that gets tagged, never separately.
-WAM_CLIENT_VERSION = "0.1.3"
+WAM_CLIENT_VERSION = "0.1.4"
 
 # ===========================================================================
 # Framework
@@ -214,6 +214,46 @@ WAM_MARKER = "WAM_CONSENSUS_PATCH"
 ANCHOR_WAM023 = '    // Mainnet derives at 0\', testnet and regtest derive at 1\'\n    if (Params().IsTestChain()) {\n        desc_prefix += "/1h";\n    } else {\n        desc_prefix += "/0h";\n    }'
 
 REPLACEMENT_WAM023 = '    // Mainnet derives at WAM\'s own coin type; testnet and regtest at 1.\n    //\n    // Upstream hardcodes 0 here, and 0 is Bitcoin\'s. A fork that leaves this\n    // alone has every one of its seeds derive on Bitcoin\'s branch, producing\n    // the addresses a Bitcoin wallet would produce for the same words. WAM did\n    // exactly that until this edit.\n    //\n    // The number, its provenance, and why it can never change once anyone\n    // holds coins are all in wam/wam-params.h. 1 stays as it is: SLIP-44\n    // reserves it for every test chain so that test keys cannot be mistaken\n    // for real ones.\n    if (Params().IsTestChain()) {\n        desc_prefix += "/1h";\n    } else {\n        desc_prefix += "/" + std::to_string(wam::WAM_BIP44_COIN_TYPE) + "h";\n    }'
+
+
+# WAM-024 anchors. Same reason as above: kept out of the Change so the C++
+# reads as C++.
+ANCHOR_WAM024 = (
+    "//! -fallbackfee default\n"
+    "static const CAmount DEFAULT_FALLBACK_FEE = 0;"
+)
+
+REPLACEMENT_WAM024 = (
+    "//! -fallbackfee default\n"
+    "//\n"
+    "// WAM: a chain on its first day has no fee market, so this cannot be 0.\n"
+    "//\n"
+    "// Upstream disables the fallback, and for Bitcoin that is right: by the\n"
+    "// time the default was chosen its fee market had been liquid for a decade,\n"
+    "// estimatesmartfee always answers, and a fallback could only make a user\n"
+    "// overpay.\n"
+    "//\n"
+    "// A new chain has the opposite problem. Every transaction in it is a\n"
+    "// coinbase, coinbases pay no fee, so estimatesmartfee has nothing to\n"
+    "// estimate from and returns \"Insufficient data or no feerate found\".\n"
+    "// With the fallback disabled the wallet then refuses to fund any spend at\n"
+    "// all:\n"
+    "//\n"
+    "//     error code: -4\n"
+    "//     Fee estimation failed. Fallbackfee is disabled.\n"
+    "//\n"
+    "// Not a corner case and not a pool bug -- every wallet, every send, from\n"
+    "// block 1 until enough people pay fees to build an estimate, which cannot\n"
+    "// happen because nobody can send. A coin that mints money nobody can move\n"
+    "// is not a coin.\n"
+    "//\n"
+    "// 20000 sat/kvB is the value Bitcoin itself shipped here until v0.19, and\n"
+    "// it is 20x DEFAULT_MIN_RELAY_TX_FEE below, so the transaction still\n"
+    "// relays if a node raises its floor. Against a 50 WAM subsidy it is noise.\n"
+    "// -fallbackfee still overrides it; this changes only what happens when\n"
+    "// nobody sets anything, which is the case that was broken.\n"
+    "static const CAmount DEFAULT_FALLBACK_FEE = 20000;"
+)
 
 
 def build_changes() -> list[Change]:
@@ -1502,6 +1542,44 @@ def build_changes() -> list[Change]:
                 marker="WAM_BIP44_COIN_TYPE",
                 anchor=ANCHOR_WAM023,
                 replacement=REPLACEMENT_WAM023,
+            ),
+        ]))
+
+    changes.append(Change(
+        id="WAM-024",
+        title="A fee for a chain that has no fee market yet",
+        rationale=(
+            "Upstream ships DEFAULT_FALLBACK_FEE = 0, which disables the fallback "
+            "entirely, and for Bitcoin that is correct: by the time the default was "
+            "chosen its fee market had been liquid for a decade, estimatesmartfee "
+            "always answers, and a fallback could only cause a user to overpay.\n\n"
+            "A chain on its first day has no fee market at all. Every transaction in "
+            "it is a coinbase; coinbases pay no fee; so estimatesmartfee has nothing "
+            "to estimate from and returns 'Insufficient data or no feerate found'. "
+            "With the fallback disabled the wallet then refuses to fund any spend "
+            "whatsoever -- error -4, 'Fee estimation failed. Fallbackfee is "
+            "disabled.'\n\n"
+            "This was found on the running testnet, not reasoned about: 444 blocks "
+            "mined, 16,176 WAM owed to miners, zero paid, and the pool's payout "
+            "failing every ten minutes since the chain started. It is not a pool "
+            "bug. fundrawtransaction fails the same way for an ordinary wallet with "
+            "a balance of 16,387 WAM. Every wallet, every send, from block 1 until "
+            "enough people pay fees to build an estimate -- which cannot happen, "
+            "because nobody can send.\n\n"
+            "20,000 sat/kvB is the value Bitcoin itself shipped for this default "
+            "until v0.19, and it is 20x DEFAULT_MIN_RELAY_TX_FEE, so a transaction "
+            "still relays if a node raises its floor. Against a 50 WAM subsidy it is "
+            "noise. -fallbackfee continues to override it; this changes only what "
+            "happens when nobody sets anything, which is the case that was broken.\n\n"
+            "This is wallet policy, not consensus. It does not live in wam-params.h, "
+            "it forks nothing, and it invalidates no block."),
+        edits=[
+            Edit(
+                file="src/wallet/wallet.h",
+                description="give the wallet a usable fee when estimation has no data",
+                marker="WAM: a chain on its first day has no fee market",
+                anchor=ANCHOR_WAM024,
+                replacement=REPLACEMENT_WAM024,
             ),
         ]))
 
