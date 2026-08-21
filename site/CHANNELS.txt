@@ -15,6 +15,17 @@
    x / twitter    https://x.com/WAMCoinCore
    discord        https://discord.gg/Gxvmrjy9Qb
 
+ And the three services the network itself runs:
+
+   explorer       https://explorer.wamcoin.org
+   mining pool    https://pool.wamcoin.org   (stratum on 3333 / 3334 / 3335)
+   electrum       electrum.wamcoin.org:50002 (SSL)
+
+ Those three are listed here because they are the ones worth impersonating.
+ A fake pool takes your hash rate; a fake Electrum server can lie to your
+ wallet about what you hold. Check the host against this file before you
+ point anything at it.
+
  There are no others. No Reddit, no Instagram, no second Telegram group,
  no second Discord, no "support" account, no exchange listing, no presale,
  no airdrop, no token sale, no wallet app. If you have found one of those
@@ -65,5 +76,8 @@
 
 
 ---------------------------------------------------------------------------
- Revision 1 -- 2026-08-11
+ Revision 2 -- 2026-08-21
+   Added the explorer, the pool and the Electrum server. They existed and
+   were missing here, so this file -- whose one job is to say what is ours
+   -- was calling three of our own hosts impostors.
 ---------------------------------------------------------------------------
