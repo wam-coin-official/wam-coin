@@ -141,7 +141,21 @@ verify_archive() {
             rc=1
         fi
     done < <(find "$work/wallets" -name 'wallet.dat' 2>/dev/null)
-    [ "$found" = 1 ] || { bad "no wallet in the archive"; rc=1; }
+
+    # A host that runs a node and no wallet -- a seed, or the second Electrum
+    # server -- has no wallet to copy, and demanding one made this script
+    # build a perfectly good archive of that host's config and certificates
+    # and then delete it for failing its own check. The note is written at
+    # backup time, exactly as for redis, so "this host has no wallet" stays
+    # distinguishable from "the wallet silently went missing".
+    if [ "$found" != 1 ]; then
+        if [ -f "$work/NO-WALLET-ON-THIS-HOST" ]; then
+            ok "no wallet on this host (recorded at backup time)"
+        else
+            bad "no wallet in the archive, and no note saying why"
+            rc=1
+        fi
+    fi
 
     if [ -f "$work/redis/dump.rdb" ]; then
         # An RDB begins with the ASCII magic "REDIS". Checking the bytes
@@ -230,7 +244,14 @@ trap 'rm -rf "$STAGE"' EXIT
      file that opens corrupt, which is worse than no backup at all."
 
 WALLETS="$("${CLI[@]}" listwallets 2>/dev/null | grep -oE '"[^"]+"' | tr -d '"')"
-[ -n "$WALLETS" ] || warn "no wallet loaded -- nothing for backupwallet to copy"
+if [ -z "$WALLETS" ]; then
+    # Recorded, not merely absent. Without this the verify below rejects the
+    # archive and deletes it, and a node-only host ends up with no backup of
+    # its config and certificates at all -- which is what happened to the
+    # second Electrum server.
+    echo "no wallet was loaded on $(hostname) at $STAMP" > "$STAGE/NO-WALLET-ON-THIS-HOST"
+    warn "no wallet loaded; recorded a note so a later verify does not read as loss"
+fi
 
 for w in $WALLETS; do
     mkdir -p "$STAGE/wallets/$w"
