@@ -167,6 +167,18 @@ else
         run "electrum servers answer and agree" \
             python3 scripts/check_electrum.py --node "$1" --network testnet \
             electrum.wamcoin.org electrum2.wamcoin.org
+
+        # The pool had found 150 blocks, owed 16,176 WAM to two miners and had
+        # paid nothing since genesis -- every payout failing for the whole life
+        # of the chain -- while its page was green, its service active, its
+        # ports open and miners happily submitting shares. This sweep was run
+        # that morning and said 14 passed. A human found it by opening the
+        # pool's own web page for an unrelated reason.
+        #
+        # So this asks the two questions nothing else did: does every stratum
+        # port actually hand out a job, and have miners actually been paid.
+        run "pool gives work and pays for it" \
+            python3 scripts/check_pool.py --node "$1" --network testnet
     fi
 fi
 
