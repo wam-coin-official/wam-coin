@@ -170,14 +170,48 @@ verify_archive() {
 
 mkdir -p "$DEST"; chmod 700 "$DEST"
 
-if [ "${1:-}" = "--verify" ]; then
-    NEWEST="$(ls -1t "$DEST"/wam-backup-*.tar.gz.gpg 2>/dev/null | head -1)"
-    [ -n "$NEWEST" ] || die "no backup found in $DEST"
+if [ "${1:-}" = "--verify" ] || [ "${1:-}" = "--verify-all" ]; then
+    ALL="$(ls -1t "$DEST"/wam-backup-*.tar.gz.gpg 2>/dev/null)"
+    [ -n "$ALL" ] || die "no backup found in $DEST"
+
+    # --verify checks the newest in full. But an archive that stops opening
+    # is silent: the passphrase was replaced, or the file rotted on disk, and
+    # nothing anywhere says so until the day it is needed. So every archive is
+    # at least opened, cheaply, on every verify.
+    #
+    # This was not hypothetical. Replacing a 12-character passphrase with a
+    # 30-character one left the archive taken minutes earlier unopenable by
+    # anybody, and --verify reported success because it only ever looked at
+    # the newest one.
+    NEWEST="$(printf '%s\n' "$ALL" | head -1)"
     printf '\n  verifying %s\n\n' "$(basename "$NEWEST")"
-    if verify_archive "$NEWEST"; then
-        printf '\n  %sthe newest backup restores%s\n\n' "$GRN" "$OFF"; exit 0
+    RC=0
+    verify_archive "$NEWEST" || RC=1
+
+    OLD="$(printf '%s\n' "$ALL" | tail -n +2)"
+    if [ -n "$OLD" ]; then
+        printf '\n  every older archive, can it still be opened at all:\n'
+        while IFS= read -r f; do
+            [ -n "$f" ] || continue
+            if [ "${1:-}" = "--verify-all" ]; then
+                printf '\n  %s\n' "$(basename "$f")"
+                verify_archive "$f" || RC=1
+            elif gpg --quiet --batch --yes --passphrase-file "$PASSFILE" \
+                     --decrypt "$f" >/dev/null 2>&1; then
+                ok "$(basename "$f")"
+            else
+                bad "$(basename "$f") -- does NOT open with the current
+     passphrase. It is a locked box: made before the passphrase was changed,
+     or damaged on disk. Nobody can restore it. Move it aside or delete it
+     rather than leaving something that looks like a backup and is not."
+                RC=1
+            fi
+        done <<< "$OLD"
     fi
-    printf '\n  %sthe newest backup does NOT restore%s\n\n' "$RED" "$OFF"; exit 1
+
+    printf '\n'
+    [ "$RC" -eq 0 ] && { printf '  %severy backup here opens%s\n\n' "$GRN" "$OFF"; exit 0; }
+    printf '  %sat least one backup here cannot be restored%s\n\n' "$RED" "$OFF"; exit 1
 fi
 
 
