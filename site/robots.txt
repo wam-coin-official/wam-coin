@@ -1,0 +1,11 @@
+# wamcoin.org
+#
+# Everything here is meant to be read. There is nothing on this domain that
+# should not be indexed: no accounts, no forms, no private area. The file
+# exists because its absence is ambiguous and because it is where a sitemap
+# is looked for.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://wamcoin.org/sitemap.xml
