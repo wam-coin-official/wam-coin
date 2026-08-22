@@ -1,0 +1,262 @@
+#!/usr/bin/env python3
+# Copyright (c) 2026 The WAM Coin developers
+# Distributed under the MIT software license, see COPYING.
+#
+# ===========================================================================
+#  check_bots.py -- is the announcement bot alive, or merely quiet?
+# ===========================================================================
+#
+#      python3 scripts/check_bots.py --host HOST [--network testnet]
+#
+#  WHY THIS EXISTS
+#
+#  A bot that has died looks exactly like a chain with nothing to report.
+#  Both produce silence, and silence is what everyone expects most of the
+#  time: the announcer speaks at milestones, halvings, seed rotations,
+#  releases and stalls, and between those it says nothing for days.
+#
+#  So the failure is invisible by construction. The stall alert -- the one
+#  message that matters most, because it fires when the chain stops -- is
+#  also the message most likely to be missing when it is needed, since a
+#  host in trouble takes the bot down with it.
+#
+#  WHAT PROVES IT IS ALIVE
+#
+#  Not "the service is active": a process can be running and stuck. The bot
+#  writes its state file every poll, so the age of that file is proof it
+#  completed a full cycle -- read the node, decide, write. If that timestamp
+#  is stale the bot is not working, whatever systemd says.
+#
+#  WHAT PROVES IT CAN SPEAK
+#
+#  A configured token is not a working one. Telegram's getMe validates the
+#  token and getChat proves the channel is still reachable; a Discord
+#  webhook answers GET with its own metadata. All three are read-only --
+#  nothing is posted to anyone's channel by this check.
+#
+#  Those calls run ON the host, and only their verdict comes back. The
+#  token, the chat id and the webhook URL never leave the machine and never
+#  appear in this output.
+# ===========================================================================
+
+import argparse
+import json
+import subprocess
+import sys
+import time
+import urllib.request
+
+RED = "\033[31m"; GRN = "\033[32m"; YEL = "\033[33m"; BLD = "\033[1m"; OFF = "\033[0m"
+_fails = []
+
+
+def ok(m):   print(f"  {GRN}ok{OFF}    {m}")
+def bad(m):  print(f"  {RED}FAIL{OFF}  {m}"); _fails.append(m)
+def warn(m): print(f"  {YEL}!!{OFF}    {m}")
+def head(m): print(f"\n{BLD}{m}{OFF}")
+
+
+def rsh(host, cmd, timeout=90):
+    p = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=15",
+                        f"root@{host}", cmd],
+                       capture_output=True, text=True, timeout=timeout)
+    return p.returncode, p.stdout.strip(), p.stderr.strip()
+
+
+# Runs on the host. Prints verdicts only -- never a token, a chat id or a URL.
+REMOTE_SINKS = r'''
+python3 - <<'PY'
+import json, urllib.request, urllib.error
+
+# Discord answers 403 to a request with no User-Agent, and urllib sends
+# "Python-urllib/3.x" by default. The first version of this check reported the
+# webhook as deleted or revoked when it was working perfectly -- a false alarm
+# is worse than no check, because a check that cries wolf gets ignored on the
+# day it is right.
+UA = {"User-Agent": "WAMCoin-check (+https://wamcoin.org)"}
+
+
+def fetch(url):
+    return json.load(urllib.request.urlopen(
+        urllib.request.Request(url, headers=UA), timeout=20))
+
+
+try:
+    cfg = json.load(open("/etc/wam/announce.json"))
+except Exception as e:
+    print("CONFIG_UNREADABLE %s" % e); raise SystemExit
+
+tg = cfg.get("telegram") or {}
+if tg.get("token") and tg.get("chatId"):
+    base = "https://api.telegram.org/bot%s" % tg["token"]
+    try:
+        r = fetch(base + "/getMe")
+        name = (r.get("result") or {}).get("username", "?")
+        print("TELEGRAM_TOKEN ok @%s" % name)
+    except Exception as e:
+        print("TELEGRAM_TOKEN fail %s" % type(e).__name__); raise SystemExit(0)
+    try:
+        r = fetch(base + "/getChat?chat_id=%s" % tg["chatId"])
+        c = r.get("result") or {}
+        print("TELEGRAM_CHAT ok %s (%s)" % (c.get("title") or c.get("username") or "?", c.get("type")))
+    except urllib.error.HTTPError as e:
+        print("TELEGRAM_CHAT fail HTTP %s -- the bot cannot see that channel" % e.code)
+    except Exception as e:
+        print("TELEGRAM_CHAT fail %s" % type(e).__name__)
+else:
+    print("TELEGRAM_TOKEN absent")
+
+dc = cfg.get("discord") or {}
+if dc.get("webhookUrl"):
+    try:
+        r = fetch(dc["webhookUrl"])
+        print("DISCORD ok channel=%s" % (r.get("channel_id") or "?"))
+    except urllib.error.HTTPError as e:
+        print("DISCORD fail HTTP %s -- the webhook was deleted or revoked" % e.code)
+    except Exception as e:
+        print("DISCORD fail %s" % type(e).__name__)
+else:
+    print("DISCORD absent")
+PY
+'''
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--host", default="pool.wamcoin.org")
+    ap.add_argument("--network", default="testnet",
+                    choices=["mainnet", "testnet", "regtest"])
+    ap.add_argument("--repo", default="wam-coin-official/wam-coin")
+    args = ap.parse_args()
+
+    flag = {"mainnet": "", "testnet": "-testnet", "regtest": "-regtest"}[args.network]
+
+    # --- the unit ---------------------------------------------------------
+    head("the announcer is running")
+    rc, active, _ = rsh(args.host, "systemctl is-active wam-announce")
+    rc2, enabled, _ = rsh(args.host, "systemctl is-enabled wam-announce")
+    if active != "active":
+        bad(f"wam-announce is {active or 'unreachable'}")
+    else:
+        ok(f"wam-announce {active}, {enabled}")
+    if enabled != "enabled":
+        bad("wam-announce is not enabled -- it will not come back after a reboot")
+
+    # --- the state file, which is the only real proof of a completed cycle -
+    head("it completed a poll recently, not merely started")
+    rc, raw, _ = rsh(args.host, "cat /var/lib/wam-announce/state.json 2>/dev/null")
+    if rc != 0 or not raw:
+        bad("no state file -- the bot has never completed a cycle on this host")
+        print(); return 1
+    try:
+        st = json.loads(raw)
+    except Exception as e:
+        bad(f"the state file is not valid JSON: {e}")
+        print(); return 1
+
+    rc, cfgraw, _ = rsh(args.host,
+                        "python3 -c \"import json;c=json.load(open('/etc/wam/announce.json'));"
+                        "print(c.get('pollSeconds',60),c.get('heartbeatHours',24),c.get('stallMinutes',60))\"")
+    poll, hb_hours, stall_min = (60, 24, 60)
+    if rc == 0 and cfgraw:
+        try:
+            poll, hb_hours, stall_min = (int(float(x)) for x in cfgraw.split())
+        except Exception:
+            pass
+
+    # Liveness comes from the file's mtime, not from lastHeightAt inside it.
+    #
+    # lastHeightAt records when the HEIGHT last changed -- once a block, so
+    # every ~120s on this chain -- while the file itself is rewritten on every
+    # poll. Reading the field measures the chain's pulse and calls it the
+    # bot's. On a quiet stretch of two slow blocks that reports a healthy
+    # announcer as dead, and a check that cries wolf is one people stop
+    # reading.
+    rc, mt, _ = rsh(args.host,
+                    "stat -c %Y /var/lib/wam-announce/state.json 2>/dev/null")
+    if rc != 0 or not mt.strip().isdigit():
+        bad("cannot read the state file's timestamp -- cannot tell a live bot "
+            "from a dead one")
+    else:
+        age = time.time() - int(mt.strip())
+        if age > poll * 3:
+            bad(f"the state file was last written {age/60:.0f} minutes ago, and the "
+                f"bot polls every {poll}s. It is not running its loop -- and a "
+                f"stopped announcer looks exactly like a quiet chain.")
+        else:
+            ok(f"wrote its state {age:.0f}s ago (polls every {poll}s)")
+
+    if st.get("lastHeightAt"):
+        hage = time.time() - st["lastHeightAt"] / 1000.0
+        print(f"        the height it saw last changed {hage/60:.1f} min ago "
+              f"(that is the chain's pulse, not the bot's)")
+
+    # --- does it see the same chain ---------------------------------------
+    head("it sees the chain the node sees")
+    rc, h, _ = rsh(args.host, f"wam-cli {flag} getblockcount")
+    if rc == 0 and h.isdigit():
+        lag = int(h) - (st.get("lastHeight") or 0)
+        if abs(lag) > 5:
+            bad(f"the bot last saw height {st.get('lastHeight')}, the node is at {h} "
+                f"({lag} behind) -- it is not reading the node")
+        else:
+            ok(f"bot at {st.get('lastHeight')}, node at {h}")
+    else:
+        warn("could not read the node's height")
+
+    if st.get("stallAnnounced"):
+        warn(f"a stall has been announced and not cleared (stall threshold "
+             f"{stall_min} min) -- check whether the chain is actually moving")
+
+    # --- would anyone hear it ---------------------------------------------
+    head("it can still reach its channels")
+    rc, out, err = rsh(args.host, REMOTE_SINKS, timeout=150)
+    if rc != 0 and not out:
+        bad(f"could not test the channels: {err[:100]}")
+    for line in out.splitlines():
+        if line.startswith("CONFIG_UNREADABLE"):
+            bad("the bot config could not be read")
+        elif line.endswith("absent") or " absent" in line:
+            warn(f"{line.split()[0].lower()} is not configured -- nothing is sent there")
+        elif " ok" in line:
+            ok(line.replace("_", " ").lower())
+        elif " fail" in line:
+            bad(f"{line.replace('_', ' ').lower()} -- announcements to this channel "
+                f"are silently going nowhere")
+
+    # --- did it miss the release ------------------------------------------
+    head("it announced the current release")
+    try:
+        # NOT /releases/latest. That endpoint excludes pre-releases, and the
+        # release workflow marks every v0.* as one deliberately, so it answers
+        # 404 for this repository and always will until 1.0. Asking it was a
+        # check that could never pass.
+        req = urllib.request.Request(
+            f"https://api.github.com/repos/{args.repo}/releases?per_page=5",
+            headers={"User-Agent": "wam-check-bots"})
+        rels = json.load(urllib.request.urlopen(req, timeout=25))
+        latest = rels[0].get("tag_name") if rels else None
+    except Exception:
+        latest = None
+        warn("could not read the latest release from GitHub")
+
+    seen = st.get("lastReleaseTag")
+    if latest:
+        if seen != latest:
+            bad(f"the newest release is {latest} and the bot last announced "
+                f"{seen or 'nothing'} -- a published release nobody was told about")
+        else:
+            ok(f"announced {seen}")
+
+    print()
+    if _fails:
+        print(f"  {RED}{len(_fails)} check(s) failed{OFF}")
+        print("  The stall alert is the message that matters most and the one most\n"
+              "  likely to be missing when it is needed.\n")
+        return 1
+    print(f"  {GRN}the announcer is alive and can be heard{OFF}\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
