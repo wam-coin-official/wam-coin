@@ -179,6 +179,14 @@ else
         # port actually hand out a job, and have miners actually been paid.
         run "pool gives work and pays for it" \
             python3 scripts/check_pool.py --node "$1" --network testnet
+
+        # The explorer is where a stranger goes to check us without building
+        # anything. A node that is wrong is a bug; an explorer that is wrong
+        # is a bug everyone reads and believes. Every economic number it
+        # publishes is compared against wam-params.h using the same parser
+        # verify_supply.py uses, so the page and consensus cannot drift.
+        run "explorer publishes what consensus enforces" \
+            python3 scripts/check_explorer.py --node "$1" --network testnet
     fi
 fi
 
