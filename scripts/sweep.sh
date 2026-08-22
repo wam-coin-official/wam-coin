@@ -191,6 +191,19 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+printf '\n%show the project looks to someone who has never heard of it%s\n' "$BLD" "$OFF"
+
+# A Bisq maintainer read a submission for this coin and answered "I do not see
+# any project related to WAM". The links were in the pull request. What he saw
+# was a repository with an empty homepage field, no topics, and a description
+# containing no term anyone searches for -- and a site whose links rendered
+# anywhere as bare URLs. Five submissions had already gone to five venues
+# before anyone looked at the front page they pointed at.
+run "the project presents itself as a real one" \
+    python3 scripts/check_first_impression.py
+
+# ---------------------------------------------------------------------------
 printf '\n%slaunch readiness%s\n' "$BLD" "$OFF"
 
 if [ -n "$NODES" ]; then
