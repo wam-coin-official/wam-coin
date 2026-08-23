@@ -153,16 +153,25 @@ function renderStats(s) {
   const ports = (s.config && s.config.ports) || [];
   for (const p of ports) {
     const tr = document.createElement('tr');
-    cell(tr, String(p.port));
+    cell(tr, p.tls ? `${p.port}  🔒` : String(p.port));
     cell(tr, String(p.difficulty ?? '—'), 'num');
     cell(tr, p.description || '');
     portTable.appendChild(tr);
   }
 
+  // Offer the encrypted port in the example command whenever one exists.
+  //
+  // On plain stratum anyone on the path can substitute the block template,
+  // so a miner spends its electricity on a job that pays a stranger and sees
+  // nothing wrong. The command shown here is the one most people paste, so
+  // it should be the safe one -- an encrypted port nobody is told about
+  // protects nobody.
   const host = (s.config && s.config.stratumHost) || window.location.hostname;
-  const port = ports.length ? ports[0].port : 3333;
+  const tlsPort = ports.find((p) => p.tls);
+  const chosen = tlsPort || (ports.length ? ports[0] : { port: 3333, tls: false });
+  const scheme = chosen.tls ? 'stratum+ssl' : 'stratum+tcp';
   text($('connectCmd'),
-    `xmrig -a rx/wam -o stratum+tcp://${host}:${port} \\\n` +
+    `xmrig -a rx/wam -o ${scheme}://${host}:${chosen.port} \\\n` +
     `      -u YOUR_W_ADDRESS.rig1 -p x --keepalive`);
 
   // ---- randomx -----------------------------------------------------------

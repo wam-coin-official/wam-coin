@@ -25,6 +25,8 @@
 //  malformed line closes the connection rather than being tolerated.
 
 const net = require('net');
+const tls = require('tls');
+const fs = require('fs');
 const EventEmitter = require('events');
 
 const VarDiff = require('./varDiff');
@@ -324,7 +326,53 @@ class StratumServer extends EventEmitter {
         const ports = this.config.ports || [{ port: 3333 }];
 
         for (const portCfg of ports) {
-            const server = net.createServer((socket) => this._onConnection(socket, portCfg));
+            // Plain stratum is not merely unencrypted -- it is unauthenticated.
+            //
+            // Anyone on the path between a miner and this pool can replace the
+            // block template with their own. The miner then spends its
+            // electricity on a job that pays a stranger, finds a block, and
+            // sees nothing wrong: the pool never learns of it and the
+            // dashboard shows a worker doing honest work. Miners connect to
+            // this pool from Spain and the United States across the open
+            // internet.
+            //
+            // The plain ports stay open. Turning them off would disconnect
+            // every miner already here, and a pool that punishes people for
+            // not upgrading loses them. This adds a port; it does not take
+            // one away.
+            let server;
+            if (portCfg.tls) {
+                let creds;
+                try {
+                    creds = {
+                        cert: fs.readFileSync(portCfg.cert || this.config.tlsCert),
+                        key: fs.readFileSync(portCfg.key || this.config.tlsKey),
+                        // Stratum clients are miners, not browsers: no client
+                        // certificates, and nothing below TLS 1.2.
+                        minVersion: 'TLSv1.2',
+                        honorCipherOrder: true,
+                    };
+                } catch (err) {
+                    // Refusing to start beats listening in the clear on a port
+                    // people were told is encrypted. A miner who connects to
+                    // 3336 believes the wire is protected.
+                    this.log.error(`stratum port ${portCfg.port} is configured for TLS but ` +
+                                   `the certificate could not be read: ${err.message}`);
+                    this.log.error('refusing to open it unencrypted -- fix the paths or ' +
+                                   'remove "tls": true from that port');
+                    process.exit(1);
+                }
+                server = tls.createServer(creds,
+                    (socket) => this._onConnection(socket, portCfg));
+                server.on('tlsClientError', (err, sock) => {
+                    // Handshake failures are ordinary: port scanners, a plain
+                    // miner pointed at the wrong port. Debug, not error.
+                    this.log.debug(`tls handshake failed on ${portCfg.port} from ` +
+                                   `${sock && sock.remoteAddress}: ${err.message}`);
+                });
+            } else {
+                server = net.createServer((socket) => this._onConnection(socket, portCfg));
+            }
 
             server.on('error', (err) => {
                 this.log.error(`stratum port ${portCfg.port}: ${err.message}`);
@@ -333,8 +381,8 @@ class StratumServer extends EventEmitter {
 
             server.listen(portCfg.port, this.config.bindAddress || '0.0.0.0', () => {
                 this.log.info(`stratum listening on ${this.config.bindAddress || '0.0.0.0'}:` +
-                              `${portCfg.port} (start diff ${portCfg.difficulty ||
-                              this.config.startDifficulty || 1000})`);
+                              `${portCfg.port}${portCfg.tls ? ' (TLS)' : ''} (start diff ` +
+                              `${portCfg.difficulty || this.config.startDifficulty || 1000})`);
             });
 
             this.servers.push(server);

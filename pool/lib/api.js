@@ -227,7 +227,11 @@ class ApiServer {
                 ports: (this.config.ports || []).map((p) => ({
                     port: p.port,
                     difficulty: p.difficulty || this.config.startDifficulty,
-                    description: p.description || null
+                    description: p.description || null,
+                    // The dashboard has to say which port is encrypted, or
+                    // nobody uses it. An encrypted port that is never
+                    // mentioned protects nobody.
+                    tls: Boolean(p.tls)
                 })),
                 stratumHost: this.config.publicHost || null
             },
