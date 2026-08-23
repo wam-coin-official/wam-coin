@@ -1,0 +1,52 @@
+# ===========================================================================
+#  The founder's node, inside WSL
+# ===========================================================================
+#
+#  It kept coming back on the wrong version. Windows restarts, WSL stops,
+#  and the node is started again by pressing the up arrow -- which replays a
+#  command line written weeks ago, pointing at an old build directory and
+#  carrying -fallbackfee=0.0001, a workaround for a defect that v0.1.4 fixed
+#  properly. On 2026-08-22 the network showed four nodes on 0.1.4 and this
+#  one on 0.1.3, hours after it had been updated and verified.
+#
+#  So the version is written down here instead of typed from memory.
+#
+#  Deliberately absent: -fallbackfee. The binary carries the correct default
+#  now, and passing it by hand would hide whether the real fix works.
+# ===========================================================================
+
+[Unit]
+Description=WAM Coin node (testnet)
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=grgo
+Group=grgo
+
+# The full path, pinned to the released build. Not a relative path and not
+# whatever ~/wam happens to contain: that directory holds the old 0.1.3 tree
+# and is what the up arrow keeps reaching for.
+ExecStart=/home/grgo/wam-current-bin/wamd \
+    -testnet \
+    -datadir=/home/grgo/wam-testnet \
+    -rpcuser=t -rpcpassword=t -rpcport=19554 \
+    -listen=0 \
+    -addnode=pool.wamcoin.org:19555 \
+    -addnode=electrum2.wamcoin.org:19555 \
+    -printtoconsole=1
+
+# Two anchors by name, not by address, so a server changing IP does not
+# leave this node alone on the network with no way to find anyone.
+
+Restart=always
+RestartSec=15
+
+# printtoconsole sends everything to the journal:  journalctl -u wam-node -f
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

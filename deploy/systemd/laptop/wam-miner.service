@@ -1,0 +1,43 @@
+# ===========================================================================
+#  The founder's miner, inside WSL
+# ===========================================================================
+#
+#  Same reason as wam-node.service: it was being restarted from shell
+#  history, which meant the old binary and a hard-coded pool address.
+#
+#  The pool is named rather than numbered. The old command line pointed at
+#  169.58.159.165, so a server that ever changes address takes this miner
+#  with it and the only symptom is a hashrate that quietly stops arriving.
+# ===========================================================================
+
+[Unit]
+Description=WAM Coin miner (testnet, to the project pool)
+After=network-online.target wam-node.service
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=grgo
+Group=grgo
+
+ExecStart=/home/grgo/wam-current-bin/wam-miner \
+    -o stratum+tcp://pool.wamcoin.org:3333 \
+    -u twam1qzrjwqy8m04ulda604pn7qa5txe0uhkzv6jsu5y.rig1 \
+    -t 20 \
+    --no-colour
+
+Restart=always
+RestartSec=30
+
+# A laptop is not a mining rig, and the founder works on this machine. Nice
+# keeps the miner out of the way of everything else on the box rather than
+# competing with it for the CPU it is also trying to use.
+Nice=10
+CPUWeight=20
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
