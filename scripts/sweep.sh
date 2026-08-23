@@ -187,6 +187,19 @@ else
         # verify_supply.py uses, so the page and consensus cannot drift.
         run "explorer publishes what consensus enforces" \
             python3 scripts/check_explorer.py --node "$1" --network testnet
+
+        # v0.1.5 changed the mainnet treasury address, which is consensus. A
+        # node left on v0.1.4 will reject every valid block on 15 September
+        # and fork off at height 1. Its operator cannot be messaged -- the
+        # protocol carries blocks, not notices -- so the only thing possible
+        # is to know how many are still behind while announcing can still
+        # help, rather than counting them afterwards.
+        #
+        # This goes red until they update, and that is the point: it is a
+        # launch blocker held by other people, and the only lever is to keep
+        # saying so.
+        run "every independent node can follow mainnet" \
+            python3 scripts/check_peer_versions.py --node "$1" --network testnet
     fi
 fi
 
