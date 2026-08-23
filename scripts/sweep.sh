@@ -203,6 +203,13 @@ printf '\n%show the project looks to someone who has never heard of it%s\n' "$BL
 run "the project presents itself as a real one" \
     python3 scripts/check_first_impression.py
 
+# START_HERE told beginners to download v0.1.3 for four releases after its
+# binaries were deliberately withdrawn -- so the first command on the page
+# written to make someone feel capable returned 404 instead. Found by the
+# founder reading his own documentation, which is not a mechanism.
+run "the documented version still exists" \
+    python3 scripts/check_docs_version.py
+
 # ---------------------------------------------------------------------------
 printf '\n%slaunch readiness%s\n' "$BLD" "$OFF"
 

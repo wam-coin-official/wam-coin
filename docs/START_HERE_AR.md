@@ -54,8 +54,8 @@ WAM نقودٌ لا تُصدرها شركة ولا يحفظها مصرف.
 ### التنزيل
 
 ```bash
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.3/wam-coin-v0.1.3-x86_64-linux-gnu.tar.gz
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.3/SHA256SUMS
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.5/wam-coin-v0.1.5-x86_64-linux-gnu.tar.gz
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.5/SHA256SUMS
 ```
 
 ### تأكّد أنه ملفّنا فعلاً
@@ -71,8 +71,8 @@ sha256sum --ignore-missing -c SHA256SUMS
 ### الفكّ والتشغيل
 
 ```bash
-tar -xzf wam-coin-v0.1.3-x86_64-linux-gnu.tar.gz
-cd wam-coin-v0.1.3/bin
+tar -xzf wam-coin-v0.1.5-x86_64-linux-gnu.tar.gz
+cd wam-coin-v0.1.5/bin
 ./wamd -testnet -printtoconsole
 ```
 
