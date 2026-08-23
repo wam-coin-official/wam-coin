@@ -124,23 +124,41 @@ verify_archive() {
     fi
     ok "decrypts and unpacks"
 
+    local n=0
     while IFS= read -r w; do
         found=1
+        n=$((n + 1))
         name="$(basename "$(dirname "$w")")"
-        # wam-wallet resolves -wallet=NAME under <datadir>/<chain>/wallets/,
-        # so reproduce that layout rather than pointing it at a loose file:
-        # given a path it reports "Data is not in recognized format" for a
-        # perfectly good wallet, which is a misleading way to fail.
-        local rdir="$work/restore/$CHAINDIR"
-        mkdir -p "$rdir/wallets/$name"
-        cp "$w" "$rdir/wallets/$name/wallet.dat"
-        if out="$(wam-wallet "${NETFLAG[@]}" -datadir="$work/restore" -wallet="$name" info 2>&1)"; then
-            ok "wallet '$name' opens -- $(printf '%s' "$out" | grep -i '^Format:' | tr -d '\n')"
+
+        # Each wallet is verified against the network it came from, not the
+        # network this host happens to be running.
+        #
+        # The mainnet pool wallet and the testnet one are both called "pool".
+        # Opening one with the other's flags reports "Data is not in
+        # recognized format" -- which is what a corrupt wallet reports, so a
+        # perfectly good backup was declared unrestorable and deleted.
+        # ORIGINAL-PATH.txt, written at backup time, says which is which.
+        local orig="" vnet="$NETWORK" vflag=() vchain="$CHAINDIR"
+        [ -f "$(dirname "$w")/ORIGINAL-PATH.txt" ] && orig="$(cat "$(dirname "$w")/ORIGINAL-PATH.txt")"
+        case "$orig" in
+            */testnet3/*) vnet=testnet; vflag=(-testnet); vchain=testnet3 ;;
+            */regtest/*)  vnet=regtest; vflag=(-regtest); vchain=regtest ;;
+            "")           vnet="$NETWORK"; vflag=("${NETFLAG[@]}"); vchain="$CHAINDIR" ;;
+            *)            vnet=mainnet; vflag=();        vchain="" ;;
+        esac
+
+        # A unique directory per wallet: two called "pool" must not overwrite
+        # each other on the way to being checked.
+        local rdir="$work/restore-$n/${vchain:+$vchain/}wallets/$name"
+        mkdir -p "$rdir"
+        cp "$w" "$rdir/wallet.dat"
+        if out="$(wam-wallet "${vflag[@]}" -datadir="$work/restore-$n" -wallet="$name" info 2>&1)"; then
+            ok "wallet '$name' ($vnet) opens -- $(printf '%s' "$out" | grep -i '^Format:' | tr -d '\n')"
         else
-            bad "wallet '$name' will NOT open: $(printf '%s' "$out" | head -1)"
+            bad "wallet '$name' ($vnet) will NOT open: $(printf '%s' "$out" | head -1)"
             rc=1
         fi
-    done < <(find "$work/wallets" -name 'wallet.dat' 2>/dev/null)
+    done < <(find "$work/wallets" "$work/wallets-at-rest" -name 'wallet.dat' 2>/dev/null)
 
     # A host that runs a node and no wallet -- a seed, or the second Electrum
     # server -- has no wallet to copy, and demanding one made this script
@@ -263,6 +281,55 @@ for w in $WALLETS; do
      cannot see; PrivateTmp=yes gives it a different /tmp from this shell."
     fi
 done
+
+# --- wallets belonging to nodes that are NOT running -----------------------
+#
+# The mainnet pool wallet was created on 2026-08-23, months before mainnet
+# opens, so its node is stopped and listwallets on the running testnet node
+# does not mention it. Everything above would have backed up faithfully and
+# missed it entirely -- and it is the wallet that will hold miners' money on
+# launch day.
+#
+# backupwallet cannot be used here: it needs the node that owns the wallet to
+# be running. A file at rest can be copied directly, and safely, precisely
+# because nothing is writing to it. Each candidate is checked for an open
+# handle first, and skipped if anything holds it -- copying a live wallet.dat
+# is what produces a file that opens corrupt.
+#
+# Archived directories from past resets are left alone: they are old chains,
+# they are large, and restoring one would be a mistake.
+# The label is built from the PATH, not the wallet's name.
+#
+# Both wallets here are called "pool" -- one on mainnet, one on testnet --
+# and the first version of this skipped the mainnet one as already captured
+# because the names matched. Two different wallets, holding different money,
+# on different chains, are not interchangeable because someone reused a word.
+#
+# The live capture above is the one under the running chain's directory;
+# anything else is at rest by definition.
+LIVE_DIR="$DATADIR/${CHAINDIR:+$CHAINDIR/}wallets"
+AT_REST=0
+while IFS= read -r w; do
+    [ -n "$w" ] || continue
+    dir="$(dirname "$w")"
+    case "$dir" in "$LIVE_DIR"/*) continue ;; esac      # taken live by backupwallet
+
+    # e.g. /root/.wam/pool -> "pool", /root/.wam/other/wallets/x -> "other-wallets-x"
+    rel="${dir#"$DATADIR"/}"
+    label="$(printf '%s' "$rel" | tr '/' '-')"
+
+    if command -v fuser >/dev/null 2>&1 && fuser "$w" >/dev/null 2>&1; then
+        warn "$label is open by a running process -- skipped, a live copy opens corrupt"
+        continue
+    fi
+
+    mkdir -p "$STAGE/wallets-at-rest/$label"
+    cp -a "$w" "$STAGE/wallets-at-rest/$label/wallet.dat"
+    printf '%s\n' "$w" > "$STAGE/wallets-at-rest/$label/ORIGINAL-PATH.txt"
+    ok "wallet at rest: $label ($(stat -c%s "$w") bytes) -- $dir"
+    AT_REST=$((AT_REST + 1))
+done < <(find "$DATADIR" -name 'wallet.dat' -not -path '*.old-*' 2>/dev/null)
+[ "$AT_REST" -gt 0 ] || true
 
 # --- the pool's share ledger ----------------------------------------------
 if command -v redis-cli >/dev/null && systemctl is-active --quiet redis-server 2>/dev/null; then
