@@ -164,8 +164,29 @@ jobs:
           prerelease=""
           case "$VERSION" in v0.*) prerelease="--prerelease" ;; esac
 
+          # A consensus-changing release must not be announced in the same
+          # voice as any other. v0.1.5 moved the mainnet treasury address, and
+          # a node left behind will reject every valid block and fork itself
+          # off at height 1 -- silently. It keeps running and mining, alone.
+          #
+          # The announcement bot cannot know that unless it is told, so the
+          # tag says it. Write a line in the annotated tag message:
+          #
+          #     MANDATORY: <one line saying why>
+          #
+          # and it is copied to the top of the release notes, where the bot
+          # finds it and announces the release as UPDATE REQUIRED instead of
+          # as news. Leaving it to somebody to remember to post a warning by
+          # hand means the day they forget is the day it matters.
+          mandatory="$(git tag -l --format='%(contents)' "$VERSION" \
+                       | grep -iE '^[[:space:]]*MANDATORY:' | head -1 || true)"
+
           notes="$(mktemp)"
           {
+            if [ -n "$mandatory" ]; then
+              echo "$mandatory"
+              echo
+            fi
             echo "Built by GitHub Actions from \`${GITHUB_SHA}\` on ubuntu-22.04."
             echo
             echo "Verify before running:"

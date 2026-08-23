@@ -336,12 +336,52 @@ function fromMarkdown(text) {
         .join('');
 }
 
+// A release whose notes begin a line with "MANDATORY:" is one that changes a
+// consensus rule. Everything after the colon, on that line, is the reason.
+//
+//     MANDATORY: every earlier release enforces a different treasury address
+//
+// WHY THIS EXISTS
+//
+// v0.1.5 changed the mainnet treasury address, which is consensus. A node
+// left on v0.1.4 will reject every valid block on 15 September and fork
+// itself off at height 1 -- and it will not say so. It syncs, it mines, it
+// reports itself healthy, alone on a chain nobody else is on.
+//
+// The bot announced that release in exactly the tone it announces every
+// other: "a new version exists, here is how to verify it". It cannot tell
+// the difference, because nothing told it. Somebody then has to remember to
+// write the warning by hand, and the day they forget is the day it matters.
+//
+// So the release notes carry the distinction and the bot repeats it loudly.
+const MANDATORY = /^[ \t>*_]*MANDATORY:[ \t]*(.+)$/im;
+
 function releaseMessage(release) {
+    const raw = String(release.body || '');
+    const flag = raw.match(MANDATORY);
+
+    // The marker line is removed from the body it is quoted from, so the
+    // reason is not printed twice.
+    const cleaned = flag ? raw.replace(MANDATORY, '').replace(/^\s*\n/, '') : raw;
+
     // Truncated by line before conversion, never after: the marks are single
     // characters and slicing a rendered string can cut one off from its pair.
-    const body = fromMarkdown(String(release.body || '').split('\n').slice(0, 12).join('\n'));
+    const body = fromMarkdown(cleaned.split('\n').slice(0, 12).join('\n'));
+
     return [
-        `\u{1F680} ${b(release.name || release.tag)}`,
+        flag
+            // Above the title, not below it: a warning under the fold is a
+            // warning nobody read.
+            ? `\u{26A0}\u{FE0F} ${b('UPDATE REQUIRED')} \u{2014} ${b(release.name || release.tag)}`
+            : `\u{1F680} ${b(release.name || release.tag)}`,
+        ...(flag ? [
+            ``,
+            b('This release changes a consensus rule.'),
+            t(flag[1].trim()),
+            t('A node left on an earlier version will be rejected by the network '
+              + 'and will not be told. It keeps running, and mines a chain with '
+              + 'nobody else on it.'),
+        ] : []),
         // Said plainly rather than left for the reader to notice on the page.
         // Every release before 1.0 is a pre-release, and a channel that
         // announces one without saying so is describing the project as further
