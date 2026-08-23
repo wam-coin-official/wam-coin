@@ -56,6 +56,7 @@
 import argparse
 import json
 import socket
+import ssl
 import subprocess
 import sys
 import time
@@ -89,7 +90,7 @@ def node_height(host, network):
 
 
 # ---------------------------------------------------------------------------
-def stratum_job(host, port, address, timeout=25):
+def stratum_job(host, port, address, timeout=25, use_tls=False):
 # ---------------------------------------------------------------------------
 #  Subscribe, authorise, and wait for work. Returns (info, error).
 #
@@ -98,6 +99,14 @@ def stratum_job(host, port, address, timeout=25):
 # ---------------------------------------------------------------------------
     try:
         s = socket.create_connection((host, port), timeout=timeout)
+        if use_tls:
+            # An encrypted port answers a plain connection by closing it, and
+            # the first version of this check reported that as "server closed
+            # the connection" -- a failure message about a port that was
+            # working perfectly, on the day it was added.
+            s = ssl.create_default_context().wrap_socket(s, server_hostname=host)
+    except ssl.SSLError as e:
+        return None, f"TLS failed: {e}"
     except Exception as e:
         return None, f"{type(e).__name__}"
 
@@ -217,8 +226,9 @@ def main():
         bad("the API lists no stratum ports -- nothing to check")
     for p in ports:
         port = p.get("port")
-        info, err = stratum_job(args.stratum, port, args.address)
-        label = f"{args.stratum}:{port}"
+        is_tls = bool(p.get("tls"))
+        info, err = stratum_job(args.stratum, port, args.address, use_tls=is_tls)
+        label = f"{args.stratum}:{port}{' TLS' if is_tls else ''}"
         if err:
             bad(f"{label}  {err}")
             continue
