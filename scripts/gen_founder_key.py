@@ -489,7 +489,7 @@ def wif_to_privkey(wif: str) -> tuple[int, int, bool]:
     return int.from_bytes(key_bytes, "big"), payload[0], compressed
 
 
-def verify_backup(expected_address: str) -> int:
+def verify_backup(expected_address: str, show: bool = False) -> int:
     """
     Confirm a handwritten WIF still derives the expected address.
 
@@ -515,9 +515,24 @@ def verify_backup(expected_address: str) -> int:
     print()
 
     try:
-        if sys.stdin.isatty():
+        if sys.stdin.isatty() and not show:
             # Interactive: never echo the key, never put it in shell history.
             wif = getpass.getpass("  WIF: ").strip()
+        elif sys.stdin.isatty():
+            # --show: echo what is typed.
+            #
+            # Hiding the input defends against someone reading the screen. On
+            # the ceremony machine there is nobody: it is air-gapped, in a
+            # locked room, with one person in it. The defence buys nothing and
+            # costs the only feedback there is.
+            #
+            # The founder typed a 52-character WIF twice, from paper, and got
+            # NO MATCH with no way to see that only 39 characters had arrived.
+            # A tool that cannot be used correctly is not secure; it is just
+            # unused, or used until the operator gives up and does something
+            # worse.
+            print("  (typing will be visible -- you asked for it with --show)")
+            wif = input("  WIF: ").strip()
         else:
             # Piped: getpass would block forever on a terminal that is not
             # there. Reading stdin keeps this usable from a script or a test
@@ -532,6 +547,29 @@ def verify_backup(expected_address: str) -> int:
     if not wif:
         print("  nothing entered")
         return 2
+
+    # Report the length first, always.
+    #
+    # Every other failure below is a checksum message that tells the operator
+    # their handwriting is bad. Most of the time the handwriting is fine and
+    # the terminal simply did not receive everything that was typed -- a
+    # keyboard layout, a dropped keystroke, a paste that truncated. The count
+    # separates "I wrote it down wrong" from "it did not all arrive", and
+    # without it those two look identical.
+    EXPECTED_WIF_LEN = 52
+    print()
+    print(f"  {len(wif)} characters received.", end=" ")
+    if len(wif) != EXPECTED_WIF_LEN:
+        print(f"A WAM WIF is {EXPECTED_WIF_LEN}.")
+        print()
+        print(f"  {'SHORT' if len(wif) < EXPECTED_WIF_LEN else 'LONG'} by "
+              f"{abs(len(wif) - EXPECTED_WIF_LEN)}. Before blaming the paper:")
+        print("    * the terminal may have dropped keystrokes -- retype slowly")
+        print("    * a non-US keyboard layout produces different characters")
+        print("    * run this again with --show to see what actually arrives")
+        print()
+    else:
+        print("Correct length.")
 
     try:
         priv, version, compressed = wif_to_privkey(wif)
@@ -595,6 +633,12 @@ def main() -> int:
                          "without echoing it, prints only MATCH or NO MATCH, and never "
                          "writes it anywhere. Use this to confirm a paper backup is "
                          "readable BEFORE it is the only copy that exists.")
+    ap.add_argument("--show", action="store_true",
+                    help="with --verify-backup, echo the key as you type it. "
+                         "Hiding it defends against someone reading your screen; "
+                         "on an air-gapped machine in a locked room there is "
+                         "nobody, and the hidden input removes the only way to "
+                         "see that a keystroke was dropped.")
     ap.add_argument("--selftest", action="store_true",
                     help="verify the cryptography and the prefix table, generate nothing")
     args = ap.parse_args()
@@ -604,7 +648,7 @@ def main() -> int:
 
     # ---- verify a paper backup without ever revealing it ------------------
     if args.verify_backup:
-        return verify_backup(args.verify_backup)
+        return verify_backup(args.verify_backup, show=args.show)
 
     if not args.network:
         ap.error("--network is required (or use --selftest, --verify-backup)")

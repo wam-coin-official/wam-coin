@@ -119,7 +119,7 @@ static const std::string WAM_FOUNDER_ADDRESS_TESTNET = "TK34fTbuMCXrwnmq72AE1EMM
 //  scripts/preflight.sh and scripts/audit_repo.sh both refuse a launch while it
 //  is still here. Replace it with an address generated on an offline machine,
 //  from a key that is not the founder key.
-static const std::string WAM_TREASURY_ADDRESS_MAINNET = "WNg2svm2qApxheBKndKGQ9sRwporvRgRpT";
+static const std::string WAM_TREASURY_ADDRESS_MAINNET = "WdMMqW1DcgWZ6HtyJuEMdce6QkKg4raGmE";
 // Testnet treasury, generated 2026-08-19 on the seed node. Deliberately a
 // different key from the testnet founder address, so testnet exercises the same
 // two-address arrangement mainnet will use.
