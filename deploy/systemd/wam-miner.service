@@ -1,0 +1,70 @@
+# ===========================================================================
+#  The reference miner on the pool server
+# ===========================================================================
+#
+#  WHY IT IS HERE
+#
+#  Every other unit on these servers is in this directory. This one was not:
+#  it existed only in /etc/systemd/system on one machine, written by hand on
+#  20 August, so nothing recorded what it said and rebuilding the server
+#  would have quietly lost it.
+#
+#  WHY Restart=always AND NOT on-failure
+#
+#  It said `Restart=on-failure`, which does not restart a process that exits
+#  zero. A miner that decides to shut down cleanly -- on an unexpected
+#  argument, a stratum error it treats as fatal, a signal -- stays stopped,
+#  and the only symptom is a hash rate that never comes back. That is the
+#  same class of silence this whole file exists to prevent, one level up
+#  from the socket.
+#
+#  StartLimitIntervalSec=0 for the other half of it: with the default limit,
+#  five restarts inside ten seconds makes systemd give up permanently and
+#  the service stays dead until a human notices.
+#
+#  WHY THE PATH CARRIES NO VERSION
+#
+#  It pointed at /opt/wam/miner/wam-miner -- a binary compiled in the git
+#  checkout, so this machine ran a miner nobody else could obtain and no
+#  checksum described. It now points at /opt/wam-current-bin/, the same
+#  arrangement the founder's laptop uses: unpack the published release, move
+#  the symlink, restart. What runs here is what anyone can download and
+#  verify, and the unit never changes again.
+# ===========================================================================
+
+[Unit]
+Description=WAM Coin reference miner (testnet)
+After=wam-pool.service
+Wants=wam-pool.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=root
+
+# Four of six cores. The node must stay able to validate a block and the pool
+# to answer a share while this runs; a miner that starves them turns a healthy
+# machine into one that mines fast and confirms nothing.
+ExecStart=/opt/wam-current-bin/wam-miner \
+    -o stratum+tcp://127.0.0.1:3333 \
+    -u twam1qtekdutqnwmqwtsh4rddncxru2s0y3vp5ea7ljs.server \
+    -t 4 \
+    --no-colour
+
+Restart=always
+RestartSec=15
+Nice=10
+
+# RandomX allocates a ~2.1 GiB dataset in mining mode. Stated so that an OOM
+# here is a decision rather than a surprise.
+MemoryMax=4G
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
