@@ -181,10 +181,36 @@ jobs:
           mandatory="$(git tag -l --format='%(contents)' "$VERSION" \
                        | grep -iE '^[[:space:]]*MANDATORY:' | head -1 || true)"
 
+          # The rest of the tag message is the release note.
+          #
+          # It was thrown away until v0.1.6, which was tagged with a full
+          # account of the bug it fixed -- which miners were affected, what
+          # the symptom looked like, what to do -- and published with nothing
+          # but the boilerplate below. The announcement bot quotes the release
+          # body, so the channels carried a version number and a checksum
+          # command and no reason for anyone to act.
+          #
+          # An annotated tag is where that explanation belongs: it is written
+          # at the moment the release is cut, by whoever cut it, and it is
+          # signed into the repository rather than typed into a web form
+          # afterwards. Line 1 is the title, which gh already shows, and the
+          # MANDATORY line is hoisted above -- both are dropped here so
+          # nothing is printed twice.
+          body="$(git tag -l --format='%(contents)' "$VERSION" \
+                  | tail -n +2 \
+                  | grep -ivE '^[[:space:]]*MANDATORY:' \
+                  | sed '/^-----BEGIN PGP SIGNATURE-----/,$d')"
+
           notes="$(mktemp)"
           {
             if [ -n "$mandatory" ]; then
               echo "$mandatory"
+              echo
+            fi
+            if [ -n "$(printf '%s' "$body" | tr -d '[:space:]')" ]; then
+              printf '%s\n' "$body"
+              echo
+              echo "---"
               echo
             fi
             echo "Built by GitHub Actions from \`${GITHUB_SHA}\` on ubuntu-22.04."
