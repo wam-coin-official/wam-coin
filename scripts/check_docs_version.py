@@ -63,7 +63,35 @@ DOCS = [
     "site/index.html",
 ]
 
-VER = re.compile(r"\bv(\d+\.\d+\.\d+)\b")
+# A version number is only an instruction when the reader is being told to
+# fetch that exact thing. Every other mention is prose, and prose about old
+# versions is usually the most important prose in the file:
+#
+#     "a node left on v0.1.4 will reject every valid block on launch day
+#      and fork itself off the network"
+#
+# The first version of this matched every `vX.Y.Z` in the document and so it
+# failed on that sentence -- reporting the warning we most want operators to
+# read as a dead download link. A check that objects to correct text is worse
+# than no check: it teaches its reader to skip the output. On 2026-08-19
+# three faults were live at once behind exactly that habit.
+#
+# So the contexts are named one by one. Each alternative captures the version.
+INSTRUCTION = re.compile(
+    r"releases/download/v(\d+\.\d+\.\d+)/"      # the URL people curl
+    r"|wam-(?:coin|miner)-v(\d+\.\d+\.\d+)"     # the tarball, and the directory
+    r"|\[v(\d+\.\d+\.\d+)\]\("                  # "the release is [v0.1.5](...)"
+)
+
+
+def instructed_versions(text):
+    """Every version the document actually tells someone to obtain."""
+    out = set()
+    for m in INSTRUCTION.finditer(text):
+        v = next((g for g in m.groups() if g), None)
+        if v:
+            out.add(v)
+    return out
 _fails = []
 
 
@@ -108,7 +136,7 @@ def main():
         if not p.exists():
             continue
         text = p.read_text(encoding="utf-8", errors="replace")
-        found = set(VER.findall(text))
+        found = instructed_versions(text)
         if not found:
             continue
         checked += 1
