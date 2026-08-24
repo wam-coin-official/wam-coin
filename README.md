@@ -88,7 +88,7 @@ curl -fs localhost:8081/api/health || echo "WAM node is down"
 | Mainnet genesis | mined and committed — `d8d3debe…` |
 | Founder key | generated offline, on paper, never on a networked machine |
 | Founder reserve | fully time-locked; nothing spendable at launch |
-| Release | [v0.1.5](https://github.com/wam-coin-official/wam-coin/releases), built and published by CI from a tag |
+| Release | [v0.1.6](https://github.com/wam-coin-official/wam-coin/releases), built and published by CI from a tag |
 | Independent review | two developers outside the project, both still reading — [findings and what changed](review/REVIEW_RESPONSE.md) |
 | Paid security audit | **none** |
 
