@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Start here — WAM Coin</title>
+<link rel="icon" href="/favicon.png" type="image/png">
+<meta name="description" content="How to run a WAM Coin node, for someone who has never run one.">
+<link rel="canonical" href="https://wamcoin.org/start/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="WAM Coin">
+<meta property="og:title" content="Start here — WAM Coin">
+<meta property="og:description" content="Run a node in four commands, with the checksum step that most guides skip.">
+<meta property="og:image" content="https://wamcoin.org/og-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://wamcoin.org/og-card.png">
+<style>
+:root{--bg:#faf9f7;--fg:#1a1a1a;--dim:#5c5a57;--rule:#e3e0db;--code:#f2f0ec;--accent:#8a6d1f}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0e1211;--fg:#eceae7;--dim:#9a9691;--rule:#242a29;--code:#171d1c;--accent:#c9a94a}}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);margin:0;padding:2.2rem 1.1rem 5rem;
+ font:16px/1.72 ui-serif,Georgia,"Times New Roman",serif;-webkit-text-size-adjust:100%}
+main{max-width:44rem;margin:0 auto}
+h1{font-size:1.85rem;line-height:1.25;margin:0 0 .4rem;letter-spacing:-.01em}
+h2{font-size:1.28rem;margin:2.6rem 0 .7rem;padding-top:1.1rem;border-top:1px solid var(--rule)}
+h3{font-size:1.06rem;margin:1.8rem 0 .5rem}
+p,li{margin:.75rem 0}
+a{color:inherit;text-decoration:underline;text-underline-offset:2px;text-decoration-color:var(--accent)}
+code{background:var(--code);padding:.12em .38em;border-radius:3px;
+ font:13.5px/1.5 ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;word-break:break-word}
+pre{background:var(--code);padding:.95rem 1.05rem;border-radius:6px;overflow-x:auto;
+ border:1px solid var(--rule)}
+pre code{background:none;padding:0;white-space:pre}
+blockquote{margin:1.1rem 0;padding:.1rem 0 .1rem 1rem;border-inline-start:3px solid var(--accent);color:var(--dim)}
+table{border-collapse:collapse;width:100%;margin:1.1rem 0;font-size:.94rem;display:block;overflow-x:auto}
+th,td{border-bottom:1px solid var(--rule);padding:.5rem .6rem;text-align:start}
+th{font-weight:600}
+hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
+.top{display:flex;gap:1rem;flex-wrap:wrap;font-size:.9rem;color:var(--dim);
+ margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid var(--rule)}
+.foot{margin-top:3.5rem;padding-top:1.2rem;border-top:1px solid var(--rule);
+ font-size:.87rem;color:var(--dim)}
+[dir=rtl]{font-family:ui-serif,"Noto Naskh Arabic","Amiri",Georgia,serif}
+[dir=rtl] pre,[dir=rtl] code{direction:ltr;text-align:left}
+</style>
+</head>
+<body>
+<main>
+<nav class="top">
+  <a href="/">wamcoin.org</a>
+  <a href="/start-ar/">بالعربية</a>
+  <a href="https://github.com/wam-coin-official/wam-coin/blob/main/docs/START_HERE.md">source</a>
+</nav>
+<h1 id="start-here">Start here</h1>
+<p><strong><a href="/start-ar/">بالعربية</a></strong></p>
+<p>This page assumes you know nothing about cryptocurrency. If you already run a node for another coin, skip to <a href="#3-run-a-node">Run a node</a> — the commands are what you expect, and the numbers you need are in the table at the end.</p>
+<hr>
+<h2 id="1-what-is-wam-in-plain-words">1. What is WAM, in plain words</h2>
+<p>WAM is money that no company issues and no bank holds.</p>
+<p>There is a list of every payment ever made, and thousands of computers each keep their own copy of that list. When you send WAM, your payment is announced to all of them, they check it against their copies, and if it is valid they all add it. Nobody can quietly change the list afterwards, because everyone else still holds the version without your change.</p>
+<p>That list is the <em>blockchain</em>. A computer keeping a copy is a <em>node</em>.</p>
+<p><strong>Why anyone would bother:</strong> nobody can freeze it, nobody needs your permission to receive it, and nobody can print more than 22,000,000 of it — ever. That number is not a promise. It is arithmetic every node checks on every block, and a block that breaks it is thrown away by strangers who never heard of you.</p>
+<p><strong>What makes WAM different from Bitcoin:</strong> Bitcoin mining now needs specialised machines that cost thousands. WAM uses an algorithm called <em>RandomX</em> that runs best on the ordinary processor already in your laptop. The point is that someone with one computer can take part, not only someone with a warehouse.</p>
+<hr>
+<h2 id="2-what-you-need">2. What you need</h2>
+<ul><li>A computer with Linux — a laptop is fine</li><li>About 2 GB of free memory and 5 GB of disk</li><li>An internet connection</li></ul>
+<p>That is all. No graphics card, no special hardware, no money to start.</p>
+<blockquote><p><strong>Windows or Mac?</strong> The current release is built for Linux. On Windows you can use WSL (Windows Subsystem for Linux), which gives you Linux inside Windows. Builds for Windows and macOS are planned but do not exist yet, and this page will not pretend otherwise.</p></blockquote>
+<hr>
+<h2 id="3-run-a-node">3. Run a node</h2>
+<p>A node is a program that keeps a copy of the list and checks every payment on it. It runs quietly in the background. You do not need one to own WAM, but running one means you verify the rules yourself instead of trusting somebody else's answer.</p>
+<h3 id="download-it">Download it</h3>
+<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.5/wam-coin-v0.1.5-x86_64-linux-gnu.tar.gz
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.5/SHA256SUMS</code></pre>
+<h3 id="check-that-it-is-really-our-file">Check that it is really our file</h3>
+<pre><code>sha256sum --ignore-missing -c SHA256SUMS</code></pre>
+<p>You should see <code>OK</code>. If you see <code>FAILED</code>, the download was corrupted or altered — delete it and download again. <strong>Do not skip this.</strong> It costs one second and it is the only thing standing between you and a file somebody else swapped in.</p>
+<h3 id="unpack-and-run">Unpack and run</h3>
+<pre><code>tar -xzf wam-coin-v0.1.5-x86_64-linux-gnu.tar.gz
+cd wam-coin-v0.1.5/bin
+./wamd -testnet -printtoconsole</code></pre>
+<p>The window will fill with lines. That is the node introducing itself to other nodes and asking them for the list. Leave it running.</p>
+<p>To watch it in another terminal:</p>
+<pre><code>./wam-cli -testnet getblockcount</code></pre>
+<p>That prints how many blocks you have. It should climb until it matches what <a href="https://explorer.wamcoin.org">explorer.wamcoin.org</a> shows.</p>
+<blockquote><p><strong>Why <code>-testnet</code>?</strong> Because the real network has not launched yet. See <a href="#7-two-things-you-must-know">section 7</a>.</p></blockquote>
+<hr>
+<h2 id="4-make-yourself-an-address">4. Make yourself an address</h2>
+<p>An address is where WAM is sent, like an account number. It is free, you can make as many as you like, and you do not register it with anyone.</p>
+<pre><code>./wam-cli -testnet createwallet "mine"
+./wam-cli -testnet -rpcwallet=mine getnewaddress</code></pre>
+<p>You will get something like <code>twam1q4syaj2akkysnsymxm8g85whanz23v3jn0jm6dd</code>. That is yours. Anyone can send to it; only you can spend from it.</p>
+<blockquote><p><strong>The one rule that matters.</strong> The file <code>wallet.dat</code> inside the node's folder holds the keys to your money. Copy it somewhere safe. If you lose it, the coins are gone — there is no support line, no password reset, and no one who can help. That is the same freedom that means nobody can freeze your money, seen from the other side.</p></blockquote>
+<hr>
+<h2 id="5-mine">5. Mine</h2>
+<p>Mining is your computer competing to be the one that adds the next block to the list. Whoever adds it is paid for the work: <strong>50 WAM</strong>, of which 47.5 goes to the miners and 2.5 to the project treasury for the first 400,000 blocks.</p>
+<p>A single computer wins rarely, so miners join a <strong>pool</strong>: everybody works together and the reward is split by how much work each contributed. Small, steady payments instead of a lottery.</p>
+<h3 id="point-your-miner-at-the-pool">Point your miner at the pool</h3>
+<pre><code>./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS.rig1 -t 4</code></pre>
+<p>Replace <code>YOUR_ADDRESS</code> with the address from step 4. Keep the <code>.rig1</code> — it is just a name for this machine, so you can tell your computers apart later.</p>
+<p><code>-t 4</code> is how many processor cores to use. Leave one or two free if you want the computer to stay usable.</p>
+<h3 id="which-port">Which port</h3>
+<table><tr><th>Port</th><th>For</th><th>Meaning</th></tr><tr><td><strong>3333</strong></td><td>a laptop or desktop</td><td>start here</td></tr><tr><td>3334</td><td>a server</td><td>fewer, larger reports</td></tr><tr><td>3335</td><td>a farm of machines</td><td></td></tr></table>
+<p>If you are not sure, use 3333. The pool adjusts to your speed by itself.</p>
+<h3 id="what-you-will-see">What you will see</h3>
+<pre><code>stats    3.41 kH/s   accepted 20  rejected 0  blocks 1</code></pre>
+<ul><li><strong>kH/s</strong> — thousands of guesses per second. Your speed.</li><li><strong>accepted</strong> — proofs of work the pool took. This number going up means it</li></ul>
+<p>  is working.</p>
+<ul><li><strong>rejected</strong> — should stay near zero. If it climbs, your clock may be wrong:</li></ul>
+<p>  <code>sudo timedatectl set-ntp true</code>.</p>
+<ul><li><strong>blocks</strong> — blocks your machine found. This will be zero for a long while</li></ul>
+<p>  and that is normal.</p>
+<hr>
+<h2 id="6-what-to-expect">6. What to expect</h2>
+<table><tr><th></th><th></th></tr><tr><td>A new block every</td><td>about 2 minutes</td></tr><tr><td>Paid per block</td><td>50 WAM (47.5 to miners)</td></tr><tr><td>Halves every</td><td>200,000 blocks — roughly 15 months</td></tr><tr><td>Ever created, at most</td><td>22,000,000 WAM</td></tr><tr><td>Rewards become spendable after</td><td>100 blocks — about 3 hours</td></tr></table>
+<p>That last row surprises people. A mining reward is frozen for 100 blocks before it can be spent. Every coin that works this way does the same thing, for a reason: it prevents money being spent out of a block that later turns out not to belong on the list.</p>
+<hr>
+<h2 id="7-two-things-you-must-know">7. Two things you must know</h2>
+<p><strong>The real network has not launched.</strong> It launches <strong>15 September 2026</strong>. Everything above connects you to the <em>test network</em>, which exists so people can practise and so faults are found before real money is involved.</p>
+<p><strong>Test coins are worth nothing.</strong> They cannot be sold, they will not become real coins, and the test network is wiped and restarted whenever that is useful — it has been already. Mine there to learn and to help, not to earn.</p>
+<p>When mainnet launches, the same commands work without <code>-testnet</code>.</p>
+<hr>
+<h2 id="8-when-something-goes-wrong">8. When something goes wrong</h2>
+<p><strong>The node prints errors and stops.</strong> Read the last line before it stopped; it usually says exactly what it needs. If it mentions an address already in use, another copy is already running.</p>
+<p><strong><code>getblockcount</code> says 0 and stays there.</strong> Your node found no one to talk to. Check that your internet works, and wait two minutes — it retries by itself.</p>
+<p><strong>The miner says "cannot connect".</strong> Check the pool address for typing mistakes. Some networks block unusual ports; try from a different connection.</p>
+<p><strong>The miner runs but <code>accepted</code> stays at 0.</strong> Usually the wrong address format. It must start with <code>twam1</code> on the test network — a mainnet address will be refused.</p>
+<p><strong>Everything looks fine and I have never found a block.</strong> That is normal. One machine among many finds one rarely; that is what the pool is for, and your share of what the pool finds is paid to your address anyway.</p>
+<hr>
+<h2 id="9-the-numbers-for-anyone-who-wants-them">9. The numbers, for anyone who wants them</h2>
+<table><tr><th></th><th>Mainnet</th><th>Testnet</th></tr><tr><td>Peer port</td><td>9555</td><td>19555</td></tr><tr><td>RPC port</td><td>9554</td><td>19554</td></tr><tr><td>Addresses start with</td><td><code>W</code>, <code>w</code>, <code>wam1</code></td><td><code>T</code>, <code>t</code>, <code>twam1</code></td></tr><tr><td>Genesis block</td><td><code>d8d3debe…</code></td><td><code>ce81c20a…</code></td></tr></table>
+<p>Proof of work is RandomX over Bitcoin's 80-byte header. Everything else — the transaction format, the script language, SegWit, PSBT — is Bitcoin Core v28.1, because 250,000 lines that have been attacked for fifteen years are safer than anything rewritten from scratch.</p>
+<hr>
+<h2 id="where-to-go-next">Where to go next</h2>
+<ul><li><strong><a href="../WHITEPAPER.md">The whitepaper</a></strong> — why the money works the way it does</li><li><strong><a href="BUILD.md">Build it yourself</a></strong> — compile from source rather than trusting</li></ul>
+<p>  a download</p>
+<ul><li><strong><a href="POOL_OPERATOR.md">Run a pool</a></strong> — if you want to host one for others</li><li><strong><a href="https://explorer.wamcoin.org">explorer.wamcoin.org</a></strong> — look at the chain</li></ul>
+<p>  without running anything</p>
+<p>Questions: <code>wam.coin.official@proton.me</code></p>
+<p class="foot">This page is generated from docs/START_HERE.md in the repository. It is the same text; nothing here is written twice.</p>
+</main>
+</body>
+</html>
