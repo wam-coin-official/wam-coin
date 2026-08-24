@@ -128,6 +128,16 @@ cd wam-coin-v0.1.5/bin
 <table><tr><th></th><th>الشبكة الرئيسية</th><th>شبكة الاختبار</th></tr><tr><td>منفذ الأقران</td><td>9555</td><td>19555</td></tr><tr><td>منفذ RPC</td><td>9554</td><td>19554</td></tr><tr><td>العناوين تبدأ بـ</td><td><code>W</code> و<code>w</code> و<code>wam1</code></td><td><code>T</code> و<code>t</code> و<code>twam1</code></td></tr><tr><td>كتلة الأصل</td><td><code>d8d3debe…</code></td><td><code>ce81c20a…</code></td></tr></table>
 <p>إثبات العمل هو RandomX فوق ترويسة بيتكوين ذات الثمانين بايت. وكل ما عداه — صيغة المعاملات، ولغة السكربت، وSegWit، وPSBT — هو Bitcoin Core v28.1، لأن 250,000 سطر هوجمت خمسة عشر عاماً أأمن من أي شيء يُعاد كتابته من الصفر.</p>
 <hr>
+<h2 id="">ابقَ على علمٍ بالإصدارات</h2>
+<p>اشترك في إشعارات الإصدارات على المستودع: <strong><a href="https://github.com/wam-coin-official/wam-coin">github.com/wam-coin-official/wam-coin</a></strong> ← <strong>Watch ▾</strong> ← <strong>Custom</strong> ← <strong>Releases</strong> ✓</p>
+<p>وهذا أهمّ ممّا يبدو. WAM قبل الإطلاق، وبعض الإصدارات تُغيّر <strong>قاعدة إجماع</strong> — فـ<code>v0.1.5</code> نقلت عنوان خزينة الشبكة الرئيسية، وعقدةٌ تبقى على <code>v0.1.4</code> سترفض كل كتلةٍ صحيحة يوم الإطلاق وتنفصل عن الشبكة عند الكتلة الأولى.</p>
+<p>وعقدتك تنتبه في النهاية. يُطلق Core تحذيراً حين يتجاوز عملُ السلسلة التي ترفضها عملَ قمّتها بستّ كتل — نحو اثنتي عشرة دقيقة عند كتلةٍ كل دقيقتين — فيقول:</p>
+<pre><code>Warning: We do not appear to fully agree with our peers!
+You may need to upgrade, or other nodes may need to upgrade.</code></pre>
+<p>لكنه في السجلّ وفي <code>getnetworkinfo</code>، وهذا الإصدار بلا واجهة رسومية، ولا أحد يراقب عقدةً تعمل بهدوء منذ أسبوع. أمّا إشعار الإصدار فيصلك <strong>في المكان الذي أخذت منه البرنامج</strong>، قبل أن يحدث أيٌّ من ذلك.</p>
+<p>وتستطيع قراءته من عقدتك في أي وقت:</p>
+<pre><code>wam-cli -testnet getnetworkinfo | grep -A3 warnings</code></pre>
+<hr>
 <h2 id="">إلى أين بعد هذا</h2>
 <ul><li><strong><a href="../WHITEPAPER.md">الورقة البيضاء</a></strong> — لماذا تعمل النقود بهذه الطريقة</li><li><strong><a href="BUILD.md">ابنِها بنفسك</a></strong> — ترجمها من المصدر بدل الوثوق بتنزيل</li><li><strong><a href="POOL_OPERATOR.md">شغّل مجمّعاً</a></strong> — إن أردت أن تستضيف واحداً للآخرين</li><li><strong><a href="https://explorer.wamcoin.org">explorer.wamcoin.org</a></strong> — انظر إلى السلسلة</li></ul>
 <p>  بلا أن تُشغّل شيئاً</p>
