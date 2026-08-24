@@ -131,6 +131,16 @@ cd wam-coin-v0.1.5/bin
 <table><tr><th></th><th>Mainnet</th><th>Testnet</th></tr><tr><td>Peer port</td><td>9555</td><td>19555</td></tr><tr><td>RPC port</td><td>9554</td><td>19554</td></tr><tr><td>Addresses start with</td><td><code>W</code>, <code>w</code>, <code>wam1</code></td><td><code>T</code>, <code>t</code>, <code>twam1</code></td></tr><tr><td>Genesis block</td><td><code>d8d3debe…</code></td><td><code>ce81c20a…</code></td></tr></table>
 <p>Proof of work is RandomX over Bitcoin's 80-byte header. Everything else — the transaction format, the script language, SegWit, PSBT — is Bitcoin Core v28.1, because 250,000 lines that have been attacked for fifteen years are safer than anything rewritten from scratch.</p>
 <hr>
+<h2 id="stay-told-about-releases">Stay told about releases</h2>
+<p>Subscribe to releases on the repository: <strong><a href="https://github.com/wam-coin-official/wam-coin">github.com/wam-coin-official/wam-coin</a></strong> → <strong>Watch ▾</strong> → <strong>Custom</strong> → <strong>Releases</strong> ✓</p>
+<p>This matters more than it sounds. WAM is pre-launch, and some releases change a consensus rule — v0.1.5 moved the mainnet treasury address, and a node left on v0.1.4 will reject every valid block on launch day and fork itself off the network at height 1.</p>
+<p>Your node does eventually notice. Core raises a warning once the chain it is rejecting is about six blocks of work ahead — roughly twelve minutes, at two-minute blocks — and says so:</p>
+<pre><code>Warning: We do not appear to fully agree with our peers!
+You may need to upgrade, or other nodes may need to upgrade.</code></pre>
+<p>But that lives in the log and in <code>getnetworkinfo</code>, this release ships without a graphical interface, and nobody watches a node that has been quietly working for a week. A release notification arrives where you got the software, before any of that happens.</p>
+<p>You can also read it from the node itself at any time:</p>
+<pre><code>wam-cli -testnet getnetworkinfo | grep -A3 warnings</code></pre>
+<hr>
 <h2 id="where-to-go-next">Where to go next</h2>
 <ul><li><strong><a href="../WHITEPAPER.md">The whitepaper</a></strong> — why the money works the way it does</li><li><strong><a href="BUILD.md">Build it yourself</a></strong> — compile from source rather than trusting</li></ul>
 <p>  a download</p>
