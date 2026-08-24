@@ -70,14 +70,14 @@ hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
 <h2 id="">٣. تشغيل عقدة</h2>
 <p>العقدة برنامج يحتفظ بنسخة من السجل ويفحص كل دفعة عليه. يعمل بهدوء في الخلفية. لستَ مضطراً لتشغيل واحدة لتملك WAM، لكن تشغيلها يعني أنك <strong>تتحقّق من القواعد بنفسك</strong> بدل أن تثق بجواب غيرك.</p>
 <h3 id="">التنزيل</h3>
-<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.5/wam-coin-v0.1.5-x86_64-linux-gnu.tar.gz
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.5/SHA256SUMS</code></pre>
+<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.6/wam-coin-v0.1.6-x86_64-linux-gnu.tar.gz
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.6/SHA256SUMS</code></pre>
 <h3 id="">تأكّد أنه ملفّنا فعلاً</h3>
 <pre><code>sha256sum --ignore-missing -c SHA256SUMS</code></pre>
 <p>يجب أن ترى كلمة <code>OK</code>. وإن رأيت <code>FAILED</code> فالتنزيل تشوّه أو بُدِّل — احذفه ونزّله من جديد. <strong>لا تتخطَّ هذه الخطوة.</strong> تكلّف ثانية واحدة، وهي الشيء الوحيد الفاصل بينك وبين ملف وضعه غيرنا مكانه.</p>
 <h3 id="">الفكّ والتشغيل</h3>
-<pre><code>tar -xzf wam-coin-v0.1.5-x86_64-linux-gnu.tar.gz
-cd wam-coin-v0.1.5/bin
+<pre><code>tar -xzf wam-coin-v0.1.6-x86_64-linux-gnu.tar.gz
+cd wam-coin-v0.1.6/bin
 ./wamd -testnet -printtoconsole</code></pre>
 <p>ستمتلئ النافذة بأسطر. هذه العقدة تُعرّف بنفسها لبقية العقد وتطلب منهم السجل. اتركها تعمل.</p>
 <p>ولتراقبها من نافذة أخرى:</p>

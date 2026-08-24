@@ -70,14 +70,14 @@ hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
 <h2 id="3-run-a-node">3. Run a node</h2>
 <p>A node is a program that keeps a copy of the list and checks every payment on it. It runs quietly in the background. You do not need one to own WAM, but running one means you verify the rules yourself instead of trusting somebody else's answer.</p>
 <h3 id="download-it">Download it</h3>
-<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.5/wam-coin-v0.1.5-x86_64-linux-gnu.tar.gz
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.5/SHA256SUMS</code></pre>
+<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.6/wam-coin-v0.1.6-x86_64-linux-gnu.tar.gz
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.6/SHA256SUMS</code></pre>
 <h3 id="check-that-it-is-really-our-file">Check that it is really our file</h3>
 <pre><code>sha256sum --ignore-missing -c SHA256SUMS</code></pre>
 <p>You should see <code>OK</code>. If you see <code>FAILED</code>, the download was corrupted or altered — delete it and download again. <strong>Do not skip this.</strong> It costs one second and it is the only thing standing between you and a file somebody else swapped in.</p>
 <h3 id="unpack-and-run">Unpack and run</h3>
-<pre><code>tar -xzf wam-coin-v0.1.5-x86_64-linux-gnu.tar.gz
-cd wam-coin-v0.1.5/bin
+<pre><code>tar -xzf wam-coin-v0.1.6-x86_64-linux-gnu.tar.gz
+cd wam-coin-v0.1.6/bin
 ./wamd -testnet -printtoconsole</code></pre>
 <p>The window will fill with lines. That is the node introducing itself to other nodes and asking them for the list. Leave it running.</p>
 <p>To watch it in another terminal:</p>
