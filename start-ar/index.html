@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ابدأ من هنا — WAM Coin</title>
+<link rel="icon" href="/favicon.png" type="image/png">
+<meta name="description" content="كيف تُشغّل عقدة WAM، لمن لم يُشغّل عقدةً من قبل.">
+<link rel="canonical" href="https://wamcoin.org/start-ar/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="WAM Coin">
+<meta property="og:title" content="ابدأ من هنا — WAM Coin">
+<meta property="og:description" content="شغّل عقدةً بأربعة أوامر، مع خطوة التحقّق التي تتخطّاها أغلب الأدلّة.">
+<meta property="og:image" content="https://wamcoin.org/og-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://wamcoin.org/og-card.png">
+<style>
+:root{--bg:#faf9f7;--fg:#1a1a1a;--dim:#5c5a57;--rule:#e3e0db;--code:#f2f0ec;--accent:#8a6d1f}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0e1211;--fg:#eceae7;--dim:#9a9691;--rule:#242a29;--code:#171d1c;--accent:#c9a94a}}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);margin:0;padding:2.2rem 1.1rem 5rem;
+ font:16px/1.72 ui-serif,Georgia,"Times New Roman",serif;-webkit-text-size-adjust:100%}
+main{max-width:44rem;margin:0 auto}
+h1{font-size:1.85rem;line-height:1.25;margin:0 0 .4rem;letter-spacing:-.01em}
+h2{font-size:1.28rem;margin:2.6rem 0 .7rem;padding-top:1.1rem;border-top:1px solid var(--rule)}
+h3{font-size:1.06rem;margin:1.8rem 0 .5rem}
+p,li{margin:.75rem 0}
+a{color:inherit;text-decoration:underline;text-underline-offset:2px;text-decoration-color:var(--accent)}
+code{background:var(--code);padding:.12em .38em;border-radius:3px;
+ font:13.5px/1.5 ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;word-break:break-word}
+pre{background:var(--code);padding:.95rem 1.05rem;border-radius:6px;overflow-x:auto;
+ border:1px solid var(--rule)}
+pre code{background:none;padding:0;white-space:pre}
+blockquote{margin:1.1rem 0;padding:.1rem 0 .1rem 1rem;border-inline-start:3px solid var(--accent);color:var(--dim)}
+table{border-collapse:collapse;width:100%;margin:1.1rem 0;font-size:.94rem;display:block;overflow-x:auto}
+th,td{border-bottom:1px solid var(--rule);padding:.5rem .6rem;text-align:start}
+th{font-weight:600}
+hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
+.top{display:flex;gap:1rem;flex-wrap:wrap;font-size:.9rem;color:var(--dim);
+ margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid var(--rule)}
+.foot{margin-top:3.5rem;padding-top:1.2rem;border-top:1px solid var(--rule);
+ font-size:.87rem;color:var(--dim)}
+[dir=rtl]{font-family:ui-serif,"Noto Naskh Arabic","Amiri",Georgia,serif}
+[dir=rtl] pre,[dir=rtl] code{direction:ltr;text-align:left}
+</style>
+</head>
+<body>
+<main>
+<nav class="top">
+  <a href="/">الصفحة الرئيسية</a>
+  <a href="/start/">English</a>
+  <a href="https://github.com/wam-coin-official/wam-coin/blob/main/docs/START_HERE_AR.md">المصدر</a>
+</nav>
+<h1 id="">ابدأ من هنا</h1>
+<p><strong><a href="/start/">English</a></strong></p>
+<p>هذه الصفحة تفترض أنك لا تعرف شيئاً عن العملات الرقمية. وإن كنت تُشغّل عقدة لعملة أخرى، فاقفز إلى <a href="#٣-تشغيل-عقدة">تشغيل عقدة</a> — الأوامر كما تتوقّع، والأرقام كلها في جدول آخر الصفحة.</p>
+<hr>
+<h2 id="wam">١. ما هي WAM، بكلام بسيط</h2>
+<p>WAM نقودٌ لا تُصدرها شركة ولا يحفظها مصرف.</p>
+<p>هناك سجلٌّ فيه كل دفعة جرت منذ أول يوم، وآلاف الحواسيب يحتفظ كلٌّ منها بنسخته من ذلك السجل. حين تُرسل WAM، تُعلَن دفعتك لها جميعاً، فتفحصها كلٌّ بنسخته، فإن كانت سليمة أضافوها. ولا يستطيع أحد أن يُغيّر السجل بعدها في الخفاء، لأن البقية ما زالوا يحملون النسخة التي بلا تغييرك.</p>
+<p>هذا السجلّ اسمه <strong>البلوكشين</strong>. والحاسوب الذي يحتفظ بنسخة منه اسمه <strong>عقدة</strong>.</p>
+<p><strong>ولماذا يهتمّ أحد بهذا؟</strong> لأن أحداً لا يستطيع تجميدها، ولا تحتاج إذن أحد لتستقبلها، ولا يستطيع أحد أن يطبع منها أكثر من <strong>22,000,000</strong> — أبداً. وهذا الرقم ليس وعداً، بل حساباً تفحصه كل عقدة عند كل كتلة، والكتلة التي تكسره يرميها غرباء لم يسمعوا بك قط.</p>
+<p><strong>وما الذي يميّزها عن بيتكوين؟</strong> تعدين بيتكوين اليوم يحتاج أجهزة متخصّصة تكلّف آلافاً. أما WAM فتستعمل خوارزمية اسمها <strong>RandomX</strong> تعمل بأفضل ما يكون على المعالج العادي الموجود في حاسوبك. والقصد أن يشارك صاحب الحاسوب الواحد، لا صاحب المستودع وحده.</p>
+<hr>
+<h2 id="">٢. ماذا تحتاج</h2>
+<ul><li>حاسوب عليه لينكس — حاسوب محمول يكفي</li><li>نحو 2 غيغابايت ذاكرة حرّة و5 غيغابايت على القرص</li><li>اتصال بالإنترنت</li></ul>
+<p>هذا كل شيء. لا كرت شاشة، ولا عتاد خاص، ولا مال لتبدأ.</p>
+<blockquote><p><strong>وإن كان عندك ويندوز أو ماك؟</strong> الإصدار الحالي مبنيّ للينكس. على ويندوز تستطيع استعمال <strong>WSL</strong> — وهو لينكس داخل ويندوز. وإصدارات ويندوز وماك مخطّط لها ولم توجد بعد، ولن تدّعي هذه الصفحة غير ذلك.</p></blockquote>
+<hr>
+<h2 id="">٣. تشغيل عقدة</h2>
+<p>العقدة برنامج يحتفظ بنسخة من السجل ويفحص كل دفعة عليه. يعمل بهدوء في الخلفية. لستَ مضطراً لتشغيل واحدة لتملك WAM، لكن تشغيلها يعني أنك <strong>تتحقّق من القواعد بنفسك</strong> بدل أن تثق بجواب غيرك.</p>
+<h3 id="">التنزيل</h3>
+<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.5/wam-coin-v0.1.5-x86_64-linux-gnu.tar.gz
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.5/SHA256SUMS</code></pre>
+<h3 id="">تأكّد أنه ملفّنا فعلاً</h3>
+<pre><code>sha256sum --ignore-missing -c SHA256SUMS</code></pre>
+<p>يجب أن ترى كلمة <code>OK</code>. وإن رأيت <code>FAILED</code> فالتنزيل تشوّه أو بُدِّل — احذفه ونزّله من جديد. <strong>لا تتخطَّ هذه الخطوة.</strong> تكلّف ثانية واحدة، وهي الشيء الوحيد الفاصل بينك وبين ملف وضعه غيرنا مكانه.</p>
+<h3 id="">الفكّ والتشغيل</h3>
+<pre><code>tar -xzf wam-coin-v0.1.5-x86_64-linux-gnu.tar.gz
+cd wam-coin-v0.1.5/bin
+./wamd -testnet -printtoconsole</code></pre>
+<p>ستمتلئ النافذة بأسطر. هذه العقدة تُعرّف بنفسها لبقية العقد وتطلب منهم السجل. اتركها تعمل.</p>
+<p>ولتراقبها من نافذة أخرى:</p>
+<pre><code>./wam-cli -testnet getblockcount</code></pre>
+<p>يطبع لك عدد الكتل التي عندك. يجب أن يصعد حتى يساوي ما يعرضه <a href="https://explorer.wamcoin.org">explorer.wamcoin.org</a>.</p>
+<blockquote><p><strong>ولماذا <code>-testnet</code>؟</strong> لأن الشبكة الحقيقية لم تُطلق بعد. انظر <a href="#٧-أمران-يجب-أن-تعرفهما">القسم ٧</a>.</p></blockquote>
+<hr>
+<h2 id="">٤. اصنع لنفسك عنواناً</h2>
+<p>العنوان هو المكان الذي تُرسَل إليه WAM، كرقم الحساب. مجاني، وتصنع منه ما شئت، ولا تُسجّله عند أحد.</p>
+<pre><code>./wam-cli -testnet createwallet "mine"
+./wam-cli -testnet -rpcwallet=mine getnewaddress</code></pre>
+<p>سيخرج لك شيء مثل <code>twam1q4syaj2akkysnsymxm8g85whanz23v3jn0jm6dd</code>. هذا عنوانك. يستطيع أي أحد أن يُرسل إليه، ولا يستطيع أحد غيرك أن يُنفق منه.</p>
+<blockquote><p><strong>والقاعدة الوحيدة التي تهمّ:</strong> ملف <code>wallet.dat</code> داخل مجلد العقدة يحمل مفاتيح مالك. انسخه إلى مكان آمن. إن ضاع، ضاعت العملات — لا يوجد رقم دعم، ولا استعادة كلمة مرور، ولا أحد يستطيع مساعدتك. وهي نفسها الحرّية التي تعني أن أحداً لا يستطيع تجميد مالك، منظوراً إليها من الوجه الآخر.</p></blockquote>
+<hr>
+<h2 id="">٥. التعدين</h2>
+<p>التعدين هو أن يتنافس حاسوبك ليكون هو من يُضيف الكتلة التالية إلى السجل. ومن يُضيفها يُدفع له مقابل عمله: <strong>50 WAM</strong>، منها 47.5 للمعدّنين و2.5 لخزينة المشروع، وذلك لأول 400,000 كتلة.</p>
+<p>والحاسوب الواحد يفوز نادراً، فالمعدّنون ينضمّون إلى <strong>مجمّع</strong>: يعمل الجميع معاً ويُقسَّم العائد بقدر ما أسهم كلٌّ منهم. دفعات صغيرة منتظمة بدل يانصيب.</p>
+<h3 id="">وجّه معدّنك إلى المجمّع</h3>
+<pre><code>./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u عنوانك.rig1 -t 4</code></pre>
+<p>ضع مكان <code>عنوانك</code> العنوانَ الذي أخذته في الخطوة ٤. وأبقِ <code>.rig1</code> — هي مجرّد اسم لهذا الجهاز، لتفرّق بين حواسيبك لاحقاً.</p>
+<p>و<code>-t 4</code> هو عدد أنوية المعالج المستعملة. اترك نواةً أو اثنتين إن أردت أن يبقى الحاسوب صالحاً للاستعمال.</p>
+<h3 id="">أي منفذ تختار</h3>
+<table><tr><th>المنفذ</th><th>لمن</th><th>المعنى</th></tr><tr><td><strong>3333</strong></td><td>حاسوب محمول أو مكتبي</td><td>ابدأ من هنا</td></tr><tr><td>3334</td><td>خادم</td><td>تقارير أقل وأكبر</td></tr><tr><td>3335</td><td>مزرعة أجهزة</td><td></td></tr></table>
+<p>وإن لم تكن متأكّداً فاستعمل 3333. المجمّع يضبط نفسه على سرعتك تلقائياً.</p>
+<h3 id="">ماذا سترى</h3>
+<pre><code>stats    3.41 kH/s   accepted 20  rejected 0  blocks 1</code></pre>
+<ul><li><strong>kH/s</strong> — آلاف المحاولات في الثانية. هذه سرعتك.</li><li><strong>accepted</strong> — إثباتات عمل قبلها المجمّع. صعود هذا الرقم يعني أن الأمر يعمل.</li><li><strong>rejected</strong> — يجب أن يبقى قرب الصفر. فإن صعد فقد تكون ساعة جهازك خاطئة:</li></ul>
+<p>  <code>sudo timedatectl set-ntp true</code></p>
+<ul><li><strong>blocks</strong> — الكتل التي وجدها جهازك. سيبقى صفراً وقتاً طويلاً، وهذا طبيعي.</li></ul>
+<hr>
+<h2 id="">٦. ماذا تتوقّع</h2>
+<table><tr><th></th><th></th></tr><tr><td>كتلة جديدة كل</td><td>دقيقتين تقريباً</td></tr><tr><td>العائد لكل كتلة</td><td>50 WAM (منها 47.5 للمعدّنين)</td></tr><tr><td>يُنصَّف كل</td><td>200,000 كتلة — نحو خمسة عشر شهراً</td></tr><tr><td>أقصى ما سيوجد</td><td>22,000,000 WAM</td></tr><tr><td>العائد يصير قابلاً للإنفاق بعد</td><td>100 كتلة — نحو ثلاث ساعات</td></tr></table>
+<p>والسطر الأخير يفاجئ الناس. عائد التعدين مجمَّد مئة كتلة قبل أن يُنفَق. وكل عملة تعمل بهذا المنطق تفعل الشيء نفسه، لسبب: يمنع إنفاق مالٍ من كتلة قد يتبيّن لاحقاً أنها ليست من السجل.</p>
+<hr>
+<h2 id="">٧. أمران يجب أن تعرفهما</h2>
+<p><strong>الشبكة الحقيقية لم تُطلق.</strong> تُطلق في <strong>١٥ سبتمبر ٢٠٢٦</strong>. وكل ما سبق يوصلك بـ<strong>شبكة الاختبار</strong>، وهي موجودة ليتمرّن الناس ولتُكتشف الأعطال قبل أن يدخل مالٌ حقيقي.</p>
+<p><strong>عملات الاختبار لا تساوي شيئاً.</strong> لا تُباع، ولن تتحوّل إلى عملات حقيقية، وشبكة الاختبار تُمسح وتُعاد كلما لزم — وقد حدث ذلك فعلاً. عدِّن فيها لتتعلّم ولتساعد، لا لتربح.</p>
+<p>وحين تُطلق الشبكة الرئيسية، تعمل الأوامر نفسها بلا <code>-testnet</code>.</p>
+<hr>
+<h2 id="">٨. حين يقع خلل</h2>
+<p><strong>العقدة تطبع أخطاءً وتتوقّف.</strong> اقرأ آخر سطر قبل توقّفها؛ يقول عادةً ما ينقصه بالضبط. وإن ذكر أن منفذاً مستعمل أصلاً، فنسخة أخرى تعمل بالفعل.</p>
+<p><strong><code>getblockcount</code> يقول صفراً ولا يتحرّك.</strong> عقدتك لم تجد من تكلّمه. تأكّد من الإنترنت، وانتظر دقيقتين — تُعيد المحاولة وحدها.</p>
+<p><strong>المعدّن يقول <code>cannot connect</code>.</strong> راجع عنوان المجمّع من أخطاء الكتابة. وبعض الشبكات تحجب المنافذ غير المألوفة — جرّب من اتصال آخر.</p>
+<p><strong>المعدّن يعمل لكن <code>accepted</code> يبقى صفراً.</strong> غالباً صيغة العنوان خاطئة. يجب أن يبدأ بـ<code>twam1</code> على شبكة الاختبار — وعنوان الشبكة الرئيسية يُرفض.</p>
+<p><strong>كل شيء يبدو سليماً ولم أجد كتلة قط.</strong> هذا طبيعي. جهاز واحد بين كثيرين يجد كتلة نادراً، ولهذا وُجد المجمّع — وحصّتك مما يجده المجمّع تُدفع إلى عنوانك على كل حال.</p>
+<hr>
+<h2 id="">٩. الأرقام، لمن يريدها</h2>
+<table><tr><th></th><th>الشبكة الرئيسية</th><th>شبكة الاختبار</th></tr><tr><td>منفذ الأقران</td><td>9555</td><td>19555</td></tr><tr><td>منفذ RPC</td><td>9554</td><td>19554</td></tr><tr><td>العناوين تبدأ بـ</td><td><code>W</code> و<code>w</code> و<code>wam1</code></td><td><code>T</code> و<code>t</code> و<code>twam1</code></td></tr><tr><td>كتلة الأصل</td><td><code>d8d3debe…</code></td><td><code>ce81c20a…</code></td></tr></table>
+<p>إثبات العمل هو RandomX فوق ترويسة بيتكوين ذات الثمانين بايت. وكل ما عداه — صيغة المعاملات، ولغة السكربت، وSegWit، وPSBT — هو Bitcoin Core v28.1، لأن 250,000 سطر هوجمت خمسة عشر عاماً أأمن من أي شيء يُعاد كتابته من الصفر.</p>
+<hr>
+<h2 id="">إلى أين بعد هذا</h2>
+<ul><li><strong><a href="../WHITEPAPER.md">الورقة البيضاء</a></strong> — لماذا تعمل النقود بهذه الطريقة</li><li><strong><a href="BUILD.md">ابنِها بنفسك</a></strong> — ترجمها من المصدر بدل الوثوق بتنزيل</li><li><strong><a href="POOL_OPERATOR.md">شغّل مجمّعاً</a></strong> — إن أردت أن تستضيف واحداً للآخرين</li><li><strong><a href="https://explorer.wamcoin.org">explorer.wamcoin.org</a></strong> — انظر إلى السلسلة</li></ul>
+<p>  بلا أن تُشغّل شيئاً</p>
+<p>للأسئلة: <code>wam.coin.official@proton.me</code></p>
+<p class="foot">هذه الصفحة مولَّدة من docs/START_HERE_AR.md في المستودع. هي النصّ نفسه — لا شيء مكتوبٌ مرّتين.</p>
+</main>
+</body>
+</html>
