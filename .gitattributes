@@ -1,0 +1,60 @@
+# ===========================================================================
+#  .gitattributes -- line endings are decided here, not by whoever edited last
+# ===========================================================================
+#
+#  WHY THIS FILE EXISTS
+#
+#  This repository is written from a Windows machine and runs on Linux
+#  servers. Three times an editor on the Windows side rewrote a whole file
+#  with CRLF line endings, and each time the damage was quiet:
+#
+#    - a thirty-line change to miner/src/stratum.h arrived as a 1097-line
+#      diff, which is a diff nobody can review
+#    - scripts/gen_founder_key.py, the script that generates the founder's
+#      key from a live USB, carried a shebang ending in a carriage return.
+#      Run as ./scripts/gen_founder_key.py it answers "bad interpreter" --
+#      at the one moment its operator is alone in front of a machine with
+#      no second chance
+#    - shell scripts on the servers had already broken this way once
+#
+#  core.autocrlf is a per-machine setting; it protects whoever set it and
+#  nobody else. This file travels with the repository, so every clone and
+#  every contributor gets the same answer.
+#
+#  scripts/test/test_line_endings.sh enforces it, because a rule that is
+#  never checked is a preference.
+# ===========================================================================
+
+# Everything git recognises as text is stored and checked out with LF.
+* text=auto eol=lf
+
+# Said explicitly for the file types that break rather than merely look odd.
+*.sh        text eol=lf
+*.py        text eol=lf
+*.h         text eol=lf
+*.cpp       text eol=lf
+*.js        text eol=lf
+*.json      text eol=lf
+*.md        text eol=lf
+*.txt       text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.html      text eol=lf
+*.css       text eol=lf
+*.xml       text eol=lf
+*.svg       text eol=lf
+*.conf      text eol=lf
+*.service   text eol=lf
+Makefile*   text eol=lf
+
+# Binaries: never touched, never diffed as text.
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.pdf       binary
+*.gz        binary
+*.tar       binary
+*.zip       binary
+*.tar.gz    binary

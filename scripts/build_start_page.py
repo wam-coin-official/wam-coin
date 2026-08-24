@@ -234,7 +234,13 @@ def build(src, outdir, lang, direction, title):
 """
     d = REPO / outdir
     d.mkdir(parents=True, exist_ok=True)
-    (d / "index.html").write_text(page, encoding="utf-8")
+    # newline="\n" is not decoration. Python's text mode translates \n to
+    # \r\n on Windows, and this generator is run from Windows: both start
+    # pages went into the repository with CRLF on every line and nothing
+    # said so. The rest of the generators here run only inside the Linux
+    # build, where the translation is a no-op, and scripts/test/
+    # test_line_endings.sh catches any file that slips through anyway.
+    (d / "index.html").write_text(page, encoding="utf-8", newline="\n")
     return len(page)
 
 

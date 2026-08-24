@@ -89,6 +89,13 @@ run "repository self-agreement"  bash scripts/audit_repo.sh
 run "vesting tables agree"       python3 scripts/check_vesting_sync.py
 run "supply arithmetic"          python3 scripts/verify_supply.py
 run "executable bits in index"   bash scripts/test/test_exec_bits.sh
+
+# Its neighbour above checks that a script is marked runnable. This checks
+# that it can actually run. A carriage return at the end of a shebang line
+# makes the kernel look for an interpreter named "python3\r", and the error
+# it prints says nothing about why. gen_founder_key.py -- run once, from a
+# live USB, by one person -- sat in this repository that way.
+run "line endings are LF"        bash scripts/test/test_line_endings.sh
 run "service hardening"          bash scripts/test/test_harden.sh
 
 # Asked before a chain is started, not after. A consensus value that changes
