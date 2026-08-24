@@ -82,3 +82,12 @@ __pycache__/
 *.swp
 .DS_Store
 Thumbs.db
+
+# ---------------------------------------------------------------------------
+# Miner build output
+# ---------------------------------------------------------------------------
+# A 350 KB binary sitting untracked next to its own source is one careless
+# 'git add .' away from being committed, and a committed binary is a binary
+# nobody can tell you the source of.
+miner/wam-miner
+miner/build/

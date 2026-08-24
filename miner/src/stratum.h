@@ -35,6 +35,8 @@
 #include <functional>
 #include <mutex>
 #include <set>
+#include <chrono>
+#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -118,6 +120,52 @@ public:
 
     // -----------------------------------------------------------------------
 
+    // Five block times. A pool sends a job on every block, so this is
+    // generous: nothing legitimate is quiet for ten minutes.
+    //
+    // Overridable so the behaviour can actually be tested. A watchdog that
+    // has never been seen to fire is a watchdog nobody knows works, and this
+    // one exists precisely because something failed silently for six hours.
+    static long SilenceLimitSeconds()
+    {
+        if (const char* e = std::getenv("WAM_MINER_SILENCE_SECONDS")) {
+            const long v = std::atol(e);
+            if (v > 0) return v;
+        }
+        return 600;
+    }
+
+    /**
+     * Called only from the one place it can be called honestly: straight
+     * after a read that returned nothing, so we know the socket was asked
+     * and had nothing to give.
+     *
+     * The first version of this ran at the top of Poll(), before the read,
+     * and was wrong in a way a test caught immediately. RandomX builds its
+     * dataset on a seed change and that takes 80 seconds on one thread; the
+     * whole loop stops for the duration. The pool had sent a job two seconds
+     * in and it sat unread in the kernel's buffer the entire time -- so the
+     * check woke up, measured "nothing read for 80s", and threw away a live
+     * connection carrying a job it had not yet looked at.
+     *
+     * Silence is a property of the pool, not of how busy we were. Measuring
+     * it anywhere but here confuses the two.
+     */
+    void CheckSilence()
+    {
+        if (m_lastRx.time_since_epoch().count() == 0) return;
+
+        const auto quiet = std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::steady_clock::now() - m_lastRx).count();
+        if (quiet <= SilenceLimitSeconds()) return;
+
+        // Closing is the whole action: the main loop reconnects as soon as
+        // IsConnected() goes false.
+        Report("no job or reply from the pool for " + std::to_string(quiet)
+               + "s -- the connection is carrying nothing; reconnecting");
+        Close();
+    }
+
     bool Connect(std::string& err)
     {
         Close();
@@ -163,6 +211,7 @@ public:
         timeval rto{};
         rto.tv_sec  = 1;
         setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &rto, sizeof(rto));
+        m_lastRx = std::chrono::steady_clock::now();
 
         m_fd = fd;
         m_buffer.clear();
@@ -199,6 +248,27 @@ public:
 
         if (m_fd < 0) return;
 
+        // Seconds in which this loop was not listening cannot be charged to
+        // the pool.
+        //
+        // RandomX rebuilds its dataset whenever the seed changes, and that
+        // stops the whole loop -- 78 seconds on one thread, measured. The
+        // pool has nothing to answer for during it, and we could not have
+        // read a byte if it had. Without this the watchdog wakes up, counts
+        // the stall as silence, and throws away a healthy connection holding
+        // a fresh job. That is not hypothetical: it is what the test showed
+        // on the first two attempts at this file.
+        //
+        // A healthy turn of the loop comes back within the socket's 1s
+        // receive timeout, so any gap far past that was time spent elsewhere.
+        const auto now = std::chrono::steady_clock::now();
+        if (m_lastPoll.time_since_epoch().count() != 0 &&
+            m_lastRx.time_since_epoch().count() != 0) {
+            const auto gap = now - m_lastPoll;
+            if (gap > std::chrono::seconds(5)) m_lastRx += gap;
+        }
+        m_lastPoll = now;
+
         char chunk[8192];
         const ssize_t n = ::recv(m_fd, chunk, sizeof(chunk), 0);
 
@@ -208,12 +278,18 @@ public:
             return;
         }
         if (n < 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) return;
+            if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+                // The socket was asked and had nothing to give. That is the
+                // only moment at which silence can honestly be measured.
+                CheckSilence();
+                return;
+            }
             Report(std::string("read failed: ") + std::strerror(errno));
             Close();
             return;
         }
 
+        m_lastRx = std::chrono::steady_clock::now();
         m_buffer.append(chunk, size_t(n));
 
         // A pool that never sends a newline is either broken or hostile.
@@ -486,6 +562,27 @@ private:
 
     bool  m_subscribed = false;
     bool  m_authorized = false;
+
+    // When anything last arrived from the pool.
+    //
+    // On 2026-08-24 this miner sat for six hours on a job from height 1370
+    // while the chain reached 1430. It was not disconnected: recv() never
+    // returned 0 and never returned an error, so nothing here noticed. The
+    // socket was half-open -- alive as far as this end could tell, and
+    // carrying nothing. SO_KEEPALIVE is set, but Linux waits two hours
+    // before its first probe and the machine had been quiet for six.
+    //
+    // The log said "0.0 H/s" every thirty seconds and systemd reported the
+    // service active. Nothing was wrong anywhere except that no work was
+    // being done.
+    //
+    // Rather than diagnose which kind of silence it was -- a dropped NAT
+    // entry, a pool that stopped writing, a route that changed -- silence
+    // itself past a threshold is treated as failure. The pool sends a job on
+    // every block, roughly every two minutes, so several minutes of nothing
+    // at all can only mean the connection is no longer carrying anything.
+    std::chrono::steady_clock::time_point m_lastRx{};
+    std::chrono::steady_clock::time_point m_lastPoll{};
     Bytes m_extranonce1;
     int   m_extranonce2Size = 4;
     Bytes m_lastSeed;
