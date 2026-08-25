@@ -181,6 +181,31 @@ jobs:
           mandatory="$(git tag -l --format='%(contents)' "$VERSION" \
                        | grep -iE '^[[:space:]]*MANDATORY:' | head -1 || true)"
 
+          # A release that changes a consensus rule has to say so, and the
+          # only thing that ever checked was somebody's memory.
+          #
+          # v0.1.5 moved the mainnet treasury address -- the one consensus
+          # change this project has made since genesis -- and was published
+          # with no MANDATORY line at all. Every mechanism built for that
+          # case sat idle: the release notes did not carry the warning, the
+          # bot announced it as ordinary news, and two independent operators
+          # stayed on v0.1.4 for two days.
+          #
+          # consensus_floor.py derives, from the tags themselves, which
+          # release last changed a consensus value. If that release is this
+          # one, the tag must declare it.
+          floor="$(python3 scripts/consensus_floor.py 2>/dev/null || true)"
+          if [ "$floor" = "$VERSION" ] && [ -z "$mandatory" ]; then
+            echo "::error::$VERSION changes a consensus value and its tag has no MANDATORY: line."
+            echo "Nodes on any earlier release will reject every valid block and fork off,"
+            echo "and nothing will tell them. Re-tag with a line reading:"
+            echo
+            echo "    MANDATORY: <one line saying what changed and what happens if you do not update>"
+            echo
+            python3 scripts/consensus_floor.py --explain || true
+            exit 1
+          fi
+
           # The rest of the tag message is the release note.
           #
           # It was thrown away until v0.1.6, which was tagged with a full
