@@ -136,6 +136,31 @@ public:
     }
 
     /**
+     * How far real time may run ahead of monotonic time before this process
+     * concludes it was not running.
+     *
+     * Sixty seconds is far above any single correction NTP would make, and
+     * the cost of being wrong is one reconnection.
+     *
+     * WAM_MINER_SUSPEND_GRACE_SECONDS overrides it, negative values included.
+     * A negative threshold makes the branch fire on an ordinary poll, which
+     * is the only way to watch this path run without suspending a machine --
+     * and a recovery nobody has seen recover is a recovery nobody can vouch
+     * for. The silence watchdog exists because something failed quietly for
+     * six hours; this one exists because that watchdog was then blind for
+     * three hours and forty-six minutes more.
+     */
+    static long SuspendGraceSeconds()
+    {
+        if (const char* e = std::getenv("WAM_MINER_SUSPEND_GRACE_SECONDS")) {
+            char* end = nullptr;
+            const long v = std::strtol(e, &end, 10);
+            if (end && end != e) return v;
+        }
+        return 60;
+    }
+
+    /**
      * Called only from the one place it can be called honestly: straight
      * after a read that returned nothing, so we know the socket was asked
      * and had nothing to give.
@@ -262,12 +287,68 @@ public:
         // A healthy turn of the loop comes back within the socket's 1s
         // receive timeout, so any gap far past that was time spent elsewhere.
         const auto now = std::chrono::steady_clock::now();
+        const auto wall = std::chrono::system_clock::now();
+
+        // A machine that was suspended cannot measure how long it was gone,
+        // and the silence watchdog above is blind to it.
+        //
+        // The founder's miner runs inside WSL on a laptop. On 25 August that
+        // laptop slept from 07:19 to 11:05. The VM was paused by Windows
+        // without the guest kernel recording a suspend, so steady_clock did
+        // not advance -- CLOCK_MONOTONIC and CLOCK_BOOTTIME were still equal
+        // afterwards, and the process printed nothing for three hours and
+        // forty-six minutes. On waking it solved a job that had gone stale
+        // hours earlier and then sat at 0 H/s, because the pool had long
+        // since dropped a connection the miner still believed in.
+        //
+        // The watchdog was right and useless: no monotonic time had passed,
+        // so there was no silence to measure, and it would have needed ten
+        // further real minutes before saying anything.
+        //
+        // The wall clock is the one thing that did move -- WSL resynchronises
+        // it from Windows on resume. So the two clocks are compared: when
+        // real time has run far ahead of monotonic time, this process was
+        // not running, and any socket it holds is a socket the far end
+        // stopped hearing from long ago. Reconnecting costs a second.
+        //
+        // The threshold is well above any clock correction NTP would make in
+        // one step, and the cost of being wrong is one reconnection.
+        if (m_lastPoll.time_since_epoch().count() != 0) {
+            const auto monotonic = std::chrono::duration_cast<std::chrono::seconds>(
+                now - m_lastPoll).count();
+            const auto real = std::chrono::duration_cast<std::chrono::seconds>(
+                wall - m_lastWall).count();
+            if (real - monotonic > SuspendGraceSeconds()) {
+                Report("this machine was suspended for about "
+                       + std::to_string(real - monotonic)
+                       + "s -- the pool stopped hearing from us long ago; reconnecting");
+                Close();
+                m_lastPoll = now;
+                m_lastWall = wall;
+                return;
+            }
+        }
+
+        // Seconds in which this loop was not listening cannot be charged to
+        // the pool.
+        //
+        // RandomX rebuilds its dataset whenever the seed changes, and that
+        // stops the whole loop -- 78 seconds on one thread, measured. The
+        // pool has nothing to answer for during it, and we could not have
+        // read a byte if it had. Without this the watchdog wakes up, counts
+        // the stall as silence, and throws away a healthy connection holding
+        // a fresh job. That is not hypothetical: it is what the test showed
+        // on the first two attempts at this file.
+        //
+        // A healthy turn of the loop comes back within the socket's 1s
+        // receive timeout, so any gap far past that was time spent elsewhere.
         if (m_lastPoll.time_since_epoch().count() != 0 &&
             m_lastRx.time_since_epoch().count() != 0) {
             const auto gap = now - m_lastPoll;
             if (gap > std::chrono::seconds(5)) m_lastRx += gap;
         }
         m_lastPoll = now;
+        m_lastWall = wall;
 
         char chunk[8192];
         const ssize_t n = ::recv(m_fd, chunk, sizeof(chunk), 0);
@@ -583,6 +664,7 @@ private:
     // at all can only mean the connection is no longer carrying anything.
     std::chrono::steady_clock::time_point m_lastRx{};
     std::chrono::steady_clock::time_point m_lastPoll{};
+    std::chrono::system_clock::time_point m_lastWall{};
     Bytes m_extranonce1;
     int   m_extranonce2Size = 4;
     Bytes m_lastSeed;
