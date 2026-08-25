@@ -37,10 +37,14 @@
 
 import argparse
 import json
+import pathlib
 import re
 import subprocess
 import sys
 from collections import Counter
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from consensus_floor import floor as consensus_floor  # noqa: E402
 
 RED = "\033[31m"; GRN = "\033[32m"; YEL = "\033[33m"; BLD = "\033[1m"; OFF = "\033[0m"
 _fails = []
@@ -113,14 +117,36 @@ def main():
         print()
         return 1
 
+    # The line that matters is not "older than what we happen to run". It is
+    # "older than the release that last changed a consensus rule", and that is
+    # derived from the repository rather than from whichever node was asked.
+    #
+    # Getting this wrong is not a cosmetic error. Within an hour of upgrading
+    # our own nodes to v0.1.6 -- a miner fix touching no rule -- this check
+    # was reporting that a node on v0.1.5 would be thrown off mainnet at
+    # height 1. An operator who had just done exactly the right thing would
+    # have been told it was not enough, by the one warning here that has to be
+    # believed on 15 September.
+    floor_tag, floor_why = consensus_floor()
+    floor_v = (floor_tag or "0.0.0").lstrip("v")
+    ok(f"consensus floor: v{floor_v} -- {floor_why}")
+
     counts = Counter(by_addr.values())
     print()
     for v in sorted(counts, key=ver_tuple, reverse=True):
-        marker = "" if ver_tuple(v) >= ver_tuple(current) else "   <- will be rejected on mainnet"
+        if ver_tuple(v) < ver_tuple(floor_v):
+            marker = "   <- will be rejected on mainnet"
+        elif ver_tuple(v) < ver_tuple(current):
+            marker = "   (older than ours, and valid)"
+        else:
+            marker = ""
         print(f"        v{v:<10} {counts[v]} peer(s){marker}")
 
     independent = {ip: v for ip, v in by_addr.items() if ip not in ours}
-    behind = {ip: v for ip, v in independent.items() if ver_tuple(v) < ver_tuple(current)}
+    behind = {ip: v for ip, v in independent.items()
+              if ver_tuple(v) < ver_tuple(floor_v)}
+    older = {ip: v for ip, v in independent.items()
+             if ver_tuple(floor_v) <= ver_tuple(v) < ver_tuple(current)}
 
     print()
     ok(f"{len(by_addr)} peer(s), of which {len(independent)} are not ours")
@@ -130,14 +156,23 @@ def main():
              "nobody to notice if this chain stops")
     elif behind:
         bad(f"{len(behind)} of {len(independent)} independent operator(s) run a "
-            f"version older than v{current}. On mainnet each of them will reject "
-            f"every valid block and fork off at height 1. They cannot be messaged "
-            f"-- the protocol carries no notices -- so the announcement channels "
-            f"and the GitHub release watch are the only ways they will hear.")
+            f"version older than v{floor_v}, the release that last changed a "
+            f"consensus rule. On mainnet each of them will reject every valid "
+            f"block and fork off at height 1. They cannot be messaged -- the "
+            f"protocol carries no notices -- so the announcement channels and "
+            f"the GitHub release watch are the only ways they will hear.")
         for v in sorted(set(behind.values()), key=ver_tuple):
             print(f"        {sum(1 for x in behind.values() if x == v)} on v{v}")
     else:
-        ok(f"every independent operator is on v{current} or newer")
+        ok(f"every independent operator is on v{floor_v} or newer -- none of "
+           f"them will be rejected")
+        # Said, but not as a failure. Running one release behind is a choice
+        # an operator is entitled to make, and calling it red teaches them to
+        # stop reading the colour.
+        if older:
+            warn(f"{len(older)} of them run something older than the v{current} "
+                 f"we run, which is valid and costs them only whatever that "
+                 f"release fixed")
 
     print()
     if _fails:
