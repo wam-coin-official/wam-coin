@@ -79,6 +79,7 @@ while [ $# -gt 0 ]; do
         --skip-deps)  SKIP_DEPS=1 ;;
         --network)    NETWORK="${2:?--network needs a value}"; shift ;;
         --jobs)       JOBS="${2:?--jobs needs a value}"; shift ;;
+        --allow-outdated) ALLOW_OUTDATED=1 ;;
         -h|--help)    sed -n '5,30p' "$0"; exit 0 ;;
         *) die "unknown option '$1' (try --help)" ;;
     esac
@@ -93,6 +94,41 @@ esac
 [ "$(id -u)" -eq 0 ] && warn "running as root; the node will be installed for the root user"
 
 step "WAM Coin installer -- network: $NETWORK"
+
+# ===========================================================================
+# Is this clone still the software we publish?
+#
+# This script builds whatever is in the directory it was run from, and until
+# now it never asked whether that was current. The explorer invites strangers
+# with one line -- "Run one yourself: ./install.sh --network testnet" -- so
+# somebody who cloned last week and ran it today silently got last week's
+# node. On 26 August somebody did exactly that and joined the network two
+# releases behind, stayed a few minutes, and left.
+#
+# Nothing had gone wrong from their side. We handed them a tool that builds
+# the past without saying so, and a person running a withdrawn release does
+# not conclude "my copy is old" -- they conclude the software is broken, and
+# they do not come back.
+#
+# It refuses rather than warns because a warning scrolls past in a build log
+# nobody reads, and because the correct action is one command away.
+# ===========================================================================
+if [ "${ALLOW_OUTDATED:-0}" != "1" ]; then
+    bash "$REPO_ROOT/scripts/check_checkout_current.sh"
+    case "$?" in
+        0) : ;;
+        2) die "this checkout builds a node the network will reject. Run the
+       command above, then start again. If you know exactly why you want an
+       old consensus and accept that the node will fork off alone, pass
+       --allow-outdated." ;;
+        *) die "this checkout is behind the newest release. Run the command
+       above, then start again -- it takes a second and it is the difference
+       between meeting WAM as it is and meeting a fault we already fixed.
+       To build it anyway, pass --allow-outdated." ;;
+    esac
+else
+    warn "--allow-outdated: not checking whether this checkout is current"
+fi
 
 # ===========================================================================
 step "1/6  Build dependencies"
