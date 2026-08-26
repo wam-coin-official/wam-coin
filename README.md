@@ -90,6 +90,7 @@ curl -fs localhost:8081/api/health || echo "WAM node is down"
 | Founder reserve | fully time-locked; nothing spendable at launch |
 | Release | [v0.1.6](https://github.com/wam-coin-official/wam-coin/releases), built and published by CI from a tag |
 | Independent review | two developers outside the project, both still reading — [findings and what changed](review/REVIEW_RESPONSE.md) |
+| Registry | [SLIP-0044](https://github.com/satoshilabs/slips/blob/master/slip-0044.md) coin type **5718349** and [SLIP-0173](https://github.com/satoshilabs/slips/blob/master/slip-0173.md) prefix **`wam`** — merged into SatoshiLabs' registry, 2026-08-26 |
 | Paid security audit | **none** |
 
 Two developers outside the project have read this code. The first found two
