@@ -10,10 +10,32 @@
 #  and it must talk to the node's RPC socket. A confined user with access to
 #  all of that would be a second root, which is not an improvement.
 #
-#  What it does NOT get is a network. A backup script that can reach the
-#  internet is a backup script that can be turned into an exfiltration tool
-#  by anything that compromises it. Copies leave this machine by being pulled
-#  from outside, over SSH, by a person who already has the key.
+#  What it does NOT get is a route off this machine. A backup script that can
+#  reach the internet is a backup script that can be turned into an
+#  exfiltration tool by anything that compromises it. Copies leave this
+#  machine by being pulled from outside, over SSH, by a person who already
+#  has the key.
+#
+#  THAT WAS ONCE WRITTEN AS PrivateNetwork=yes, AND IT BROKE THE BACKUP.
+#
+#  Two lines above said the script must talk to the node's RPC socket, and
+#  two lines below took the socket away. PrivateNetwork gives the service an
+#  empty network namespace: its 127.0.0.1 is not the host's, so the node is
+#  unreachable, and RestrictAddressFamilies=AF_UNIX forbade the IP socket
+#  outright. Every nightly run since 23 August failed with
+#
+#      the node is not answering, so no consistent wallet copy can be taken
+#
+#  which is exactly what the script should say when the node is down, and the
+#  node was up the whole time. The timer stayed green, the service failed
+#  quietly at 03:27 every morning, and the newest archive on this host was
+#  three days old before anybody looked. The one thing the backup exists to
+#  protect -- keys that cannot be rebuilt -- was the thing going unprotected.
+#
+#  IPAddressAllow is the precise tool for what the header actually wants:
+#  loopback reaches the node, everything else is refused by the kernel.
+#  Verified both ways on the host: wam-cli returns a block height, and curl
+#  to the internet times out.
 # ===========================================================================
 
 [Unit]
@@ -37,9 +59,16 @@ ExecStart=/usr/local/bin/wam-backup.sh
 #     Environment=WAM_NETWORK=mainnet
 Environment=WAM_NETWORK=testnet
 
-# No network. See the header.
-PrivateNetwork=yes
-RestrictAddressFamilies=AF_UNIX
+# wam-cli finds the node's cookie and config under $HOME/.wam. systemd sets
+# no HOME for a service that names no User=, so it looked in /.wam and
+# reported "Could not locate RPC credentials" -- the second half of the same
+# outage, and invisible until the first half was fixed.
+Environment=HOME=/root
+
+# Loopback only. See the header for what this replaced and why.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressDeny=any
+IPAddressAllow=localhost
 
 NoNewPrivileges=yes
 ProtectKernelTunables=yes

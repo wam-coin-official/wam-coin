@@ -207,6 +207,18 @@ else
         # saying so.
         run "every independent node can follow mainnet" \
             python3 scripts/check_peer_versions.py --node "$1" --network testnet
+
+        # The nightly backup failed on both servers every night from 23 to 26
+        # August and this sweep said 21 passed on each of those mornings,
+        # because nothing here had ever asked. The timer was green -- it fired
+        # correctly; the service died at 03:27 into a journal nobody reads.
+        #
+        # A backup is the only check whose absence is invisible until the day
+        # you need it, and by then asking is too late. So it is asked here,
+        # every time, and the question that cannot be fooled is the age of the
+        # newest file: a run can succeed and write nothing.
+        run "there is something to restore from" \
+            python3 scripts/check_backups.py $NODES
     fi
 fi
 
@@ -229,6 +241,20 @@ run "the project presents itself as a real one" \
 # founder reading his own documentation, which is not a mechanism.
 run "the documented version still exists" \
     python3 scripts/check_docs_version.py
+
+# The bot is how a node operator learns that a release changes a consensus
+# rule. There is no other way: the protocol carries blocks, not notices. A
+# bot that has quietly stopped is indistinguishable from a quiet week, and
+# the day it matters is the day nobody hears.
+#
+# check_bots.py existed and was not run by this sweep, which is the same
+# shape of gap as the backup: a check that works, and nothing calling it.
+if [ -n "$NODES" ]; then
+    run "the announcer is alive and can be heard" \
+        python3 scripts/check_bots.py --host "${NODES%% *}" --network testnet
+else
+    skip "the announcer is alive and can be heard" "no --nodes given"
+fi
 
 # ---------------------------------------------------------------------------
 printf '\n%slaunch readiness%s\n' "$BLD" "$OFF"
