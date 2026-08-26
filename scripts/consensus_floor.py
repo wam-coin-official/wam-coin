@@ -85,32 +85,54 @@ def tags():
                   key=ver_tuple)
 
 
-def fingerprint(tag):
-    """Every consensus value at that tag, normalised, in a stable order."""
+def fingerprint_text(chainparams, params):
+    """Every consensus value in those two files, normalised, in a stable
+    order. Separated from the git plumbing so the same definition serves the
+    local walk below and the over-the-network comparison install.sh makes --
+    two places asking 'did consensus change' must not answer differently."""
+    if chainparams is None or params is None:
+        return None
     values = []
 
-    text = git("show", f"{tag}:{CHAINPARAMS}")
-    if text is None:
-        return None
     # Strip comments before matching, so a sentence that quotes a value --
     # and chainparams.cpp is full of those, deliberately -- is not read as
     # the value itself.
-    text = re.sub(r"/\*(?!nNonce=).*?\*/", " ", text, flags=re.S)
+    text = re.sub(r"/\*(?!nNonce=).*?\*/", " ", chainparams, flags=re.S)
     text = re.sub(r"//[^\n]*", "", text)
     for pat in CHAINPARAMS_PATTERNS:
         values += [re.sub(r"\s+", " ", m).strip()
                    for m in re.findall(pat, text)]
 
-    text = git("show", f"{tag}:{PARAMS}")
-    if text is None:
-        return None
-    text = re.sub(r"/\*.*?\*/", " ", text, flags=re.S)
+    text = re.sub(r"/\*.*?\*/", " ", params, flags=re.S)
     text = re.sub(r"//[^\n]*", "", text)
     for line in text.split("\n"):
         if re.match(PARAMS_PATTERN, line):
             values.append(re.sub(r"\s+", " ", line).strip())
 
     return "\n".join(sorted(set(values)))
+
+
+def fingerprint(tag):
+    """Every consensus value at that tag, read from this repository."""
+    return fingerprint_text(git("show", f"{tag}:{CHAINPARAMS}"),
+                            git("show", f"{tag}:{PARAMS}"))
+
+
+def fetch_tag(tag, repo="wam-coin-official/wam-coin"):
+    """The two consensus files at a tag, read from GitHub rather than from
+    here. A checkout that is behind has tags that are behind too, so it
+    cannot answer this question about itself."""
+    import urllib.request
+    out = []
+    for path in (CHAINPARAMS, PARAMS):
+        url = f"https://raw.githubusercontent.com/{repo}/{tag}/{path}"
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "wam-consensus-floor"})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                out.append(r.read().decode("utf-8", "replace"))
+        except Exception:
+            return None, None
+    return out[0], out[1]
 
 
 def floor():
@@ -138,7 +160,35 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--explain", action="store_true",
                     help="show what changed at the floor, and at every tag")
+    ap.add_argument("--compare-remote", nargs=2, metavar=("TAG_A", "TAG_B"),
+                    help="fetch both tags from GitHub and say whether any "
+                         "consensus value differs between them; exit 2 if it "
+                         "does, 0 if not, 1 if they could not be read")
     args = ap.parse_args()
+
+    # Asked by install.sh, from a clone whose own tags may be out of date.
+    # A MANDATORY marker in the release notes is the fast answer, but it
+    # depends on somebody having written it -- and the one consensus release
+    # this project has made, v0.1.5, was published without one. This derives
+    # the answer from the files instead, so the guard holds even when the
+    # marker is missing.
+    if args.compare_remote:
+        a, b = args.compare_remote
+        fa = fingerprint_text(*fetch_tag(a))
+        fb = fingerprint_text(*fetch_tag(b))
+        if fa is None or fb is None:
+            print("unreadable")
+            return 1
+        if fa == fb:
+            print("same")
+            return 0
+        print("differs")
+        sa, sb = set(fa.split("\n")), set(fb.split("\n"))
+        for line in sorted(sb - sa):
+            print(f"  + {line[:100]}")
+        for line in sorted(sa - sb):
+            print(f"  - {line[:100]}")
+        return 2
 
     tag, reason = floor()
     if tag is None:
