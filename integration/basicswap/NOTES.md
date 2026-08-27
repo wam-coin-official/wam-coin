@@ -26,32 +26,20 @@ The lesson is smaller than the six days: a named repository is a fact with a
 date on it, and it is worth checking that the fact is still true before
 waiting on an answer from it.
 
-## What happened when it reached the right repository
+## Where the submission stands
 
-`basicswap/basicswap#701`, opened 2026-08-27 with four files and 88 lines on
-top of their current master. Closed the same day:
+`basicswap/basicswap#701`, opened 2026-08-27, closed the same day:
 
     nahuhh: closed: "Mainnet is scheduled for 2026-09-15"
 
-Read it exactly as written. There was no review, no comment on any line, and
-nothing said about the code -- they quoted our own sentence back. BasicSwap
-does not add a coin whose chain has not launched, which is the same
-condition Komodo has, and it is a reasonable one: an integration for a chain
-that never opens is dead code they carry.
+No review, no comment on the code. They do not add a coin whose chain has
+not launched. That was not among the requirements we were given, and it is
+a fair rule anyway.
 
-So the correct entry for this venue is not *submitted and waiting*. It is
-**ready, and blocked on 15 September** -- the same shelf as Komodo. The
-branch stays: it is one commit on their master and reopening #701 after
-launch costs nothing.
-
-Worth keeping in mind for the venues still open. Bisq, Haveno and Block DX
-have not said this, but none of them has said the opposite either, and the
-honest expectation is that a live chain is what unlocks all of them.
-
-An earlier version of this directory held a single `wam.json`. That was wrong
-in form. BasicSwap does not read JSON coin definitions — every coin is a Python
-package under `basicswap/interface/`, and a pull request shaped like the guess
-would not have applied to anything.
+Written down for one practical reason: do not resubmit before 15 September.
+The branch is a single commit on their current master, so reopening #701
+after launch costs nothing and wastes nobody's time twice. Komodo waits on
+the same condition.
 
 ## What it actually takes
 
@@ -98,11 +86,7 @@ honestly describe. The number is declared once in `src/wam/wam-params.h`, and
 `scripts/audit_repo.sh` rejects any file here that disagrees with it.
 
 **Registration with [`satoshilabs/slips`](https://github.com/satoshilabs/slips)
-was granted on 2026-08-26** — satoshilabs/slips PR #2051, merged. Say that in the pull
-request rather than letting them discover it. If a different number is
-assigned, it changes in one place and every wallet made in the meantime is
-discarded: free today, ruinous after mainnet.
-
-**Worth asking them directly:** whether they will merge with the registration
-pending, or would rather wait for it. Both answers are useful and neither is
-worth guessing.
+was granted on 2026-08-26** — PR #2051, merged. The number is settled: nothing
+here is waiting on an assignment, and nothing downstream can be invalidated by
+one arriving differently. Say it in the pull request rather than letting them
+discover it.
