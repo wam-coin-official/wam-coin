@@ -2,6 +2,29 @@
 
 BasicSwap replied to the enquiry sent 2026-08-18 and pointed at a GitHub
 repository: [`tecnovert/basicswap`](https://github.com/tecnovert/basicswap).
+The submission went there, as PR #2, on 2026-08-21.
+
+**That is not where the project is developed, and it cost six days of
+silence.** Checked on 2026-08-27:
+
+| | last upstream commit | stars |
+|---|---|---|
+| `tecnovert/basicswap` | 2026-07-17 | 0 (a fork) |
+| `basicswap/basicswap` | 2026-08-25 | 322 |
+
+tecnovert is the author, and the repository he named is his own copy — it is
+a fork of `basicswap/basicswap` and has received no development in six
+weeks. Its "pushed today" timestamp was our own branch, not theirs.
+
+There was nothing wrong with taking a maintainer at his word; the repository
+he named simply stopped being the one that moves. The submission belongs in
+`basicswap/basicswap`, and `scripts/prepare_listing_pr.sh` now stages it
+there. The two repositories are in one fork network, so the same branch
+opens against either without re-pushing anything.
+
+The lesson is smaller than the six days: a named repository is a fact with a
+date on it, and it is worth checking that the fact is still true before
+waiting on an answer from it.
 
 An earlier version of this directory held a single `wam.json`. That was wrong
 in form. BasicSwap does not read JSON coin definitions — every coin is a Python

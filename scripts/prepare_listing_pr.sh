@@ -55,7 +55,7 @@ slips      satoshilabs/slips                          slips
 bisq       bisq-network/bisq                          bisq
 haveno     haveno-dex/haveno                          haveno
 blockdx    blocknetdx/blockchain-configuration-files  blockchain-configuration-files
-basicswap  tecnovert/basicswap                        basicswap
+basicswap  basicswap/basicswap                        basicswap
 komodo     KomodoPlatform/coins                       coins
 V
 }
