@@ -217,7 +217,32 @@ noise.
 
 ---
 
-## 8. What we do not claim
+## 8. Who runs this network, other than us
+
+Two operators outside the project run nodes. We do not know who they are.
+Neither was asked, neither was paid, and neither mines — they found the
+network through the DNS seeds, connected inbound, and stayed.
+
+As of 27 August 2026 their connections had been unbroken for 58 and 52
+hours: no crash, no restart, no intervention by anybody. That is the only
+evidence we have that the software runs unattended, because our own servers
+prove nothing on that point — we fix ours when they break, and nobody can
+fix theirs but them. Both hold the same tip as we do, which means each of
+them validated the chain from the genesis block on hardware and a network we
+have never seen.
+
+One of them upgraded within hours of a release announcement, which is the
+part that cannot be faked by a forgotten process.
+
+The number is two. It is small, they owe us nothing, and either could
+disappear tomorrow. We state it because it is checkable rather than
+flattering: run a node, and see who is on the network.
+
+The full picture, including the versions in use, is what
+`scripts/check_peer_versions.py` prints. It reports counts and versions and
+never addresses — a list of who runs a node is a list of who to attack.
+
+## 9. What we do not claim
 
 WAM has no market value and is not listed on any exchange. Two independent
 developers have reviewed the code and their findings were adopted -- see
