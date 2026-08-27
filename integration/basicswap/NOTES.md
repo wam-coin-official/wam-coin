@@ -26,6 +26,28 @@ The lesson is smaller than the six days: a named repository is a fact with a
 date on it, and it is worth checking that the fact is still true before
 waiting on an answer from it.
 
+## What happened when it reached the right repository
+
+`basicswap/basicswap#701`, opened 2026-08-27 with four files and 88 lines on
+top of their current master. Closed the same day:
+
+    nahuhh: closed: "Mainnet is scheduled for 2026-09-15"
+
+Read it exactly as written. There was no review, no comment on any line, and
+nothing said about the code -- they quoted our own sentence back. BasicSwap
+does not add a coin whose chain has not launched, which is the same
+condition Komodo has, and it is a reasonable one: an integration for a chain
+that never opens is dead code they carry.
+
+So the correct entry for this venue is not *submitted and waiting*. It is
+**ready, and blocked on 15 September** -- the same shelf as Komodo. The
+branch stays: it is one commit on their master and reopening #701 after
+launch costs nothing.
+
+Worth keeping in mind for the venues still open. Bisq, Haveno and Block DX
+have not said this, but none of them has said the opposite either, and the
+honest expectation is that a live chain is what unlocks all of them.
+
 An earlier version of this directory held a single `wam.json`. That was wrong
 in form. BasicSwap does not read JSON coin definitions — every coin is a Python
 package under `basicswap/interface/`, and a pull request shaped like the guess
