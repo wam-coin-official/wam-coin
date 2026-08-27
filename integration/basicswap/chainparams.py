@@ -22,10 +22,13 @@ params = {
         # here -- listdescriptors returns 44h/5718349h -- so this describes the
         # wallet rather than asking for something.
         #
-        # Registration with satoshilabs/slips is open and not yet granted. If
-        # they assign a different number this changes, and so does
-        # WAM_BIP44_COIN_TYPE in src/wam/wam-params.h, which is the one place
-        # it is decided.
+        # Registered, not merely claimed: satoshilabs/slips PR #2051 was merged
+        # into master on 2026-08-26, so 5718349 is reserved to this chain in
+        # SLIP-0044 and the prefixes wam / twam / wamrt in SLIP-0173.
+        #
+        # It is still decided in exactly one place -- WAM_BIP44_COIN_TYPE in
+        # src/wam/wam-params.h -- and scripts/audit_repo.sh rejects any file
+        # here that disagrees with it.
         "bip44": 5718349,
         "min_amount": 100000,
         "max_amount": 1000000 * COIN,

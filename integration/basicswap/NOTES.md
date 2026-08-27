@@ -53,7 +53,7 @@ honestly describe. The number is declared once in `src/wam/wam-params.h`, and
 `scripts/audit_repo.sh` rejects any file here that disagrees with it.
 
 **Registration with [`satoshilabs/slips`](https://github.com/satoshilabs/slips)
-is open and not yet granted** — see `integration/slips/`. Say that in the pull
+was granted on 2026-08-26** — satoshilabs/slips PR #2051, merged. Say that in the pull
 request rather than letting them discover it. If a different number is
 assigned, it changes in one place and every wallet made in the meantime is
 discarded: free today, ruinous after mainnet.

@@ -19,7 +19,9 @@ One thing to flag rather than bury: bip44 is 5718349, which is 0x57414D --
 "WAM" in ASCII, the convention Wanchain used one number above at 0x57414E. It
 is not invented for this file. wamd already derives there; listdescriptors
 returns 44h/5718349h, 49h/5718349h, 84h/5718349h and 86h/5718349h. But the
-SLIP-44 registration is open and not yet granted.
+SLIP-44 registration is granted: satoshilabs/slips PR #2051, merged
+2026-08-26. Coin type 5718349 and the bech32 prefixes wam / twam / wamrt
+are reserved to this chain in SLIP-0044 and SLIP-0173.
 
 If you would rather wait for the assignment before merging, that is completely
 understandable -- please say so and I will keep this open. If a different
