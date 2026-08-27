@@ -23,10 +23,9 @@ SLIP-44 registration is granted: satoshilabs/slips PR #2051, merged
 2026-08-26. Coin type 5718349 and the bech32 prefixes wam / twam / wamrt
 are reserved to this chain in SLIP-0044 and SLIP-0173.
 
-If you would rather wait for the assignment before merging, that is completely
-understandable -- please say so and I will keep this open. If a different
-number comes back, it changes in one place and nothing else in this patch
-moves.
+The number is decided in one place, `WAM_BIP44_COIN_TYPE` in
+`src/wam/wam-params.h`, and `scripts/audit_repo.sh` rejects any file in this
+submission that disagrees with it.
 
 Source:   https://github.com/wam-coin-official/wam-coin
 Explorer: https://explorer.wamcoin.org
