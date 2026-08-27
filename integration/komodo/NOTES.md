@@ -54,15 +54,25 @@ one number above at `0x57414E`. It is declared once, in
 `src/wam/wam-params.h`, and `scripts/audit_repo.sh` rejects any file here that
 disagrees with it.
 
-**Registration is open and not yet granted.** Say so in the pull request rather
-than leaving them to find out: `integration/slips/` holds the submission. If
-SatoshiLabs assign a different number it changes in one place and every wallet
-made in the meantime is discarded, which costs nothing before mainnet and
-everything after.
+**Registration is granted.** SatoshiLabs merged
+[PR #2051](https://github.com/satoshilabs/slips/pull/2051) into master on
+2026-08-26: SLIP-0044 coin type `5718349`, and SLIP-0173 prefixes `wam`,
+`twam`, `wamrt`. The number in this file is no longer a request. It was
+worth waiting for -- had they assigned a different one, every wallet built
+in the meantime would have been discarded, which costs nothing before
+mainnet and everything after.
 
-**`trezor_coin` stays absent.** Hardware wallet support needs the registration
-finished, not merely requested, and there is nothing truthful to write until
-then.
+**`trezor_coin` stays absent, and the SLIP registration did not change that.**
+
+It is easy to read the merge of PR #2051 as hardware wallet support arriving,
+and it is not. SLIP-0044 is a numbering registry; Trezor's own coin support
+lives in a different one, `common/defs/bitcoin/` in `trezor/trezor-firmware`,
+which holds 59 definitions and none of them is WAM. Checked on 2026-08-27
+rather than assumed.
+
+The registration is a prerequisite for that submission, not a substitute for
+it. Writing a name into this field now would tell Komodo Wallet that a
+Trezor can hold WAM, and it cannot.
 
 ---
 
