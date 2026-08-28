@@ -111,6 +111,8 @@ eyes have been, so it is the part most worth volunteering for: see
 - **[docs/START_HERE.md](docs/START_HERE.md)** — run a node and mine, written for someone who has never done either ([بالعربية](docs/START_HERE_AR.md)).
 - **[docs/ROADMAP.md](docs/ROADMAP.md)** — the phased plan from here to a running network.
 - **[docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md)** — the irreversible steps.
+- **[docs/LAUNCH_DAY.md](docs/LAUNCH_DAY.md)** — the order things happen in on 15 September, and where the point of no return is.
+- **[docs/TREASURY_CUSTODY.md](docs/TREASURY_CUSTODY.md)** — what holds the 5%, and the dated plan to stop it being one key.
 - **[docs/LISTING_PACKAGE.md](docs/LISTING_PACKAGE.md)** — every parameter an integrator needs.
 
 ---
