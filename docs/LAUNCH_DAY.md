@@ -78,10 +78,44 @@ Nothing here touches mainnet. All of it can be done hours early.
 
 ## Phase B — the first mainnet node
 
-Do this **after 00:00 UTC**. Not before: block 1's timestamp must be later
-than genesis, so a node started early can validate genesis but cannot
-usefully mine, and a miner left running against a clock that has not
-arrived produces confusion rather than blocks.
+Do this **after 00:00 UTC**. Not before, and the reason is sharper than it
+looks.
+
+### Why a mainnet node cannot be started early — rehearsed 2026-08-28
+
+The obvious reason is that block 1's timestamp must be later than genesis,
+so nothing can be mined until the date arrives. `MAX_FUTURE_BLOCK_TIME` is
+two hours, and a block dated 15 September mined in August is rejected by
+every node including your own.
+
+The reason that is not obvious was found by trying it. A mainnet node
+started before 15 September works **once**, from an empty datadir, and then
+cannot start again:
+
+```
+The block database contains a block which appears to be from the future.
+Please restart with -reindex or -reindex-chainstate to recover.
+[error] Aborted block database rebuild. Exiting.
+```
+
+The block from the future is genesis. On a fresh datadir it is constructed
+in memory and accepted; on every start afterwards it is read from disk and
+the startup verification refuses a stored block dated ahead of now. Both
+halves of this were tested on 28 August: empty datadir starts and reports
+height 0, restart fails, every time.
+
+So a mainnet node left running "ready" before launch is not ready. One
+reboot and it is a crash-looping service with `Restart=always` hammering it,
+and the operator finds out on the morning it mattered.
+
+**The units exist on both hosts and are deliberately disabled.** On the day
+they are started, not installed.
+
+What *was* proved by rehearsing, and does not need repeating on the night:
+genesis validates from nothing and its hash matches the assertion; the
+supply is 2,000,000 with all five tranches locked; port 9555 is open through
+both providers' firewalls; the DNS seeds answer with the mainnet nodes; and
+the two nodes find each other without help.
 
 5. **Start one node on mainnet.** One, not three.
 
