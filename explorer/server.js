@@ -312,6 +312,14 @@ WAM Network Dashboard
                 // include the machine this runs on, so the panel used to say
                 // one seed when there are two.
                 seeds.setChain((collector.get().chain || {}).name);
+                // The node's own addresses, so the probe never dials the
+                // machine it is running on. Connecting to your own public
+                // address succeeds over local routing whether or not the
+                // port is open to the world, so it is not evidence -- and it
+                // filled the net log with a self-connection every five
+                // minutes.
+                seeds.setSelfAddresses(
+                    ((netInfo && netInfo.localaddresses) || []).map((a) => a.address));
                 const out = network.build(peers, known, netInfo);
                 out.seedNodes = seeds.snapshot();
                 return json(res, 200, out);
