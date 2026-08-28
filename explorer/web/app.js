@@ -370,10 +370,34 @@ async function renderNetwork() {
   text($('netConnected'), n.connected.toLocaleString());
   text($('netInOut'), `${n.outbound} out · ${n.inbound} in`);
 
-  text($('netSeeds'), String(n.seeds.length));
-  text($('netSeedWhere'), n.seeds.length
-    ? n.seeds.map((s) => s.where).join(' · ')
-    : 'none reachable');
+  // Measured from DNS, the way a node with no peers finds the network --
+  // so it includes the machine serving this page, which counting peers
+  // never could. That is why the panel used to say one seed when there
+  // were two.
+  //
+  // A null snapshot is the first load after a restart, before the probe
+  // has come back. An em dash is the honest thing to show then; a zero
+  // would say the network has no seeds.
+  const sn = n.seedNodes;
+  if (sn && typeof sn.answering === 'number') {
+    text($('netSeeds'), String(sn.answering));
+    const parts = [];
+    if (sn.answering < sn.machines) {
+      parts.push(`${sn.answering} of ${sn.machines} answering`);
+    }
+    if (sn.places && sn.places.length) parts.push(sn.places.join(' · '));
+    text($('netSeedWhere'), parts.join(' — ') || 'none answering');
+  } else if (sn === null || sn === undefined) {
+    text($('netSeeds'), '—');
+    text($('netSeedWhere'), 'checking');
+  } else {
+    // Older server, or the probe is unavailable: fall back to the peer
+    // count rather than showing nothing, and say what it is counting.
+    text($('netSeeds'), String((n.seeds || []).length));
+    text($('netSeedWhere'), (n.seeds || []).length
+      ? `${n.seeds.map((s) => s.where).join(' · ')} (peers only)`
+      : 'none reachable');
+  }
 
   const t = n.byType || {};
   text($('netIpv4'), String(t.ipv4 || 0));

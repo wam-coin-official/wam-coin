@@ -219,6 +219,22 @@ else
         # newest file: a run can succeed and write nothing.
         run "there is something to restore from" \
             python3 scripts/check_backups.py $NODES
+
+        # Who tried to join, and why they did not stay.
+        #
+        # A stranger connected three times across three days and left
+        # each time, and nothing could say whether he chose to or
+        # whether this node dropped him. The founder's reason for
+        # wanting to know is the better one: somebody who cannot get a
+        # node running does not open an issue, he closes the terminal,
+        # and we never hear. If the cause is ours we fix it; if it is
+        # not knowing how, it can be answered in the channels; if he
+        # simply switched off, there is nothing to answer.
+        #
+        # It needs net logging on, and says so plainly when it is off
+        # rather than reading an empty journal as nobody having come.
+        run "why visitors did not stay" \
+            python3 scripts/check_visitors.py --host "${NODES%% *}" --network testnet
     fi
 fi
 
