@@ -27,6 +27,7 @@ const path = require('path');
 const RpcClient = require('./lib/rpc');
 const Collector = require('./lib/collector');
 const network = require('./lib/network');
+const { Seeds } = require('./lib/seeds');
 
 // ---------------------------------------------------------------------------
 // Tiny logger (no dependency)
@@ -244,6 +245,11 @@ WAM Network Dashboard
     const rpc = new RpcClient(config.rpc);
     const collector = new Collector(rpc, log, { pollSeconds: config.pollSeconds });
 
+    // Asked of DNS, the way a node with no peers asks. Cached, because a
+    // seed does not appear and vanish minute to minute and a page refresh
+    // must not cost three TCP connects.
+    const seeds = new Seeds({ hostnames: config.seedHostnames });
+
     // Probe once so startup says something useful either way, but do NOT refuse
     // to start: the dashboard's job includes showing that the node is down.
     try {
@@ -300,7 +306,15 @@ WAM Network Dashboard
                 // 0 means "everything you know", not "nothing".
                 const known = await collector.rpc.tryCall('getnodeaddresses', [0], []);
                 const netInfo = await collector.rpc.tryCall('getnetworkinfo', [], null);
-                return json(res, 200, network.build(peers, known, netInfo));
+                // What a new node would find before it has any peers: the
+                // seed hostnames, resolved, and each distinct machine behind
+                // them probed on the p2p port. Counting peers could never
+                // include the machine this runs on, so the panel used to say
+                // one seed when there are two.
+                seeds.setChain((collector.get().chain || {}).name);
+                const out = network.build(peers, known, netInfo);
+                out.seedNodes = seeds.snapshot();
+                return json(res, 200, out);
             }
 
             case pathname === '/api/search': {
