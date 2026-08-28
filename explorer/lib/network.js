@@ -76,6 +76,17 @@ function build(peers, known, netInfo) {
     // connections to each other -- one dialled each way -- and listing
     // "Singapore, Singapore" makes one seed look like two, which is the
     // opposite of what a page about decentralisation should do.
+    //
+    // This counts seeds among this node's PEERS, so it can never include the
+    // machine it runs on. Served from the France seed it reports Singapore
+    // and nothing else, and the page used to label that "WAM seed nodes: 1"
+    // -- which a reader takes as "this network has one seed", a single point
+    // of failure, when there are two.
+    //
+    // The label now reads "other WAM seeds reached", so the number means what
+    // it counts. Do not make it self-aware instead: a node deciding whether
+    // it is itself a seed is a guess, and a wrong guess here overstates the
+    // network rather than understating it.
     const seedsByPlace = new Map();
     const counts = { ipv4: 0, ipv6: 0, onion: 0, seed: 0 };
     const versions = new Map();
