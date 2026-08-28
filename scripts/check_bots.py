@@ -127,6 +127,13 @@ def main():
     ap.add_argument("--network", default="testnet",
                     choices=["mainnet", "testnet", "regtest"])
     ap.add_argument("--repo", default="wam-coin-official/wam-coin")
+    # Not a tuning knob. It is what makes the silence check testable without
+    # waiting a day for a bot to go quiet, and a check nobody has watched fail
+    # is a check nobody knows works. Default: the heartbeat interval plus two
+    # hours, read from the bot's own config.
+    ap.add_argument("--max-quiet-hours", type=float, default=None,
+                    help="fail if nothing has been sent for longer than this "
+                         "(default: the bot's heartbeatHours plus 2)")
     args = ap.parse_args()
 
     flag = {"mainnet": "", "testnet": "-testnet", "regtest": "-regtest"}[args.network]
@@ -247,6 +254,57 @@ def main():
                 f"{seen or 'nothing'} -- a published release nobody was told about")
         else:
             ok(f"announced {seen}")
+
+    # ---------------------------------------------------------------------
+    head("it has actually sent something recently")
+    #
+    # Every check above asks whether the bot COULD speak: the service is up,
+    # the state file moves, the token is valid, the channel exists, the
+    # webhook answers. None of them asks whether it HAS spoken.
+    #
+    # A bot that runs, polls and never posts -- a fault in the deciding
+    # rather than in the plumbing -- passes all of them. The founder found
+    # exactly that gap by looking at his phone and asking why it had been
+    # quiet, and the honest answer was that nothing here would have told him.
+    #
+    # The journal line is the only proof of delivery there is: announce.js
+    # logs "sent to <sink>" after the await returns, so it cannot be written
+    # by a send that failed. The state file is not proof -- it is saved after
+    # the send loop whether the sinks threw or not.
+    #
+    # The threshold is the heartbeat's own promise: it posts every
+    # heartbeatHours whatever else happens, so silence longer than that plus
+    # a margin is a fault and not a quiet week.
+    rc, hb, _ = rsh(args.host,
+                    "python3 -c \"import json;print(json.load("
+                    "open('/etc/wam/announce.json')).get('heartbeatHours',24))\"")
+    try:
+        heartbeat_h = float((hb or "").strip())
+    except ValueError:
+        heartbeat_h = 24.0
+
+    rc, last_sent, _ = rsh(
+        args.host,
+        "journalctl -u wam-announce --since '5 days ago' --no-pager -o short-unix "
+        "2>/dev/null | grep -i 'sent to ' | tail -1 | cut -d. -f1")
+    last_sent = (last_sent or "").strip()
+
+    if rc != 0 or not last_sent.isdigit():
+        warn("could not read the journal to see when it last sent -- this "
+             "check could not answer, which is not the same as a pass")
+    else:
+        quiet_h = (time.time() - int(last_sent)) / 3600.0
+        when = time.strftime("%Y-%m-%d %H:%M", time.localtime(int(last_sent)))
+        limit = args.max_quiet_hours if args.max_quiet_hours is not None \
+            else heartbeat_h + 2
+        if quiet_h <= limit:
+            ok(f"last message {quiet_h:.1f} h ago, at {when} "
+               f"(the heartbeat alone posts every {heartbeat_h:.0f} h)")
+        else:
+            bad(f"nothing sent for {quiet_h:.1f} h -- the last was at {when}. "
+                f"The heartbeat should post every {heartbeat_h:.0f} h on its own, "
+                f"so this is a bot that is running and silent, which is the one "
+                f"state every other check here reads as healthy.")
 
     print()
     if _fails:
