@@ -88,6 +88,26 @@ class Seeds {
         this.last = null;
         this.checkedAt = 0;
         this.inFlight = null;
+        // Addresses this node says are its own, from getnetworkinfo. They are
+        // never probed, for two reasons found by deploying it without them.
+        //
+        // It proves nothing. A machine connecting to its own public address
+        // succeeds over local routing whether or not the port is open to the
+        // internet -- so "2 answering" was one real answer and one testimony
+        // about itself.
+        //
+        // And it is noise. Every five minutes the node logged a connection
+        // from its own address, opened and closed in the same second with no
+        // handshake, straight into the net log that had just been turned on
+        // to study visitors.
+        //
+        // Its own reachability is known anyway: the explorer is reading from
+        // it over RPC, and getnetworkinfo says whether it is listening.
+        this.selfAddresses = new Set(opts.selfAddresses || []);
+    }
+
+    setSelfAddresses(list) {
+        this.selfAddresses = new Set(list || []);
     }
 
     setChain(chain) {
@@ -136,25 +156,33 @@ class Seeds {
         }
 
         const addresses = [...byAddress.keys()];
+        const toProbe = addresses.filter((a) => !this.selfAddresses.has(a));
         const results = await Promise.all(
-            addresses.map((a) => reachable(a, port, this.timeoutMs)));
+            toProbe.map((a) => reachable(a, port, this.timeoutMs)));
 
         const up = [];
-        for (let i = 0; i < addresses.length; i++) {
-            if (results[i]) up.push(addresses[i]);
+        for (let i = 0; i < toProbe.length; i++) {
+            if (results[i]) up.push(toProbe[i]);
         }
+        // Our own seed is counted as up without being probed: the explorer is
+        // talking to that node right now. What is NOT claimed is that it is
+        // reachable from outside -- only a machine elsewhere can say that, and
+        // check_reachable.sh in the sweep is what asks.
+        const self = addresses.filter((a) => this.selfAddresses.has(a));
 
         return {
             // The numbers that mean something.
             machines: addresses.length,
-            answering: up.length,
+            answering: up.length + self.length,
+            probed: toProbe.length,
+            selfNotProbed: self.length,
             // Names are reported only as a count: three names on two machines
             // is a fact about DNS, not about the network.
             hostnames: this.hostnames.length,
             hostnamesResolving: resolved,
             port,
             // Countries for the ones we publish anyway, in a stable order.
-            places: up.map((a) => PLACES[a]).filter(Boolean).sort(),
+            places: [...up, ...self].map((a) => PLACES[a]).filter(Boolean).sort(),
             checkedAt: Date.now()
         };
     }

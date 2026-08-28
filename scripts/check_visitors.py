@@ -145,12 +145,29 @@ def main():
         if m and a:
             peer_addr.setdefault(m.group(1), a.group(0))
 
+    # A peer that never sent a version message never introduced itself, and
+    # was therefore not a node. Port scanners do this constantly on any
+    # public port, and so did our own explorer for forty minutes on the day
+    # this was written -- a self-connection every five minutes, opened and
+    # closed in the same second, straight into the log we had just turned on
+    # to study visitors.
+    #
+    # Counting those as people would bury the one real visitor in noise, and
+    # would keep doing it forever.
+    spoke = set()
+    for line in log.split("\n"):
+        m = re.search(r"peer=(\d+)", line)
+        if m and re.search(r"version", line, re.I):
+            spoke.add(m.group(1))
+
     events = defaultdict(list)
     for line in log.split("\n"):
         m = re.search(r"peer=(\d+)", line)
         if not m:
             continue
         pid = m.group(1)
+        if pid not in spoke:
+            continue
         addr = peer_addr.get(pid)
         if addr in KNOWN:
             continue
