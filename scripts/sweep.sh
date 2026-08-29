@@ -86,6 +86,13 @@ echo "=================================================================="
 printf '\n%sthe repository%s\n' "$BLD" "$OFF"
 
 run "repository self-agreement"  bash scripts/audit_repo.sh
+
+# The listing entry repeats constants that live in src/wam. Hand-written
+# copies drift, and this one is read by software rather than by a person: a
+# wrong pubtype does not look wrong, it sends somebody's coins nowhere. The
+# dangerous day is not the day it was written but the day a prefix changes
+# and nobody remembers that a file in integration/ repeats it.
+run "the listing entry matches source" python3 scripts/check_listing_entry.py
 run "vesting tables agree"       python3 scripts/check_vesting_sync.py
 run "supply arithmetic"          python3 scripts/verify_supply.py
 run "executable bits in index"   bash scripts/test/test_exec_bits.sh
