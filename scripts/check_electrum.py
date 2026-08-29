@@ -61,8 +61,18 @@ import sys
 
 RED = "\033[31m"; GRN = "\033[32m"; YEL = "\033[33m"; OFF = "\033[0m"
 
-DEFAULT_TLS_PORT = 50002
-DEFAULT_TCP_PORT = 50001
+# Ports are per network, the same way the installer assigns them. Mainnet
+# keeps 50001/50002 because those are the numbers published in the Komodo
+# entry and the listing sheet, and a published endpoint is a promise;
+# testnet moved to the 51xxx set on 2026-08-29 so that nothing answers on a
+# mainnet port with a testnet chain, which is worse than nothing answering
+# at all -- a reviewer who finds a working server on the wrong chain has
+# found a defect, where an endpoint that is not up yet is just a launch date.
+PORTS = {
+    "mainnet": (50002, 50001),
+    "testnet": (51002, 51001),
+    "regtest": (52002, 52001),
+}
 
 
 def ok(msg):   print(f"  {GRN}ok{OFF}    {msg}")
@@ -191,8 +201,9 @@ def main():
             # a server looks "up" while half its clients fail.
             warn(f"{len(ips)} addresses share this name -- every one must serve")
 
-        ports = [(int(portspec), portspec == str(DEFAULT_TLS_PORT))] if portspec \
-                else [(DEFAULT_TLS_PORT, True), (DEFAULT_TCP_PORT, False)]
+        tls_port, tcp_port = PORTS[args.network]
+        ports = [(int(portspec), portspec == str(tls_port))] if portspec \
+                else [(tls_port, True), (tcp_port, False)]
 
         for ip in ips:
             for port, tls in ports:

@@ -119,6 +119,24 @@ provider are one outage, which is the failure Komodo's support desk absorbs.
 50004 carries the Electrum protocol over WebSocket for Komodo's *web* wallet
 and is open on both; desktop and mobile use 50002 directly.
 
+### 2026-08-29: those ports now hold nothing, on purpose
+
+The heights above were a **testnet** chain, answering on the ports this
+entry publishes for **mainnet**. That is worse than an endpoint being down.
+A reviewer who connects to `electrum.wamcoin.org:50002`, gets a working
+ElectrumX, and reads back a genesis hash that is not the one in this entry
+has found a defect in the submission — where a port that is not up yet is
+just a launch date.
+
+So testnet's ElectrumX moved to **51001 / 51002 / 51004** on both hosts, its
+index carried across rather than rebuilt, and 50001 / 50002 / 50004 are held
+empty until mainnet opens on 2026-09-15. `wam-electrumx@mainnet` is already
+installed on both machines, configured against those ports, and deliberately
+not started.
+
+Until 15 September the endpoints in `electrums-WAM.json` do not answer, and
+the pull request says so rather than leaving it to be discovered.
+
 Getting there found two faults worth recording, neither of which any check
 would have reported:
 
