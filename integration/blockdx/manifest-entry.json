@@ -1,7 +1,7 @@
 {
   "blockchain": "WAM Coin",
   "ticker": "WAM",
-  "ver_id": "wamcoin--v0.1.3",
+  "ver_id": "wam--v0.1.6",
   "ver_name": "WAM Coin v0.1.x",
   "conf_name": "wam.conf",
   "dir_name_linux": "wam",
@@ -9,8 +9,8 @@
   "dir_name_win": "WAM",
   "repo_url": "https://github.com/wam-coin-official/wam-coin",
   "versions": [
-    "v0.1.3"
+    "v0.1.6"
   ],
-  "xbridge_conf": "wamcoin--v0.1.3.conf",
-  "wallet_conf": "wamcoin--v0.1.3.conf"
+  "xbridge_conf": "wam--v0.1.6.conf",
+  "wallet_conf": "wam--v0.1.6.conf"
 }
