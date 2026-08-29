@@ -31,10 +31,24 @@ DATADIR=/root/.wam-mainnet
 RED=$'\033[31m'; GRN=$'\033[32m'; YLW=$'\033[33m'; OFF=$'\033[0m'
 ok()   { printf '  %sok%s    %s\n' "$GRN" "$OFF" "$*"; }
 warn() { printf '  %swarn%s  %s\n' "$YLW" "$OFF" "$*"; }
-fail() { printf '  %sfail%s  %s\n' "$RED" "$OFF" "$*" >&2; exit 1; }
+# FINISHED=1 first: a reported failure is not an early exit, and the trap
+# further down should not print its own noise on top of a message that
+# already says what went wrong.
+fail() { FINISHED=1; printf '  %sfail%s  %s\n' "$RED" "$OFF" "$*" >&2; exit 1; }
 
 [ "$(id -u)" = 0 ] || fail "run this with sudo"
 [ -f "$REPO/deploy/systemd/$UNIT" ] || fail "no $UNIT in $REPO/deploy/systemd"
+
+# Twice while writing this script, set -e ended it early on a command whose
+# non-zero status was the answer being looked for -- the gate's own 78, and
+# `systemctl is-active` returning 3 for the inactive unit we wanted. Both
+# times the run stopped after a line of ok and printed nothing else, which
+# reads exactly like a clean pass. A check that fails silently is worse than
+# no check, because it is believed.
+FINISHED=0
+trap 'rc=$?; if [ "$FINISHED" != 1 ]; then
+        printf "\n  %sfail%s  exited early with status %s -- every step after the\n        last line above was SKIPPED, not passed.\n" "$RED" "$OFF" "$rc" >&2
+      fi' EXIT
 
 chmod 755 "$REPO/scripts/genesis_gate.sh"
 install -m 644 "$REPO/deploy/systemd/$UNIT" "/etc/systemd/system/$UNIT"
@@ -96,7 +110,11 @@ case $GATE in
     systemctl start "$UNIT" >/dev/null 2>&1 || true
     sleep 25
 
-    STATE="$(systemctl is-active "$UNIT" 2>/dev/null)"
+    # systemctl is-active exits 3 for an inactive unit, and inactive is the
+    # answer this check is hoping for. Without the || true, set -e ends the
+    # script on success -- silently, after the last ok line, which reads
+    # exactly like a clean run.
+    STATE="$(systemctl is-active "$UNIT" 2>/dev/null || true)"
     TRIES="$(journalctl -u "$UNIT" --since "$MARK" --no-pager -o cat 2>/dev/null \
              | grep -c 'refusing to start' || true)"
 
@@ -119,5 +137,6 @@ case $GATE in
   *)  warn "genesis_gate.sh returned an unexpected status; check it by hand" ;;
 esac
 
+FINISHED=1
 printf '\n  Not enabled, on purpose. On 15 September:\n\n'
 printf '      sudo systemctl enable --now %s\n\n' "$UNIT"
