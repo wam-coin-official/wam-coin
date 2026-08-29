@@ -1,0 +1,91 @@
+# ===========================================================================
+#  ElectrumX for WAM Coin -- one instance per network
+# ===========================================================================
+#
+#      systemctl enable --now wam-electrumx@testnet
+#      systemctl enable --now wam-electrumx@mainnet
+#
+#  WHY THIS IS A TEMPLATE
+#
+#  The single-instance wam-electrumx.service alongside this file has one env
+#  file, one service name and one database directory for every network. That
+#  was fine while only testnet existed and would have been discovered on 15
+#  September, when running the installer for mainnet would have overwritten
+#  the testnet configuration in place -- pointing a mainnet server at a
+#  database indexed for a different chain, and taking the testnet Electrum
+#  servers down in the same move.
+#
+#  Light wallets cannot read the chain themselves. When this is down they
+#  show nothing, and when it is confused they show a wrong balance, which is
+#  worse. Neither is a thing to discover on launch night.
+#
+#  So each network gets its own instance: %i is the network name, and the
+#  env file, the database and the ports all carry it.
+#
+#  The node it depends on is named in a drop-in rather than here, because
+#  mainnet and testnet run different node units:
+#
+#      /etc/systemd/system/wam-electrumx@mainnet.service.d/10-node.conf
+#          [Unit]
+#          Requires=wamd-mainnet.service
+#          After=wamd-mainnet.service
+#
+#  install.sh writes that drop-in. Requires is deliberate and not Wants: an
+#  Electrum server whose node is gone serves stale answers, and a wrong
+#  balance is worse than an error.
+# ===========================================================================
+
+[Unit]
+Description=ElectrumX server for WAM Coin (%i)
+Documentation=https://github.com/wam-coin-official/wam-coin/blob/main/integration/electrumx/README.md
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=electrumx
+Group=electrumx
+
+EnvironmentFile=/etc/wam/electrumx-%i.env
+WorkingDirectory=/opt/electrumx
+ExecStart=/opt/electrumx/venv/bin/python /opt/electrumx/electrumx_server
+
+# ElectrumX flushes its database on the way down and a half-flushed index
+# has to be rebuilt from the node, which takes far longer than waiting.
+KillSignal=SIGTERM
+TimeoutStopSec=300
+Restart=always
+RestartSec=30
+
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ReadWritePaths=/var/lib/electrumx-wam-%i
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+
+LimitNOFILE=1048576
+# Overridden per host in a drop-in where the machine is smaller than this.
+# The Singapore box has 2 GB in total, and a ceiling above what exists is
+# not a ceiling.
+MemoryMax=4G
+TasksMax=256
+
+[Install]
+WantedBy=multi-user.target

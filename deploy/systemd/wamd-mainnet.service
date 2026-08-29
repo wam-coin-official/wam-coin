@@ -1,0 +1,51 @@
+# ===========================================================================
+#  The WAM mainnet node
+# ===========================================================================
+#
+#      install -m 644 deploy/systemd/wamd-mainnet.service /etc/systemd/system/
+#      systemctl daemon-reload
+#      systemctl enable --now wamd-mainnet        # on 15 September, not before
+#
+#  Deliberately NOT enabled before launch. The ExecStartPre below turns that
+#  from an instruction into a mechanism: a node started before 2026-09-15
+#  runs once, stores a genesis block dated in the future, and then fails at
+#  every subsequent start with an error that reads like a clock problem. See
+#  scripts/genesis_gate.sh and docs/LAUNCH_DAY.md.
+#
+#  This unit exists in the repository rather than only on the two hosts,
+#  because a machine can be replaced and a shell history cannot be read at
+#  midnight.
+# ===========================================================================
+
+[Unit]
+Description=WAM Coin node (mainnet)
+After=network-online.target
+Wants=network-online.target
+# The node retries forever rather than giving up after a burst of failures:
+# on a network with no other operators awake, a node that has stopped trying
+# is a node nobody restarts.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+
+# Refuses the start rather than reporting a failure afterwards. A non-zero
+# exit here stops the unit before wamd writes anything, so no poisoned
+# datadir is left behind. Harmless from 15 September onwards, when it exits 0
+# without printing.
+ExecStartPre=/opt/wam/scripts/genesis_gate.sh mainnet --datadir /root/.wam-mainnet
+
+ExecStart=/opt/wam-current-bin/wamd -chain=main -conf=/root/.wam-mainnet/wam.conf -datadir=/root/.wam-mainnet -printtoconsole
+Restart=always
+RestartSec=15
+StandardOutput=journal
+StandardError=journal
+
+# The node writes only inside its datadir, so ProtectSystem=full is enough
+# and ProtectHome would break /root/.wam-mainnet.
+NoNewPrivileges=true
+ProtectSystem=full
+MemoryMax=2G
+
+[Install]
+WantedBy=multi-user.target
