@@ -1,0 +1,30 @@
+# ===========================================================================
+#  How often to ask whether the chain is still the chain
+# ===========================================================================
+#
+#      systemctl enable --now wam-reorg-watch@testnet.timer
+#
+#  Every two minutes, which is one block time. A reorganisation deep enough
+#  to matter takes several blocks to build, so this cannot miss one; and the
+#  check is a handful of local RPC calls, so running it more often would buy
+#  nothing and cost something on the 1.9 GB host.
+#
+#  Persistent=true so that a machine which was off, or a service that was
+#  stopped for an upgrade, runs the check once on the way back rather than
+#  waiting for the next whole interval. The gap while a host was down is
+#  exactly when nobody was watching.
+# ===========================================================================
+
+[Unit]
+Description=Ask every two minutes whether the WAM %i chain was rewritten
+Documentation=https://github.com/wam-coin-official/wam-coin/blob/main/scripts/check_reorg.py
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=2min
+Persistent=true
+AccuracySec=15s
+Unit=wam-reorg-watch@%i.service
+
+[Install]
+WantedBy=timers.target
