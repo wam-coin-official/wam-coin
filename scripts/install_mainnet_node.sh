@@ -93,20 +93,22 @@ case $GATE in
     fi
     ok "gate refuses an early start, verified just now"
 
-    # The refusal must be final, not a retry. Restart=always will restart a
-    # unit whose ExecStartPre failed, and before RestartPreventExitStatus=78
-    # existed this loop ran forty times in ten minutes -- the crash loop the
-    # gate was written to prevent, entered through a different door.
-    sleep "$(systemctl show "$UNIT" -p RestartSec --value | tr -dc 0-9 | head -c3)" 2>/dev/null || sleep 15
-    sleep 5
+    # The refusal must be final, not a retry, and one RestartSec has to pass
+    # before that can be told apart. Counting the refusals in the journal is
+    # the direct measure: one is a refusal, more than one is a loop.
+    sleep 25
     STATE="$(systemctl is-active "$UNIT" 2>/dev/null)"
-    if [ "$STATE" = "activating" ] || [ "$STATE" = "active" ]; then
+    TRIES="$(journalctl -u "$UNIT" --since '-2 min' --no-pager -o cat 2>/dev/null \
+             | grep -c 'refusing to start' || true)"
+    if [ "$STATE" != "failed" ] || [ "${TRIES:-0}" -gt 1 ]; then
         systemctl stop "$UNIT" || true
         systemctl reset-failed "$UNIT" 2>/dev/null || true
-        fail "$UNIT is retrying the refused start ($STATE). It needs
-        RestartPreventExitStatus=78, or every refusal becomes a loop."
+        fail "$UNIT retried the refused start: it is '$STATE' and refused
+        ${TRIES:-?} times in two minutes. RestartPreventExitStatus only covers
+        the main service process, so the gate has to run inside ExecStart --
+        an ExecStartPre that refuses is restarted anyway."
     fi
-    ok "refusal is final, not retried (unit is $STATE)"
+    ok "refused once and stopped -- $STATE, $TRIES refusal in the journal"
     systemctl reset-failed "$UNIT" 2>/dev/null || true
     ;;
   *)  warn "genesis_gate.sh returned an unexpected status; check it by hand" ;;
