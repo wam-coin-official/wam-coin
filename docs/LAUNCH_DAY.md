@@ -147,9 +147,26 @@ stopped being nightly is a failure this project has already had.
 
 What *was* proved by rehearsing, and does not need repeating on the night:
 genesis validates from nothing and its hash matches the assertion; the
-supply is 2,000,000 with all five tranches locked; port 9555 is open through
-both providers' firewalls; the DNS seeds answer with the mainnet nodes; and
-the two nodes find each other without help.
+supply is 2,000,000 with all five tranches locked; the DNS seeds answer with
+the mainnet nodes; and the two nodes find each other without help.
+
+**The firewalls, re-verified 2026-08-30 by a method that cannot be wrong.**
+A closed port means one of two different things — the provider drops it, or
+nothing is listening — and before launch nothing listens on any mainnet
+port, so an ordinary probe says "shut" and proves nothing at all. Each port
+was given a temporary listener and knocked on from the other host:
+
+| Port | Contabo | Hetzner | |
+|---|---|---|---|
+| 9555 | through | through | mainnet P2P |
+| 50001 / 50002 / 50004 | through | through | mainnet Electrum, as published |
+| 51001 / 51002 / 51004 | **blocked** | **blocked** | testnet Electrum, since the move |
+
+So nothing mainnet needs is waiting on a firewall. The three blocked ports
+are testnet's, and they are blocked with ElectrumX listening on them — which
+is the proof, since a port with a daemon behind it that still cannot be
+reached is being dropped upstream. ufw allows all three on both hosts; the
+providers' own panels do not.
 
 5. **Start one node on mainnet.** One, not three.
 
