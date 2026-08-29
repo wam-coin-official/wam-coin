@@ -242,7 +242,70 @@ The full picture, including the versions in use, is what
 `scripts/check_peer_versions.py` prints. It reports counts and versions and
 never addresses — a list of who runs a node is a list of who to attack.
 
-## 9. What we do not claim
+## 9. Chain security, and how many confirmations to require
+
+The honest number is not 6. Here is the whole of the reasoning, because an
+exchange that finds this out for itself will find it out from a loss.
+
+**What the risk is.** A proof-of-work chain is as hard to rewrite as it is
+to out-mine. WAM is RandomX, which is mined on CPUs, which are the most
+rentable hardware in existence — any cloud provider will sell you a hundred
+cores by the hour. Monero is safe on the same algorithm because its hashrate
+is enormous. A chain in its first weeks is not Monero, and no amount of
+careful engineering changes that. It is a property of being new.
+
+**What the risk is not.** A reorganisation does not touch anybody's wallet
+and cannot move coins the attacker does not own. What it allows is a double
+spend of the attacker's *own* coins: deposit somewhere, take the value out,
+then publish a longer chain in which the deposit never happened. So the
+exposure lands almost entirely on whoever accepted a payment on few
+confirmations. In practice, that is you.
+
+**What we ask you to do about it.**
+
+| | |
+|---|---|
+| Wallet-to-wallet, ordinary amounts | 20 confirmations (40 minutes) |
+| **Exchange deposits, while hashrate is low** | **60 confirmations (2 hours)** |
+| Anything above a few thousand WAM | 100 confirmations, or wait for us |
+
+Confirmation counts are the one lever that works here, and they work
+linearly: doubling them doubles what an attack costs. We would rather ask
+you for two hours than have you find out the other way.
+
+These numbers are reviewed publicly against measured hashrate rather than
+left to age. When they change, the change and its reason are published, and
+the last review date is recorded here.
+
+    Last reviewed  2026-08-29, before launch, on the basis that the network
+                   hashrate at launch is one founder's laptop and one pool.
+
+**What we do on our side.** Every node we run checks itself every two
+minutes for a block that has stopped being a block —
+`scripts/check_reorg.py`, and the systemd timer beside it. It cannot prevent
+an attack at this size; it means we are not the last to know, and the
+difference between telling you in four minutes and in four days is the
+difference between one bad deposit and a delisting. If it fires, the
+channels in section 1 carry it.
+
+**What we deliberately do not do.** We have not added a consensus rule
+refusing reorganisations beyond some depth, and we do not intend to. It
+looks protective and it is a trap: during any network partition the two
+halves each refuse to return to the other, and a temporary split becomes a
+permanent one. Several chains have been broken exactly that way. Bitcoin
+does not do it, and neither will we.
+
+**What we will do after launch.** Releases will carry checkpoints — the hash
+of a real block at a known height, compiled in, so that no node running that
+release can be walked onto a chain that lacks it. This is a real defence and
+it is also a real centralisation: it means trusting whoever cuts the
+release. We would rather say that plainly than describe it as security.
+`scripts/make_checkpoint.py` generates the entry from a node, and the policy
+is in `docs/CHECKPOINTS.md`.
+
+---
+
+## 10. What we do not claim
 
 WAM has no market value and is not listed on any exchange. Two independent
 developers have reviewed the code and their findings were adopted -- see
