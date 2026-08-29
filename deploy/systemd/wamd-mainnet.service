@@ -38,6 +38,15 @@ ExecStartPre=/opt/wam/scripts/genesis_gate.sh mainnet --datadir /root/.wam-mainn
 ExecStart=/opt/wam-current-bin/wamd -chain=main -conf=/root/.wam-mainnet/wam.conf -datadir=/root/.wam-mainnet -printtoconsole
 Restart=always
 RestartSec=15
+
+# Restart=always restarts a unit whose ExecStartPre refused, so the gate above
+# turned into a retry every 15 seconds -- forty refusals in ten minutes on the
+# France host before this line existed. That is the crash loop the gate exists
+# to prevent, arriving through a different door. 78 is EX_CONFIG, the only
+# code genesis_gate.sh uses to refuse, and it means the configuration is wrong
+# rather than the machine is: retrying cannot fix it, and the clock is not
+# something systemd can hurry.
+RestartPreventExitStatus=78
 StandardOutput=journal
 StandardError=journal
 

@@ -35,6 +35,15 @@
 #  against it -- and left a poisoned datadir behind. Knowing the rule did not
 #  help; there was nothing to stop me.
 #
+#  EXIT 78, NOT 1
+#
+#  Restart=always restarts a unit whose ExecStartPre failed, so a plain
+#  refusal became a retry every RestartSec seconds -- forty of them in ten
+#  minutes on the France host, which is the crash loop this gate exists to
+#  prevent, arriving by a different door. 78 is EX_CONFIG from sysexits.h,
+#  and wamd-mainnet.service names it in RestartPreventExitStatus, so systemd
+#  reports the failure once and stops.
+#
 #  DELIBERATE REHEARSAL
 #
 #      WAM_ALLOW_PRELAUNCH_START=1 systemctl start wamd-mainnet
@@ -102,7 +111,7 @@ if [ -n "$DATADIR" ] && [ -d "$DATADIR/blocks" ]; then
   by those three removals.
 
 EOF
-    exit 1
+    exit 78
 fi
 
 if [ "${WAM_ALLOW_PRELAUNCH_START:-0}" = "1" ]; then
@@ -134,4 +143,4 @@ cat >&2 <<EOF
       WAM_ALLOW_PRELAUNCH_START=1 systemctl start <unit>
 
 EOF
-exit 1
+exit 78
