@@ -87,28 +87,33 @@ GATE=0
 case $GATE in
   0)  ok "mainnet is open; the gate no longer refuses anything" ;;
   78)
-    if systemctl start "$UNIT" >/dev/null 2>&1; then
-        systemctl stop "$UNIT" || true
-        fail "the gate did not fire -- $UNIT started before its genesis date"
-    fi
-    ok "gate refuses an early start, verified just now"
-
-    # The refusal must be final, not a retry, and one RestartSec has to pass
-    # before that can be told apart. Counting the refusals in the journal is
-    # the direct measure: one is a refusal, more than one is a loop.
+    # An ExecCondition that declines returns success to systemctl start and
+    # leaves the unit not running, so the exit code of `systemctl start`
+    # proves nothing. What has to be true is that the node is not running and
+    # that it was refused once rather than repeatedly -- and one RestartSec
+    # has to pass before those can be told apart.
+    MARK="$(date -u '+%Y-%m-%d %H:%M:%S')"
+    systemctl start "$UNIT" >/dev/null 2>&1 || true
     sleep 25
+
     STATE="$(systemctl is-active "$UNIT" 2>/dev/null)"
-    TRIES="$(journalctl -u "$UNIT" --since '-2 min' --no-pager -o cat 2>/dev/null \
+    TRIES="$(journalctl -u "$UNIT" --since "$MARK" --no-pager -o cat 2>/dev/null \
              | grep -c 'refusing to start' || true)"
-    if [ "$STATE" != "failed" ] || [ "${TRIES:-0}" -gt 1 ]; then
+
+    if [ "$STATE" = "active" ] || [ "$STATE" = "activating" ]; then
         systemctl stop "$UNIT" || true
         systemctl reset-failed "$UNIT" 2>/dev/null || true
-        fail "$UNIT retried the refused start: it is '$STATE' and refused
-        ${TRIES:-?} times in two minutes. RestartPreventExitStatus only covers
-        the main service process, so the gate has to run inside ExecStart --
-        an ExecStartPre that refuses is restarted anyway."
+        fail "$UNIT is '$STATE' before its genesis date, after refusing
+        ${TRIES:-?} times. Restart= is re-entering the refusal: the gate must
+        be an ExecCondition, where an exit of 1..254 skips the start without
+        marking the unit failed. As an ExecStartPre, or inside ExecStart, it
+        loops."
     fi
-    ok "refused once and stopped -- $STATE, $TRIES refusal in the journal"
+    if [ "${TRIES:-0}" -gt 1 ]; then
+        fail "the gate refused $TRIES times in 25 seconds. It is being
+        retried, which is the loop this exists to prevent."
+    fi
+    ok "refused once and stopped -- unit is $STATE, $TRIES refusal in the journal"
     systemctl reset-failed "$UNIT" 2>/dev/null || true
     ;;
   *)  warn "genesis_gate.sh returned an unexpected status; check it by hand" ;;
