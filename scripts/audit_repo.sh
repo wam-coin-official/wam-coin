@@ -222,7 +222,13 @@ if [ -d integration ]; then
         printf '%s' "$rest" | grep -qiE 'merkle' && continue
         fail "$f carries ${h:0:16}..., which is neither a genesis hash nor labelled"
         INTEG=$((INTEG+1))
-    done <<< "$(grep -rEn '\b[0-9a-f]{64}\b' integration/ docs/ 2>/dev/null)"
+    # Tracked files only, not the working tree. integration/komodo/ can hold
+    # a built submission directory containing KomodoPlatform's own 782-entry
+    # coins file, and scanning that reports every other project's constants
+    # as ours being wrong -- which is a check crying wolf about a file that
+    # is not ours and is not committed. Anything gitignored is by definition
+    # not something this repository claims.
+    done <<< "$(git ls-files -z integration/ docs/ 2>/dev/null | xargs -0 grep -EnH '\b[0-9a-f]{64}\b' 2>/dev/null)"
 
     # Address prefixes, in every file that repeats them. A named file that has
     # gone missing is reported as missing rather than as wrong.
@@ -266,8 +272,9 @@ if [ -d integration ]; then
             fail "$hit"
             fail "  ...is not $WANT_DEC, which src/wam/wam-params.h declares"
             INTEG=$((INTEG+1))
-        done <<< "$(grep -rEn "^[^#]*\"?(bip44|derivation_path|coin_type)\"?[[:space:]]*[:=][[:space:]]*[\"']?m?/?4?4?'?/?[0-9]" \
-            integration/ 2>/dev/null)"
+        done <<< "$(git ls-files -z integration/ 2>/dev/null | xargs -0 grep -EnH \
+            "^[^#]*\"?(bip44|derivation_path|coin_type)\"?[[:space:]]*[:=][[:space:]]*[\"']?m?/?4?4?'?/?[0-9]" \
+            2>/dev/null)"
     else
         fail "WAM_BIP44_COIN_TYPE is not declared in src/wam/wam-params.h"
         INTEG=$((INTEG+1))

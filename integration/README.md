@@ -9,7 +9,7 @@ but a chain client inside their node.
 
 | Venue | What it consumes | Ready |
 |---|---|---|
-| [Komodo Wallet](komodo/) | PR to `KomodoPlatform/coins`: coin entry, electrum servers, explorer, icon | **written and never sent** — see [SUBMIT.md](komodo/SUBMIT.md) |
+| [Komodo Wallet](komodo/) | PR to `KomodoPlatform/coins`: coin entry, electrum servers, explorer, icon | **open** [#21](https://github.com/KomodoPlatform/coins/pull/21), sent 2026-08-29 |
 | [Block DX](blockdx/) | PR to `blocknetdx/blockchain-configuration-files`: 2 confs + manifest | **open, and being worked on** [#197](https://github.com/blocknetdx/blockchain-configuration-files/pull/197) |
 | [Haveno](haveno/) | PR to `haveno-dex/haveno`: asset class, test, service entry | closed [#2528](https://github.com/haveno-dex/haveno/pull/2528) — needs a market price first |
 | [BasicSwap DEX](basicswap/) | PR to `basicswap/basicswap`: a Python interface package | closed [#701](https://github.com/basicswap/basicswap/pull/701) — *"mainnet is scheduled for 2026-09-15"*, resubmit after |
@@ -21,19 +21,35 @@ And one that is not a venue at all but blocks three of them:
 | Registry | What it consumes | Ready |
 |---|---|---|
 | [SLIP-0044 and SLIP-0173](slips/) | one table row each, to `satoshilabs/slips` | **merged 2026-08-26** [#2051](https://github.com/satoshilabs/slips/pull/2051) — coin type 5718349, prefixes `wam` / `twam` / `wamrt` |
-| [Haveno](haveno/) | PR to `haveno-dex/haveno`: asset class, test, service entry | **submitted** [#2528](https://github.com/haveno-dex/haveno/pull/2528) |
 
-**Nothing here has been submitted, and nobody has agreed to list WAM.**
+## Where this actually stands, 2026-08-30
 
-Enquiries asking each venue what it requires were sent 2026-08-18. All six
-replied on 2026-08-19, within hours of each other, and every one of them
-pointed at a GitHub repository: their listings are made by pull request, not by
-application. That is an answer about process. None of them said anything about
-WAM.
+Enquiries were sent 2026-08-18 and all six venues replied within hours, every
+one of them pointing at a GitHub repository: listings are made by pull
+request, not by application.
 
-So the work is the same in all six cases -- read what their repository actually
-consumes, and write it correctly -- and the decision in all six cases is
-theirs, later.
+Since then, six submissions and one merge. Every refusal has been about
+policy or timing; **not one has been about the code**:
+
+- **SatoshiLabs merged ours.** They are the only party that examined the
+  parameters themselves, and coin type 5718349 with prefixes `wam` / `twam`
+  / `wamrt` is now in the registry every hardware wallet derives from.
+- **Bisq** add no new altcoins at all. Nothing to do with WAM.
+- **Haveno** answered *"we only consider coins with market traction /
+  price"* — a sequencing rule. They are where a coin arrives, not where it
+  starts.
+- **BasicSwap** closed with *"mainnet is scheduled for 2026-09-15"*.
+  Resubmit after that date.
+- **Block DX** is open and a maintainer is preparing a batch that includes
+  it, and intends to test the wallet in docker.
+- **Komodo** is open, sent 2026-08-29.
+
+The order was wrong, and the correction is worth writing down rather than
+learning twice: **Komodo is the venue a coin starts at and it was submitted
+last**, while three venues that gate on a market price were approached
+first. A wallet asks whether the entry is correct; an exchange asks whether
+anyone is trading it. Only one of those questions can be answered before
+launch.
 
 ---
 
@@ -42,15 +58,25 @@ theirs, later.
 Komodo Wallet requires **ElectrumX servers with valid SSL** for a UTXO coin —
 it is a directory in their repository, not an optional field.
 
-One runs now, at `electrum.wamcoin.org`, and was verified from a machine other
-than itself: valid certificate, protocol answers, and a genesis hash matching
-what the node reports. `integration/electrumx/` builds it from nothing.
+**Two run**, at `electrum.wamcoin.org` and `electrum2.wamcoin.org`, on
+deliberately different providers — two servers at one provider are one
+outage. Both were verified from a machine other than themselves: valid
+certificate, protocol answers, and a genesis hash matching what the node
+reports. `integration/electrumx/` builds one from nothing.
 
-It serves testnet, because that is the only WAM network that exists. The entry
-in `komodo/electrums-WAM.json` is written against mainnet and cannot be sent
-before there is one — along with a second server on a different provider and a
-`wss://` port for Komodo's web wallet. `komodo/NOTES.md` says exactly what each
-of those needs.
+Since 2026-08-29 there is one instance per network — `wam-electrumx@testnet`
+and `wam-electrumx@mainnet`, each with its own env file, database and ports.
+Before that a single instance served whichever network it was installed for,
+and running the installer for mainnet on launch night would have overwritten
+the testnet configuration in place.
+
+Testnet now answers on **51001/51002/51004**. The mainnet numbers —
+50001/50002/50004, which are what `komodo/electrums-WAM.json` publishes — are
+held empty until 15 September, and the mainnet instances are installed on
+both hosts and deliberately not started. A testnet server answering on a
+mainnet port is worse than silence: a reviewer who connects, gets a working
+server, and reads back a genesis hash that is not the one in the entry has
+found a defect in the submission.
 
 None of this ever blocked the other two: BasicSwap and Block DX run the daemon
 directly and never speak the Electrum protocol.
@@ -60,13 +86,21 @@ whether or not any venue asks for it.
 
 ---
 
-## Two gaps that need someone else's calendar, not ours
+## The gap that closed, and the one that stayed
 
-**SLIP-44 coin type.** WAM has none. It is the `coin_type` in a BIP44
-derivation path (`m/44'/<type>'`), and no hardware wallet will ever support a
-coin without one. Registration is a pull request to `satoshilabs/slips`, and
-their merge queue is measured in weeks. `komodo/coin-entry.json` therefore has
-no `derivation_path` field, and cannot have one until a number is assigned.
+**SLIP-44 coin type — granted.** This section used to say WAM had none and
+that `komodo/coin-entry.json` could not carry a `derivation_path` until a
+number was assigned. SatoshiLabs merged
+[#2051](https://github.com/satoshilabs/slips/pull/2051) on 2026-08-26: coin
+type **5718349** (`0x57414D`, "WAM" in ASCII), and SLIP-0173 prefixes `wam`,
+`twam`, `wamrt`. The entry carries `m/44'/5718349'` and
+`scripts/check_listing_entry.py` compares it against the constant in
+`src/wam/wam-params.h` on every sweep.
+
+It is worth being precise about what that is and is not. It is the number
+every wallet derives addresses from, and no hardware wallet can support a
+coin without one. It is **not** Trezor firmware support: that is a separate
+registry, `trezor-firmware/common/defs/bitcoin/`, and WAM is not in it.
 
 **Message signing prefix.** Fixed here rather than left: WAM used Bitcoin's
 `"Bitcoin Signed Message:\n"`, which meant a signature proving control of a WAM
