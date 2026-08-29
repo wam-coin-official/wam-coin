@@ -125,12 +125,95 @@ def main():
     if not _fails:
         ok(f"{len(el)} electrum server(s), all on the published mainnet ports")
 
+    check_blockdx(prefix, num, hdr)
+
     print()
     if _fails:
         print(f"  {RED}{len(_fails)} field(s) disagree with the source{OFF}")
         return 1
-    print(f"  {GRN}the entry describes this coin{OFF}")
+    print(f"  {GRN}the entries describe this coin{OFF}")
     return 0
+
+
+def check_blockdx(prefix, num, hdr):
+    """The Block DX manifest, which had two faults nobody would have seen.
+
+    On 2026-08-29 a Block DX maintainer said he was about to test our entry
+    by deploying the wallet in docker. It carried ver_id `wamcoin--v0.1.3`,
+    and:
+
+      * every one of the 142 entries in their manifest derives ver_id from
+        the *conf_name* stem, not the coin name -- bitcoin.conf gives
+        bitcoin--v0.15.1. Ours is wam.conf, so ours must be wam--.
+      * v0.1.3 has no downloadable assets. Only v0.1.6 does. A test that
+        fetches the wallet for a listed version would have found nothing,
+        in the same batch where he was removing dead coins.
+
+    Neither would have been visible by reading the file.
+    """
+    bd = REPO / "integration" / "blockdx"
+    if not bd.is_dir():
+        return
+    print()
+    print(f"{BLD}the Block DX manifest entry{OFF}")
+
+    m = json.loads((bd / "manifest-entry.json").read_text(encoding="utf-8"))
+    if isinstance(m, list):
+        m = m[0]
+
+    stem = m.get("conf_name", "").rsplit(".", 1)[0]
+    if not m.get("ver_id", "").startswith(stem + "--"):
+        bad(f"ver_id {m.get('ver_id')!r} does not follow conf_name "
+            f"{m.get('conf_name')!r}. Every entry in their manifest does: "
+            f"bitcoin.conf gives bitcoin--v0.15.1.")
+    else:
+        ok(f"{'ver_id':<18} {m['ver_id']}  (follows {m['conf_name']})")
+
+    for field, folder in (("wallet_conf", "wallet-confs"),
+                          ("xbridge_conf", "xbridge-confs")):
+        want = f"{m['ver_id']}.conf"
+        if m.get(field) != want:
+            bad(f"{field} is {m.get(field)!r}, should be {want!r} to match ver_id")
+        elif not (bd / folder / want).is_file():
+            bad(f"{folder}/{want} does not exist")
+        else:
+            ok(f"{field:<18} {want}")
+
+    # The xbridge conf repeats the base58 prefixes and the RPC port. They are
+    # what tells a DEX how to build and read an address, and a wrong one does
+    # not look wrong -- it sends a swap somewhere nobody can spend from.
+    xb = (bd / "xbridge-confs" / f"{m['ver_id']}.conf").read_text(encoding="utf-8") \
+        if (bd / "xbridge-confs" / f"{m['ver_id']}.conf").is_file() else ""
+    for key, want in (("AddressPrefix", prefix("PUBKEY_ADDRESS")),
+                      ("ScriptPrefix",  prefix("SCRIPT_ADDRESS")),
+                      ("SecretPrefix",  prefix("SECRET_KEY")),
+                      ("BlockTime",     num(r"WAM_POW_TARGET_SPACING[^=]*=\s*([0-9']+)", hdr))):
+        mm = re.search(rf"^{key}=(\d+)", xb, re.M)
+        if not mm:
+            bad(f"the xbridge conf has no {key}")
+        elif int(mm.group(1)) != want:
+            bad(f"xbridge {key} is {mm.group(1)}, source says {want}")
+        else:
+            ok(f"{('xbridge ' + key):<18} {want}")
+
+    # A listed version with no published binary is the fault that only shows
+    # up when somebody tries to install it.
+    try:
+        import urllib.request
+        for v in m.get("versions", []):
+            req = urllib.request.Request(
+                f"https://api.github.com/repos/wam-coin-official/wam-coin/releases/tags/{v}",
+                headers={"User-Agent": "wam-listing-check"})
+            with urllib.request.urlopen(req, timeout=25) as f:
+                rel = json.load(f)
+            n = len(rel.get("assets", []))
+            if n == 0:
+                bad(f"versions lists {v}, which is a tag with no downloadable "
+                    f"assets. Anyone told to install that version finds nothing.")
+            else:
+                ok(f"{('release ' + v):<18} {n} downloadable asset(s)")
+    except Exception as e:
+        warn(f"could not reach GitHub to check the listed releases ({e})")
 
 
 if __name__ == "__main__":
