@@ -277,30 +277,21 @@ Three things were found by doing it rather than reading it:
   those are the mainnet numbers published in the Komodo entry and the
   listing sheet. Mainnet cannot take them while testnet is on them.
 
-16. **Electrum: hand over the ports, then start mainnet.**
+16. **Electrum: one command per host.**
 
-    The mainnet instance is already installed and was proved end to end —
-    plain, TLS and the WebSocket port all answered, and reported the mainnet
-    genesis hash. What is left is the handover, and it depends on a decision
-    that belongs above in *Two decisions to make before the day*: whether
-    testnet Electrum keeps running.
+    The handover was done on 2026-08-29, deliberately not on the night.
+    Testnet's ElectrumX now lives on 51001/51002/51004 with its index
+    carried across rather than rebuilt, and 50001/50002/50004 have been held
+    empty since — so nothing answers on a mainnet port with a testnet chain,
+    which is the state a listing reviewer would have found a defect in.
 
-    If testnet stands down:
-
-    ```bash
-    systemctl disable --now wam-electrumx        # the old single instance
-    systemctl enable --now wam-electrumx@mainnet
-    ```
-
-    If testnet stays up, it moves to 51001/51002/51004 first — which needs
-    both firewalls opened for the new ports, in ufw *and* in the provider's
-    panel:
+    The mainnet instance is installed on both machines, configured against
+    the published ports, and was proved end to end on rehearsal ports:
+    plain, TLS and WebSocket-over-TLS all answered and reported the mainnet
+    genesis hash. So on the day there is nothing to install and nothing to
+    decide:
 
     ```bash
-    systemctl disable --now wam-electrumx
-    bash integration/electrumx/install.sh --network testnet \
-        --domain electrum.wamcoin.org
-    systemctl enable --now wam-electrumx@testnet
     systemctl enable --now wam-electrumx@mainnet
     ```
 
@@ -371,20 +362,23 @@ operators are on it. Stopping it loses them and loses the rehearsal ground.
 Keeping it means running two chains. Decide in advance and write the answer
 here.
 
-Since 29 August the answer has a concrete cost attached, so it can be decided
-on facts rather than on preference:
+The expensive half of this was settled on 29 August, before the day, so the
+decision no longer costs anything on the night: testnet's ElectrumX already
+moved to 51001/51002/51004, and mainnet's ports are already free. Whichever
+way the answer goes, launch night is one `systemctl enable --now` per host.
 
-- **Keeping it** means moving testnet's ElectrumX to 51001/51002/51004 and
-  opening those ports in ufw and in each provider's panel — a firewall change
-  on launch night, which is the worst night for one. Memory was measured on
-  both hosts and both fit: Singapore has 958 MB free and needs about 605 MB,
-  a margin of roughly 350 MB with no swap on the machine. It fits, but it is
-  the tightest thing on that host.
-- **Stopping it** is two commands and no firewall work, and mainnet takes
-  50001/50002/50004 directly — the numbers already published.
+Memory was measured rather than estimated, and both networks fit on both
+machines: Singapore has 958 MB free and needs about 605 MB, a margin of
+roughly 350 MB with no swap on the machine. It fits, and it is the tightest
+thing on that host.
 
-Doing the port move *before* the day removes it from the night either way,
-and costs nothing if the answer later turns out to be "stop it".
+**One thing is still outstanding and is not ours to do.** ufw allows
+51001/51002/51004 on both hosts, but Contabo and Hetzner each drop inbound
+TCP to any port not on an allow-list in their control panel, and a dropped
+packet is silent — so the servers look perfect from the inside while nothing
+reaches them. Until those three ports are added in both panels, testnet's
+Electrum is reachable only from the machines themselves. Nothing about
+mainnet depends on it: 50001/50002/50004 were already open there.
 
 **Who is awake?** Every step above assumes one person doing them in order.
 If that person is asleep at 04:00 the chain does not stop, but nobody is
