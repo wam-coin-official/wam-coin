@@ -29,31 +29,41 @@ StartLimitIntervalSec=0
 [Service]
 Type=simple
 
-# The gate runs inside ExecStart, not as an ExecStartPre, and the difference
-# is the whole point.
+# ExecCondition, and it took three wrong answers to get here. Written down
+# because the next person to touch this line will reach for one of them.
 #
-# RestartPreventExitStatus= applies to the exit status of the *main service
-# process*. An ExecStartPre that fails is not that process, so with the gate
-# as an ExecStartPre the unit was restarted anyway: five refusals a minute,
-# forever, on both hosts. Tested, not assumed -- the first attempt at this
-# file had exactly that arrangement and it looped.
+#   ExecStartPre       fails the unit, and Restart=always restarts a unit
+#                      whose ExecStartPre failed. Five refusals a minute on
+#                      both hosts, forever. RestartPreventExitStatus= does
+#                      not help: it covers the exit status of the *main
+#                      service process*, and an ExecStartPre is not that.
 #
-# Written this way the gate IS the main process until it succeeds, and then
-# exec replaces the shell with wamd, so systemd still tracks the daemon
-# itself for MAINPID, signals and MemoryMax. A refusal exits 78 as the main
-# process, which RestartPreventExitStatus below does cover, so the unit fails
-# once, loudly, and stops -- and `systemctl start` reports the failure to
-# whoever typed it instead of returning success on a service that is not
-# running.
-ExecStart=/bin/sh -c '/opt/wam/scripts/genesis_gate.sh mainnet --datadir /root/.wam-mainnet && exec /opt/wam-current-bin/wamd -chain=main -conf=/root/.wam-mainnet/wam.conf -datadir=/root/.wam-mainnet -printtoconsole'
+#   inside ExecStart   as `sh -c 'gate && exec wamd'`. The exit status is now
+#                      the main process's, so RestartPreventExitStatus does
+#                      apply -- but Type=simple reports the service started
+#                      the moment the shell is forked, before the gate has
+#                      run, so `systemctl start` returns success either way
+#                      and the loop came back through Restart=.
+#
+#   ExecCondition      what it is for. An exit of 1..254 skips the remaining
+#                      commands, leaves the unit NOT failed, and Restart=
+#                      never engages. 255 or a signal would mark it failed
+#                      and start the loop again, which is why the gate uses
+#                      78 and nothing else.
+#
+# The cost is that before 15 September `systemctl start wamd-mainnet` returns
+# success and leaves the node not running. The reason is in the journal every
+# time, and after 15 September the condition passes and the question stops
+# existing.
+ExecCondition=/opt/wam/scripts/genesis_gate.sh mainnet --datadir /root/.wam-mainnet
 
+ExecStart=/opt/wam-current-bin/wamd -chain=main -conf=/root/.wam-mainnet/wam.conf -datadir=/root/.wam-mainnet -printtoconsole
 Restart=always
 RestartSec=15
 
-# 78 is EX_CONFIG and the only status genesis_gate.sh refuses with. It means
-# the configuration is wrong rather than the machine is: retrying cannot fix
-# it, because what it is waiting for is the date, and systemd cannot hurry a
-# clock.
+# Belt and braces. 78 is EX_CONFIG and the only status genesis_gate.sh
+# refuses with, so if it is ever moved back to ExecStart this at least stops
+# the loop.
 RestartPreventExitStatus=78
 StandardOutput=journal
 StandardError=journal
