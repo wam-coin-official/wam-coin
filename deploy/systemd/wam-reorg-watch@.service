@@ -25,6 +25,18 @@ After=network-online.target
 [Service]
 Type=oneshot
 
+# systemd sets no HOME for a service that names no User=, so wam-cli looks
+# for its data directory at /.wam and reports "could not locate RPC
+# credentials" -- which reads exactly like a node that is down, while the
+# node is up and answering everyone else.
+#
+# This is the second time. wam-backup.service failed the same way in August
+# and its backups were dead for three days before anyone noticed. Written
+# here rather than only in that file, because the note in that file did not
+# stop it happening again; scripts/test/test_service_home.sh is what stops
+# it now.
+Environment=HOME=/root
+
 # --local asks this machine's own node. Every node sees a reorganisation, so
 # each host watches itself and two hosts are two independent witnesses.
 ExecStart=/usr/bin/python3 /opt/wam/scripts/check_reorg.py --local --network %i --state-dir /var/lib/wam-reorg
