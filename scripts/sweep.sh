@@ -98,6 +98,14 @@ run "executable bits in index"   bash scripts/test/test_exec_bits.sh
 run "line endings are LF"        bash scripts/test/test_line_endings.sh
 run "service hardening"          bash scripts/test/test_harden.sh
 
+# systemd sets no HOME for a service with no User=, so wam-cli looks in
+# /.wam and reports missing RPC credentials -- which reads as a node that is
+# down while the node is up. It killed the backups for three days in August,
+# and then killed the reorg watcher on the day it was written, by the same
+# person, hours after he wrote the check that would have caught the first
+# one. Knowing about a trap is not a guard rail.
+run "units that resolve ~ have a HOME"  bash scripts/test/test_service_home.sh
+
 # Asked before a chain is started, not after. A consensus value that changes
 # once blocks exist invalidates every block mined under the old one, and the
 # running nodes are the last to notice.
