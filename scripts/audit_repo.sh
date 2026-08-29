@@ -226,8 +226,16 @@ if [ -d integration ]; then
 
     # Address prefixes, in every file that repeats them. A named file that has
     # gone missing is reported as missing rather than as wrong.
+    #
+    # The Block DX conf is a glob rather than a name because it is called
+    # after its ver_id, which carries the release it targets and therefore
+    # changes whenever we retarget. It went from wamcoin--v0.1.3.conf to
+    # wam--v0.1.6.conf on 2026-08-29 and this list then reported that a
+    # venue's files had been lost. A glob cannot go stale, and if there is
+    # ever more than one conf, checking all of them is the more correct
+    # thing to do anyway.
     for f in integration/komodo/coin-entry.json \
-             integration/blockdx/xbridge-confs/wamcoin--v0.1.3.conf \
+             integration/blockdx/xbridge-confs/*.conf \
              integration/basicswap/chainparams.py; do
         if [ ! -f "$f" ]; then
             fail "$f is gone -- either it moved and this list is stale, or a venue's files were lost"
