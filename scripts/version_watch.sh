@@ -83,9 +83,22 @@ else
     echo "wam-version-watch: behind the newest release ($CUR)" >&2
 fi
 
+# Minimal Debian and Ubuntu images ship without this directory even though
+# pam_motd reads it, and the France host is one of them. The first version
+# of this script found it missing, said so on stderr, and exited without
+# writing anything -- correct behaviour, in the one place where being silent
+# defeats the entire point. Create it: it is the documented location, it is
+# empty and harmless if nothing reads it, and a notice nobody can see is the
+# same as no notice.
 if [ ! -d "$MOTD_DIR" ]; then
-    echo "wam-version-watch: no $MOTD_DIR on this system; nothing shown at login" >&2
-    exit "$RC"
+    if mkdir -p "$MOTD_DIR" 2>/dev/null; then
+        echo "wam-version-watch: created $MOTD_DIR" >&2
+    else
+        echo "wam-version-watch: no $MOTD_DIR and cannot create it; the warning" >&2
+        echo "  is in this journal only, where nobody will look for it:" >&2
+        echo "  $HEAD_LINE ($CUR)" >&2
+        exit "$RC"
+    fi
 fi
 
 cat > "$MOTD_FILE" <<EOF
