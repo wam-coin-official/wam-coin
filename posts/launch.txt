@@ -1,0 +1,77 @@
+*WAM Coin mainnet is live.*
+
+Genesis was mined at 00:00 UTC on 15 September 2026. The chain is open and
+anyone can join it.
+
+*Verify it yourself rather than believing this message.*
+
+```
+genesis   d8d3debea987b62a0934c3980d62bffbb6e16aa797d19891d4fcc9b9fb11d7e9
+```
+
+Every number below is compiled into the software and enforced by every node.
+None of it can be changed by us afterwards.
+
+```
+supply            22,000,000 WAM, hard cap
+block reward      50 WAM, halving every 200,000 blocks
+block time        120 seconds, DarkGravityWave v3
+algorithm         RandomX, CPU
+treasury          5% of each block subsidy until height 400,000
+miner receives    47.5 WAM per block until then, 50 after
+founder reserve   2,000,000 WAM in genesis, time-locked on chain
+                  in five tranches from 2027-09-15 to 2031-09-15
+```
+
+The founder reserve is not a promise in a document. It is five outputs in
+the genesis block whose scripts refuse to be spent before their dates, and
+any node rejects a spend that comes early. You can read them yourself:
+
+```
+wam-cli getblock $(wam-cli getblockhash 0) 2
+```
+
+*Run a node.*
+
+```
+git clone https://github.com/wam-coin-official/wam-coin
+cd wam-coin && ./install.sh
+```
+
+It builds from source, checks its own checksums, and needs no trust in a
+binary anybody handed you.
+
+*Mine.*
+
+The reference miner ships with each release and builds with no dependency
+beyond librandomx. There is a pool if you want one, and mining solo is a
+first-class path, not an afterthought:
+
+```
+pool.wamcoin.org:3333   3334   3335      plain
+pool.wamcoin.org:3336                    TLS
+```
+
+*What we are not going to pretend.*
+
+WAM launched today. Its hashrate is small, which is true of every new proof
+of work chain and is not made less true by not mentioning it. A chain with
+little hashrate can be reorganised by somebody willing to rent enough CPU,
+and the people that costs money are those who accept payment on few
+confirmations — exchanges, mostly, not people holding coins in a wallet.
+
+So we ask for 20 confirmations wallet-to-wallet, and 60 for an exchange
+deposit, and we will publish a review of those numbers against measured
+hashrate rather than quietly leaving them. Every node we run checks itself
+every two minutes for a block that has stopped being a block, and if one
+ever does, you will read it here first.
+
+WAM has no market price, is listed on no exchange, and no security firm has
+audited the consensus changes. Two independent developers reviewed the code
+and their findings were adopted; peer review is not an audit.
+
+We would rather you knew all of that today than found it out later.
+
+https://wamcoin.org
+https://explorer.wamcoin.org
+https://github.com/wam-coin-official/wam-coin

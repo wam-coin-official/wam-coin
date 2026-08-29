@@ -8,6 +8,7 @@
 //
 //      node bots/say.js --file note.txt --dry-run
 //      node bots/say.js --file note.txt
+//      node bots/say.js --file launch.txt --expect main    # refuses on testnet
 //
 //  WHY THIS EXISTS
 //
@@ -56,6 +57,7 @@ function parseArgs(argv) {
         if (argv[n] === '--config' && argv[n + 1]) out.config = argv[++n];
         else if (argv[n] === '--file' && argv[n + 1]) out.file = argv[++n];
         else if (argv[n] === '--dry-run') out.dry = true;
+        else if (argv[n] === '--expect' && argv[n + 1]) out.expect = argv[++n];
         else if (argv[n] === '--help' || argv[n] === '-h') out.help = true;
         else { out.bad = argv[n]; }
     }
@@ -133,6 +135,27 @@ async function main() {
     try {
         const rpc = new NodeRpc(cfg.node);
         const info = await rpc.call('getblockchaininfo');
+
+        // --expect exists because of a dry run on 2026-08-29. The launch
+        // announcement was rendered and came out headed "TESTNET — coins
+        // here have no value", because the bot's config points at port
+        // 19554 and nothing in the launch procedure said to move it. The
+        // message would have been correct, the banner would have been
+        // correct, and the two together would have announced the birth of
+        // the chain over a line saying its coins are worthless.
+        //
+        // A note in a document would not have stopped that at two in the
+        // morning. This does: name the chain you mean, and be refused if
+        // the node is on another one.
+        if (args.expect && info.chain !== args.expect) {
+            console.error(`--expect ${args.expect}, but the node is on '${info.chain}'.`);
+            console.error('');
+            console.error('Nothing was sent. The bot reads whichever node its');
+            console.error(`config names -- ${cfg.node && cfg.node.port ? `port ${cfg.node.port}` : 'see the config'}` +
+                          ` -- so point it at the right one and run this again.`);
+            return 1;
+        }
+
         const banner = networkLabel(info.chain);
         if (banner) message = `${banner}\n\n${message}`;
     } catch (err) {

@@ -130,18 +130,20 @@ condition passes and the question stops existing.
 A deliberate rehearsal passes `WAM_ALLOW_PRELAUNCH_START=1`, and is told in
 the journal to empty the block database afterwards.
 
-### The two hosts disagree about what time it is
+### Both hosts are on UTC — settled 2026-08-29
 
-France runs `Europe/Berlin`; Singapore runs `Etc/UTC`. At 00:00 UTC on 15
-September, France's journal will say 02:00. Everything the chain itself does
-is in UTC — genesis, `MAX_FUTURE_BLOCK_TIME`, block timestamps — so the only
-thing affected is a human reading two logs side by side at two in the
-morning, which is exactly when that costs an hour.
+France ran `Europe/Berlin` and Singapore `Etc/UTC`, so at 00:00 UTC on 15
+September one journal would have said 02:00 while the other said 00:00.
+Nothing the chain does was affected — genesis, `MAX_FUTURE_BLOCK_TIME` and
+every block timestamp are absolute — but a person reading two logs side by
+side at two in the morning is, and that is exactly when an hour disappears.
 
-This was found by a check of mine reporting a crash loop that was not
+It was found by a check of mine reporting a crash loop that was not
 happening: it wrote a UTC mark and `journalctl --since` read it as local
-time. Decide before the day whether to set both hosts to UTC. It is one
-command and it moves the backup timer's local firing time.
+time. France is now `Etc/UTC`. The calendar timers were re-checked after the
+change rather than assumed — `wam-backup.timer` fired once on the way past,
+succeeded, and its next run is 03:20 UTC, because a backup that quietly
+stopped being nightly is a failure this project has already had.
 
 What *was* proved by rehearsing, and does not need repeating on the night:
 genesis validates from nothing and its hash matches the assertion; the
@@ -325,15 +327,38 @@ chain is a promise, and this project does not make those.
 19. **Publish the facts anyone can check**: genesis hash, merkle root,
     treasury address, the height at which the treasury rule ends.
 
-20. **Announce.** `bots/say.js` posts to both channels at once, in the right
-    format for each:
+20. **Point the bot at mainnet first.** This step exists because a dry run
+    on 29 August produced the launch announcement headed:
 
-    ```bash
-    node bots/say.js --file launch.txt --dry-run   # read it
-    node bots/say.js --file launch.txt
+    ```
+    🧪 TESTNET — coins here have no value
     ```
 
-21. **The release for mainnet** — if a new version is cut for the day, its
+    The bot asks whichever node its config names which chain it is on, and
+    labels the message accordingly — which is right, and is why nothing it
+    sends can be mistaken for the wrong network. But `/etc/wam/announce.json`
+    names port 19554, and nothing in this document had ever said to move it.
+    The message would have been correct and the banner would have been
+    correct, and the two together would have announced the birth of the chain
+    over a line saying its coins are worthless.
+
+    So: edit `/etc/wam/announce.json` to the mainnet RPC port (9554) and
+    credentials, then restart `wam-announce`.
+
+21. **Announce.** `--expect main` is not optional. It asks the node what
+    chain it is on and refuses to send anything if the answer is not the one
+    you named — because a note in a document does not stop a mistake at two
+    in the morning, and this does.
+
+    ```bash
+    node bots/say.js --file posts/launch.txt --expect main --dry-run   # read it
+    node bots/say.js --file posts/launch.txt --expect main
+    ```
+
+    The text is written and lives at `posts/launch.txt`. Read it once in
+    daylight before the night, not for the first time at 02:00.
+
+22. **The release for mainnet** — if a new version is cut for the day, its
     tag message is the release note and `scripts/consensus_floor.py` decides
     whether it needs a `MANDATORY:` line. The workflow refuses to publish a
     consensus change without one.
