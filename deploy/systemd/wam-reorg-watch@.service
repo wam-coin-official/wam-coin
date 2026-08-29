@@ -1,0 +1,52 @@
+# ===========================================================================
+#  Watch one network for blocks that stop being blocks
+# ===========================================================================
+#
+#      systemctl enable --now wam-reorg-watch@testnet.timer
+#      systemctl enable --now wam-reorg-watch@mainnet.timer   # after launch
+#
+#  A new proof-of-work chain can be reorganised by anyone who can out-mine
+#  it for an hour, and WAM is RandomX, so the hardware that does it is CPU --
+#  rentable by the hour from every cloud on earth. This does not prevent
+#  that. Nothing a young chain can do prevents it. It makes sure we are not
+#  the last to know, which is the whole of the difference between one
+#  exchange losing one deposit and every exchange delisting.
+#
+#  A failure here is not a machine problem and must not be restarted away:
+#  the script leaves an ALARM file in /var/lib/wam-reorg that outlives the
+#  run, and the sweep reports it until a person deletes it.
+# ===========================================================================
+
+[Unit]
+Description=Watch the WAM %i chain for reorganisations
+Documentation=https://github.com/wam-coin-official/wam-coin/blob/main/scripts/check_reorg.py
+After=network-online.target
+
+[Service]
+Type=oneshot
+
+# --local asks this machine's own node. Every node sees a reorganisation, so
+# each host watches itself and two hosts are two independent witnesses.
+ExecStart=/usr/bin/python3 /opt/wam/scripts/check_reorg.py --local --network %i --state-dir /var/lib/wam-reorg
+
+# Not Restart=on-failure. A detected reorganisation exits non-zero, and
+# retrying it two seconds later would only find the same thing and bury the
+# first report under a hundred identical ones.
+StateDirectory=wam-reorg
+StateDirectoryMode=0750
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/wam-reorg
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryMax=256M
+TasksMax=64

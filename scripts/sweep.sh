@@ -235,6 +235,25 @@ else
         # rather than reading an empty journal as nobody having come.
         run "why visitors did not stay" \
             python3 scripts/check_visitors.py --host "${NODES%% *}" --network testnet
+
+        # Has a block that was confirmed stopped being confirmed?
+        #
+        # Nothing here had ever asked, and it is the one failure that costs
+        # other people money rather than costing us time. A young RandomX
+        # chain can be out-mined by anyone renting cloud CPUs for an hour.
+        # The attack does not touch anybody's wallet: it lets the attacker
+        # spend their own coins twice, against whoever accepted them on few
+        # confirmations. In practice that is an exchange.
+        #
+        # It cannot be prevented at this size. It can be seen, and the
+        # difference between hearing in four minutes and hearing in four
+        # days is the difference between one lost deposit and a delisting.
+        #
+        # Proved on 2026-08-29 against a throwaway regtest chain rewritten
+        # on purpose: seven blocks replaced, reported as seven.
+        run "no confirmed block has been un-confirmed" \
+            python3 scripts/check_reorg.py --network testnet \
+                --state-dir "${WAM_REORG_STATE:-$HOME/.wam-reorg}" $NODES
     fi
 fi
 
