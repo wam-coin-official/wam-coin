@@ -29,23 +29,31 @@ StartLimitIntervalSec=0
 [Service]
 Type=simple
 
-# Refuses the start rather than reporting a failure afterwards. A non-zero
-# exit here stops the unit before wamd writes anything, so no poisoned
-# datadir is left behind. Harmless from 15 September onwards, when it exits 0
-# without printing.
-ExecStartPre=/opt/wam/scripts/genesis_gate.sh mainnet --datadir /root/.wam-mainnet
+# The gate runs inside ExecStart, not as an ExecStartPre, and the difference
+# is the whole point.
+#
+# RestartPreventExitStatus= applies to the exit status of the *main service
+# process*. An ExecStartPre that fails is not that process, so with the gate
+# as an ExecStartPre the unit was restarted anyway: five refusals a minute,
+# forever, on both hosts. Tested, not assumed -- the first attempt at this
+# file had exactly that arrangement and it looped.
+#
+# Written this way the gate IS the main process until it succeeds, and then
+# exec replaces the shell with wamd, so systemd still tracks the daemon
+# itself for MAINPID, signals and MemoryMax. A refusal exits 78 as the main
+# process, which RestartPreventExitStatus below does cover, so the unit fails
+# once, loudly, and stops -- and `systemctl start` reports the failure to
+# whoever typed it instead of returning success on a service that is not
+# running.
+ExecStart=/bin/sh -c '/opt/wam/scripts/genesis_gate.sh mainnet --datadir /root/.wam-mainnet && exec /opt/wam-current-bin/wamd -chain=main -conf=/root/.wam-mainnet/wam.conf -datadir=/root/.wam-mainnet -printtoconsole'
 
-ExecStart=/opt/wam-current-bin/wamd -chain=main -conf=/root/.wam-mainnet/wam.conf -datadir=/root/.wam-mainnet -printtoconsole
 Restart=always
 RestartSec=15
 
-# Restart=always restarts a unit whose ExecStartPre refused, so the gate above
-# turned into a retry every 15 seconds -- forty refusals in ten minutes on the
-# France host before this line existed. That is the crash loop the gate exists
-# to prevent, arriving through a different door. 78 is EX_CONFIG, the only
-# code genesis_gate.sh uses to refuse, and it means the configuration is wrong
-# rather than the machine is: retrying cannot fix it, and the clock is not
-# something systemd can hurry.
+# 78 is EX_CONFIG and the only status genesis_gate.sh refuses with. It means
+# the configuration is wrong rather than the machine is: retrying cannot fix
+# it, because what it is waiting for is the date, and systemd cannot hurry a
+# clock.
 RestartPreventExitStatus=78
 StandardOutput=journal
 StandardError=journal
