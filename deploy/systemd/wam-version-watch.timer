@@ -1,0 +1,32 @@
+# ===========================================================================
+#  Ask once a day, quietly
+# ===========================================================================
+#
+#  Daily is the right frequency for a question whose answer changes a few
+#  times a month. More often would be asking GitHub for nothing; less often
+#  and a consensus release could sit unnoticed for a week -- which, before
+#  15 September, is a week of a node that will fork off alone and does not
+#  know it.
+#
+#  Persistent=true because the machine that was switched off for a fortnight
+#  is exactly the machine most likely to be behind, and it should be told at
+#  the first login after it comes back rather than the next midnight.
+#
+#  RandomizedDelaySec so that every node in the network does not ask GitHub
+#  at the same second. There are five of us today; the habit is worth having
+#  before there are five hundred.
+# ===========================================================================
+
+[Unit]
+Description=Ask daily whether this node is still the software WAM publishes
+Documentation=https://github.com/wam-coin-official/wam-coin/blob/main/scripts/version_watch.sh
+
+[Timer]
+OnBootSec=10min
+OnCalendar=daily
+RandomizedDelaySec=2h
+Persistent=true
+Unit=wam-version-watch.service
+
+[Install]
+WantedBy=timers.target

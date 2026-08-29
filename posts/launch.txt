@@ -52,6 +52,40 @@ pool.wamcoin.org:3333   3334   3335      plain
 pool.wamcoin.org:3336                    TLS
 ```
 
+*What was proved before today, not on it.*
+
+None of this is a promise. Each line was done, and the thing it was done to
+is still there to check.
+
+```
+mainnet rehearsed      a full node run end to end weeks before launch:
+                       genesis built from an empty directory, its hash
+                       compared against the assertion in the source
+
+the premine verified   all five outputs read out of a live node's UTXO set,
+                       2,000,000 exactly. Bitcoin's genesis coinbase is not
+                       in its UTXO set and several forks inherited that
+                       without noticing. We checked rather than assumed
+
+electrum proved        plain, TLS and WebSocket-over-TLS, each answering
+                       with the mainnet genesis hash, before any of it was
+                       published
+
+the pool proved        it refuses a payout address from the wrong network
+                       and says why. Tested in both directions
+
+registered             SLIP-0044 coin type 5718349 and SLIP-0173 prefixes,
+                       merged into satoshilabs/slips by SatoshiLabs
+
+reviewed               two independent developers read the consensus
+                       changes and their findings were adopted
+```
+
+Every node we run also checks itself every two minutes for a block that has
+stopped being a block, and the alarm it writes outlives the run that found
+it. That was proved by rewriting a throwaway chain on purpose and watching
+it report the depth correctly.
+
 *What we are not going to pretend.*
 
 WAM launched today. Its hashrate is small, which is true of every new proof
