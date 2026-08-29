@@ -111,6 +111,16 @@ and the operator finds out on the morning it mattered.
 **The units exist on both hosts and are deliberately disabled.** On the day
 they are started, not installed.
 
+Deliberately disabled was not enough. On 29 August I started the mainnet node
+myself, on purpose, to test ElectrumX against it — and left a datadir behind
+that could never start again. Knowing the rule did not help; nothing stopped
+me. So `wamd-mainnet.service` now runs `scripts/genesis_gate.sh` as an
+`ExecStartPre`, which refuses the start outright before 15 September and
+exits silently after it. A deliberate rehearsal passes
+`WAM_ALLOW_PRELAUNCH_START=1` and is told, in the journal, to empty the block
+database afterwards. Both hosts have the gate, and both were tested by trying
+to start the node and being refused.
+
 What *was* proved by rehearsing, and does not need repeating on the night:
 genesis validates from nothing and its hash matches the assertion; the
 supply is 2,000,000 with all five tranches locked; port 9555 is open through
@@ -214,10 +224,62 @@ Read the sentence at the top again before this step.
 
 None of these can start before there is a chain for them to read.
 
-16. **Electrum, on both hosts.** Same installer, different flag:
+### Rehearsed 2026-08-29, so it does not have to be discovered on the night
+
+The installer used to write one env file, one database and one service name
+for every network. Running it for mainnet would have overwritten the testnet
+configuration in place — pointing a mainnet server at a database indexed for
+another chain and taking the testnet servers down in the same move.
+
+It is now one instance per network: `wam-electrumx@mainnet` and
+`wam-electrumx@testnet`, each with its own `/etc/wam/electrumx-<net>.env`,
+its own `/var/lib/electrumx-wam-<net>`, and its own ports.
+
+Three things were found by doing it rather than reading it:
+
+- **The mainnet node had no fixed RPC credentials.** It authenticated by
+  cookie, and the cookie is rewritten at every node start, so an ElectrumX
+  configured against it would have worked once and failed silently at the
+  node's first restart. Both hosts now have a fixed pair, added while their
+  mainnet nodes were stopped. The installer refuses a cookie-only node.
+
+- **ElectrumX does not index the genesis block.** The node has all five
+  premine outputs in its UTXO set — verified, `gettxoutsetinfo` reports
+  2,000,000 WAM at height 0 — but a light wallet asking Electrum about those
+  scripts is told zero. Ordinary blocks index correctly; the testnet
+  instance returns real balances at 3,468 blocks deep. So anyone checking
+  the founder reserve must ask a node, not a wallet, and that is worth
+  saying before someone reports it as a missing premine.
+
+- **The ports collide.** Testnet's ElectrumX holds 50001/50002/50004, and
+  those are the mainnet numbers published in the Komodo entry and the
+  listing sheet. Mainnet cannot take them while testnet is on them.
+
+16. **Electrum: hand over the ports, then start mainnet.**
+
+    The mainnet instance is already installed and was proved end to end —
+    plain, TLS and the WebSocket port all answered, and reported the mainnet
+    genesis hash. What is left is the handover, and it depends on a decision
+    that belongs above in *Two decisions to make before the day*: whether
+    testnet Electrum keeps running.
+
+    If testnet stands down:
 
     ```bash
-    bash integration/electrumx/install.sh --network mainnet
+    systemctl disable --now wam-electrumx        # the old single instance
+    systemctl enable --now wam-electrumx@mainnet
+    ```
+
+    If testnet stays up, it moves to 51001/51002/51004 first — which needs
+    both firewalls opened for the new ports, in ufw *and* in the provider's
+    panel:
+
+    ```bash
+    systemctl disable --now wam-electrumx
+    bash integration/electrumx/install.sh --network testnet \
+        --domain electrum.wamcoin.org
+    systemctl enable --now wam-electrumx@testnet
+    systemctl enable --now wam-electrumx@mainnet
     ```
 
     Then, from somewhere else entirely:
@@ -286,6 +348,21 @@ future change gets tested before it reaches people's money. Two independent
 operators are on it. Stopping it loses them and loses the rehearsal ground.
 Keeping it means running two chains. Decide in advance and write the answer
 here.
+
+Since 29 August the answer has a concrete cost attached, so it can be decided
+on facts rather than on preference:
+
+- **Keeping it** means moving testnet's ElectrumX to 51001/51002/51004 and
+  opening those ports in ufw and in each provider's panel — a firewall change
+  on launch night, which is the worst night for one. Memory was measured on
+  both hosts and both fit: Singapore has 958 MB free and needs about 605 MB,
+  a margin of roughly 350 MB with no swap on the machine. It fits, but it is
+  the tightest thing on that host.
+- **Stopping it** is two commands and no firewall work, and mainnet takes
+  50001/50002/50004 directly — the numbers already published.
+
+Doing the port move *before* the day removes it from the night either way,
+and costs nothing if the answer later turns out to be "stop it".
 
 **Who is awake?** Every step above assumes one person doing them in order.
 If that person is asleep at 04:00 the chain does not stop, but nobody is

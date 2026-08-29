@@ -4,6 +4,9 @@
 # ===========================================================================
 #
 #      sudo bash integration/electrumx/install.sh [--network testnet|mainnet]
+#                                                 [--domain <hostname>]
+#                                                 [--port-base 50000]
+#                                                 [--node-unit wamd.service]
 #
 #  Komodo Wallet cannot list a UTXO coin without ElectrumX servers carrying
 #  valid SSL; their repository has an electrums/ directory and an entry there is
@@ -27,6 +30,19 @@
 #  wam_coins.py.
 #
 #  This server holds no keys. It reads the node and answers questions.
+#
+#  ONE INSTANCE PER NETWORK
+#
+#  Everything below carries the network in its name: the env file, the
+#  database, the service instance and the ports. Until 2026-08-29 it did not,
+#  and running this for mainnet would have overwritten the testnet
+#  configuration in place -- pointing a mainnet server at a database indexed
+#  for another chain and taking the testnet servers down in the same move. On
+#  launch night, with a testnet still needed for anyone verifying the chain.
+#
+#  --port-base gives a third set of ports for rehearsal, so a mainnet
+#  instance can be proved end to end without touching the ports a live
+#  testnet is serving on.
 # ===========================================================================
 
 set -euo pipefail
@@ -35,25 +51,49 @@ NETWORK="testnet"
 DOMAIN="electrum.wamcoin.org"
 EX_DIR=/opt/electrumx
 EX_USER=electrumx
-DB_DIR=/var/lib/electrumx-wam
-ENV_FILE=/etc/wam/electrumx.env
+PORT_BASE=""
+NODE_UNIT=""
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 while [ $# -gt 0 ]; do
     case "$1" in
-        --network) NETWORK="${2:?--network needs a value}"; shift ;;
-        --domain)  DOMAIN="${2:?--domain needs a value}"; shift ;;
-        -h|--help) sed -n '3,30p' "$0"; exit 0 ;;
+        --network)   NETWORK="${2:?--network needs a value}"; shift ;;
+        --domain)    DOMAIN="${2:?--domain needs a value}"; shift ;;
+        --port-base) PORT_BASE="${2:?--port-base needs a value}"; shift ;;
+        --node-unit) NODE_UNIT="${2:?--node-unit needs a value}"; shift ;;
+        -h|--help) sed -n '3,44p' "$0"; exit 0 ;;
         *) echo "unknown option $1" >&2; exit 2 ;;
     esac
     shift
 done
 
+# Mainnet keeps 50001/50002/50004 because those are the ports published in
+# the Komodo entry and the listing sheet, and a published endpoint is a
+# promise. Testnet takes the 51xxx set.
 case "$NETWORK" in
-    mainnet) RPC_PORT=9554  ;;
-    testnet) RPC_PORT=19554 ;;
+    mainnet) RPC_PORT=9554  ; DEFAULT_BASE=50000 ; DEFAULT_UNIT=wamd.service ;;
+    testnet) RPC_PORT=19554 ; DEFAULT_BASE=51000 ; DEFAULT_UNIT=wamd.service ;;
     *) echo "network must be mainnet or testnet" >&2; exit 2 ;;
 esac
+
+[ -n "$PORT_BASE" ] || PORT_BASE=$DEFAULT_BASE
+[ -n "$NODE_UNIT" ] || NODE_UNIT=$DEFAULT_UNIT
+
+case "$PORT_BASE" in
+    ''|*[!0-9]*) echo "--port-base must be a number" >&2; exit 2 ;;
+esac
+
+TCP_PORT=$((PORT_BASE + 1))
+SSL_PORT=$((PORT_BASE + 2))
+WSS_PORT=$((PORT_BASE + 4))
+# ElectrumX's own local control port. Two instances on one host cannot share
+# it, and the clash is not reported as a clash: the second instance simply
+# exits at startup.
+LOCAL_RPC=$((8000 + PORT_BASE / 1000 - 50))
+
+DB_DIR=/var/lib/electrumx-wam-$NETWORK
+ENV_FILE=/etc/wam/electrumx-$NETWORK.env
+UNIT=wam-electrumx@$NETWORK
 
 RED=$'\033[31m'; GRN=$'\033[32m'; YLW=$'\033[33m'; CYN=$'\033[36m'; OFF=$'\033[0m'
 ok()   { printf '  %sok%s    %s\n' "$GRN" "$OFF" "$*"; }
@@ -145,9 +185,36 @@ ok "certificate readable by $EX_USER, and by nobody else"
 # ---------------------------------------------------------------------------
 step "5. configuration"
 
-RPCU="$(grep -m1 '^rpcuser=' /root/.wam/wam.conf | cut -d= -f2-)"
-RPCP="$(grep -m1 '^rpcpassword=' /root/.wam/wam.conf | cut -d= -f2-)"
-[ -n "$RPCU" ] && [ -n "$RPCP" ] || fail "could not read RPC credentials from /root/.wam/wam.conf"
+# Ask the node unit where its configuration is rather than assuming. The two
+# networks keep separate data directories, and an ElectrumX pointed at the
+# wrong conf reads credentials that do not open the daemon it was told to
+# follow -- which surfaces as an authentication failure at startup and sends
+# you looking at the password rather than at the path.
+NODE_CONF="$(systemctl show "$NODE_UNIT" -p ExecStart --value 2>/dev/null \
+    | tr ' ' '\n' | sed -n 's/^-\{1,2\}conf=//p' | head -1)"
+if [ -z "$NODE_CONF" ]; then
+    case "$NETWORK" in
+        mainnet) NODE_CONF=/root/.wam-mainnet/wam.conf ;;
+        testnet) NODE_CONF=/root/.wam/wam.conf ;;
+    esac
+    warn "$NODE_UNIT names no -conf; assuming $NODE_CONF"
+fi
+[ -f "$NODE_CONF" ] || fail "$NODE_CONF does not exist"
+
+RPCU="$(grep -m1 '^rpcuser=' "$NODE_CONF" | cut -d= -f2-)"
+RPCP="$(grep -m1 '^rpcpassword=' "$NODE_CONF" | cut -d= -f2-)"
+
+# A node with no rpcuser authenticates by cookie, and the cookie is rewritten
+# every time the node starts. Baking one into this file produces a server
+# that works today and fails silently at the node's next restart -- so refuse
+# it here, where the message can still be read, rather than at 3am.
+if [ -z "$RPCU" ] || [ -z "$RPCP" ]; then
+    fail "$NODE_CONF sets no rpcuser/rpcpassword, so the node authenticates by
+        cookie and the cookie changes at every node restart. Add a fixed pair
+        to that file and restart the node BEFORE its network opens -- a
+        mainnet node started before its genesis date cannot be restarted."
+fi
+ok "credentials from $NODE_CONF"
 
 mkdir -p /etc/wam
 # Written 0600 first, so the credentials are never briefly world-readable
@@ -159,8 +226,8 @@ NET=$NETWORK
 DB_ENGINE=leveldb
 DB_DIRECTORY=$DB_DIR
 DAEMON_URL=http://$RPCU:$RPCP@127.0.0.1:$RPC_PORT/
-SERVICES=tcp://:50001,ssl://:50002,wss://:50004,rpc://127.0.0.1:8000
-REPORT_SERVICES=tcp://$DOMAIN:50001,ssl://$DOMAIN:50002,wss://$DOMAIN:50004
+SERVICES=tcp://:$TCP_PORT,ssl://:$SSL_PORT,wss://:$WSS_PORT,rpc://127.0.0.1:$LOCAL_RPC
+REPORT_SERVICES=tcp://$DOMAIN:$TCP_PORT,ssl://$DOMAIN:$SSL_PORT,wss://$DOMAIN:$WSS_PORT
 SSL_CERTFILE=/etc/letsencrypt/live/$DOMAIN/fullchain.pem
 SSL_KEYFILE=/etc/letsencrypt/live/$DOMAIN/privkey.pem
 PEER_DISCOVERY=self
@@ -173,19 +240,46 @@ ok "$ENV_FILE (0640, root:$EX_USER)"
 # ---------------------------------------------------------------------------
 step "6. the service"
 
-install -m 644 "$REPO/deploy/systemd/wam-electrumx.service" \
-    /etc/systemd/system/wam-electrumx.service
-systemctl daemon-reload
-ok "installed wam-electrumx.service"
+install -m 644 "$REPO/deploy/systemd/wam-electrumx@.service" \
+    /etc/systemd/system/wam-electrumx@.service
 
-printf '\n  Start it with:\n\n      sudo systemctl enable --now wam-electrumx\n\n'
-printf '  Then open 50001, 50002 and 50004 -- and open them TWICE. ufw is only\n'
+# Which node this instance follows is per-instance, so it goes in a drop-in
+# rather than in the template. Requires, not Wants: an ElectrumX whose node
+# has gone away keeps answering from its last state, and a wrong balance is
+# worse to a wallet than an error.
+install -d -m 755 "/etc/systemd/system/$UNIT.service.d"
+cat > "/etc/systemd/system/$UNIT.service.d/10-node.conf" <<EOF
+[Unit]
+Requires=$NODE_UNIT
+After=$NODE_UNIT
+EOF
+
+# A memory ceiling above the memory that exists is not a ceiling. Leave the
+# kernel a quarter of the machine and let systemd stop ElectrumX before the
+# OOM killer picks a victim of its own choosing -- which on these hosts has
+# every chance of being the node.
+TOTAL_MB=$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo)
+if [ "${TOTAL_MB:-0}" -gt 0 ] && [ "$TOTAL_MB" -lt 5461 ]; then
+    cat > "/etc/systemd/system/$UNIT.service.d/20-memory.conf" <<EOF
+[Service]
+MemoryMax=$((TOTAL_MB * 3 / 4))M
+EOF
+    ok "memory ceiling $((TOTAL_MB * 3 / 4))M of ${TOTAL_MB}M on this host"
+fi
+
+systemctl daemon-reload
+ok "installed $UNIT (node: $NODE_UNIT)"
+
+printf '\n  Start it with:\n\n      sudo systemctl enable --now %s\n\n' "$UNIT"
+printf '  Then open %s, %s and %s -- and open them TWICE. ufw is only\n' \
+    "$TCP_PORT" "$SSL_PORT" "$WSS_PORT"
 printf '  half of it: Contabo drops inbound TCP to any port that is not on an\n'
 printf '  allow-list in their control panel, and a dropped packet is silent, so\n'
 printf '  the server looks perfect from the inside while nothing can reach it.\n\n'
-printf '      sudo ufw allow 50001/tcp && sudo ufw allow 50002/tcp && sudo ufw allow 50004/tcp\n\n'
+printf '      sudo ufw allow %s/tcp && sudo ufw allow %s/tcp && sudo ufw allow %s/tcp\n\n' \
+    "$TCP_PORT" "$SSL_PORT" "$WSS_PORT"
 printf '  Then prove it from a DIFFERENT machine, never from this one:\n\n'
 printf '      bash scripts/check_reachable.sh --host <this ip> --from <other ip> \\\n'
-printf '          50001 50002 50004\n\n'
-printf '  50004 carries the Electrum protocol over WebSocket, which is how the\n'
-printf '  web build of Komodo Wallet connects. Desktop and mobile use 50002.\n\n'
+printf '          %s %s %s\n\n' "$TCP_PORT" "$SSL_PORT" "$WSS_PORT"
+printf '  %s carries the Electrum protocol over WebSocket, which is how the\n' "$WSS_PORT"
+printf '  web build of Komodo Wallet connects. Desktop and mobile use %s.\n\n' "$SSL_PORT"
