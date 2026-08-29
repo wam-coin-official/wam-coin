@@ -91,3 +91,8 @@ Thumbs.db
 # nobody can tell you the source of.
 miner/wam-miner
 miner/build/
+
+# Built by integration/komodo/make_submission.sh. It contains a 400 KB copy
+# of KomodoPlatform/coins, which is theirs and would be a merge conflict
+# waiting to happen if we kept one. Rebuild it when you submit.
+integration/komodo/submission/
