@@ -115,11 +115,33 @@ Deliberately disabled was not enough. On 29 August I started the mainnet node
 myself, on purpose, to test ElectrumX against it — and left a datadir behind
 that could never start again. Knowing the rule did not help; nothing stopped
 me. So `wamd-mainnet.service` now runs `scripts/genesis_gate.sh` as an
-`ExecStartPre`, which refuses the start outright before 15 September and
-exits silently after it. A deliberate rehearsal passes
-`WAM_ALLOW_PRELAUNCH_START=1` and is told, in the journal, to empty the block
-database afterwards. Both hosts have the gate, and both were tested by trying
-to start the node and being refused.
+**`ExecCondition`**, which declines the start before 15 September and passes
+silently after it. Both hosts have it, and on both the refusal was tested
+rather than assumed: one refusal in the journal, unit inactive, no retry.
+
+**Before 15 September, `systemctl start wamd-mainnet` returns success and
+leaves the node not running.** That is how `ExecCondition` works — a
+condition that is not met is not a failure — and the alternatives were worse:
+as an `ExecStartPre` the refusal *is* a failure, and `Restart=always`
+restarts a unit whose `ExecStartPre` failed, so every refusal became a loop.
+The reason is written into the journal each time. After 15 September the
+condition passes and the question stops existing.
+
+A deliberate rehearsal passes `WAM_ALLOW_PRELAUNCH_START=1`, and is told in
+the journal to empty the block database afterwards.
+
+### The two hosts disagree about what time it is
+
+France runs `Europe/Berlin`; Singapore runs `Etc/UTC`. At 00:00 UTC on 15
+September, France's journal will say 02:00. Everything the chain itself does
+is in UTC — genesis, `MAX_FUTURE_BLOCK_TIME`, block timestamps — so the only
+thing affected is a human reading two logs side by side at two in the
+morning, which is exactly when that costs an hour.
+
+This was found by a check of mine reporting a crash loop that was not
+happening: it wrote a UTC mark and `journalctl --since` read it as local
+time. Decide before the day whether to set both hosts to UTC. It is one
+command and it moves the backup timer's local firing time.
 
 What *was* proved by rehearsing, and does not need repeating on the night:
 genesis validates from nothing and its hash matches the assertion; the
