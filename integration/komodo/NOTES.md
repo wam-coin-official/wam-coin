@@ -35,9 +35,29 @@ source wins and this file is wrong.
 | `avg_blocktime` | 120 | `WAM_POW_TARGET_SPACING` |
 | `sign_message_prefix` | `WAM Coin Signed Message:\n` | `MESSAGE_MAGIC`, changed by `WAM-021` |
 
-`required_confirmations` is 6, which is twelve minutes at a two-minute target.
-Not inherited from Bitcoin's habits: it is the number that gives a comparable
-reorg cost on this chain's timing.
+**`required_confirmations` is 20**, which is forty minutes at a two-minute
+target. It was 6 until 2026-08-29, with a note saying 6 gave "a comparable
+reorg cost on this chain's timing". That was wrong, and wrong in the
+direction that costs somebody money.
+
+The cost of reversing a confirmation is set by hashrate, not by block
+timing. Six confirmations on a chain with a millionth of Bitcoin's hashrate
+cost a millionth as much to reverse; making the blocks faster or slower does
+not change that. WAM is a new RandomX chain, which means the hardware that
+would attack it is CPU — the most rentable resource there is, by the hour,
+from every cloud provider. Monero is safe at ten confirmations because its
+hashrate is enormous. A chain in its first weeks is not Monero.
+
+20 is not an invented number. Of the coins already in this registry, 3 is
+the most common value (475 of them) and 20 is the second (122). The majors
+sit at the bottom — BTC 1, LTC 2, DOGE 2, DASH 2, RVN 3, ZEC 3 — because
+their chains are settled. Putting WAM at 20 says, in the registry's own
+vocabulary, that this chain is new and is being treated as new.
+
+This field governs when Komodo Wallet shows a received payment as spendable
+to its owner. It is not exchange deposit policy, which should be far more
+conservative while hashrate is low — see the security section of
+`docs/LISTING_PACKAGE.md`.
 
 ---
 
