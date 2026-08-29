@@ -444,6 +444,37 @@ EOF
 sudo systemctl daemon-reload
 ok "wamd.service installed"
 
+# ---------------------------------------------------------------------------
+# The guard at the top of this file refuses to build a checkout that is
+# behind a consensus release. It fires once, here, and then never again --
+# so the operator it cannot reach is the one who runs this today, gets a
+# working node, and never runs anything else. Their node keeps going, the
+# protocol carries blocks rather than notices, and nothing tells them that a
+# later release moved a consensus rule out from under them.
+#
+# On 2026-08-29 one independent operator was in exactly that position, on a
+# version that will fork off alone at height 1, and there was no way to
+# reach them. That is not carelessness on their part. We shipped a warning
+# that only speaks while somebody is listening and then stopped speaking.
+#
+# So every node installed from now on carries its own. It writes to
+# /etc/update-motd.d/, which is the screen you get when you ssh in, and it
+# removes itself when the checkout is current again.
+if [ -f "$REPO_ROOT/deploy/systemd/wam-version-watch.service" ]; then
+    sudo install -m 644 "$REPO_ROOT/deploy/systemd/wam-version-watch.service" \
+        /etc/systemd/system/wam-version-watch.service
+    sudo install -m 644 "$REPO_ROOT/deploy/systemd/wam-version-watch.timer" \
+        /etc/systemd/system/wam-version-watch.timer
+    # The unit runs the script from wherever this repository actually is,
+    # rather than assuming /opt/wam -- most people clone into their home.
+    sudo mkdir -p /etc/systemd/system/wam-version-watch.service.d
+    printf '[Service]\nExecStart=\nExecStart=/bin/bash %s/scripts/version_watch.sh\n' \
+        "$REPO_ROOT" | sudo tee /etc/systemd/system/wam-version-watch.service.d/10-path.conf >/dev/null
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now wam-version-watch.timer >/dev/null 2>&1
+    ok "wam-version-watch.timer installed -- it will tell you at login if this node falls behind"
+fi
+
 fi   # DO_NODE
 
 # ===========================================================================

@@ -1,0 +1,53 @@
+# ===========================================================================
+#  Tell this machine's operator when their node has stopped being current
+# ===========================================================================
+#
+#  install.sh refuses to build a checkout that is behind a consensus
+#  release. That guard fires once, at install time, and then never again --
+#  so the person it cannot reach is exactly the person who needs it: the one
+#  who installed months ago, built a working node, and has run nothing
+#  since. The protocol carries blocks, not notices.
+#
+#  This runs daily and writes to /etc/update-motd.d/, which is the screen an
+#  operator gets when they ssh in. It removes itself when the node is
+#  current.
+# ===========================================================================
+
+[Unit]
+Description=Is this node still the software WAM publishes?
+Documentation=https://github.com/wam-coin-official/wam-coin/blob/main/scripts/version_watch.sh
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+
+# wam-cli is not called here, but git is, and git reads ~/.gitconfig.
+# systemd sets no HOME for a service with no User=, and the failure that
+# causes is silent and reads like something else entirely. See
+# scripts/test/test_service_home.sh.
+Environment=HOME=/root
+
+ExecStart=/bin/bash /opt/wam/scripts/version_watch.sh
+
+# Exit 1 and 2 are the answers, not failures: they mean the node is behind.
+# Marking the unit failed for saying so would put a red service on a machine
+# whose only problem is that its owner has not pulled.
+SuccessExitStatus=0 1 2
+
+# It writes one file, in one directory.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/etc/update-motd.d
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryMax=256M
+TasksMax=64
