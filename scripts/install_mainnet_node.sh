@@ -79,8 +79,12 @@ systemctl daemon-reload
 # network is open rather than repeating the date here -- two copies of a
 # constant are one copy too many, and this one decides whether a chain can
 # start.
-"$REPO/scripts/genesis_gate.sh" mainnet >/dev/null 2>&1
-case $? in
+# set -e would kill this script on the gate's own refusal, before the case
+# below could read it -- which is how the first version of this file skipped
+# its entire verification section and still printed nothing but ok lines.
+GATE=0
+"$REPO/scripts/genesis_gate.sh" mainnet >/dev/null 2>&1 || GATE=$?
+case $GATE in
   0)  ok "mainnet is open; the gate no longer refuses anything" ;;
   78)
     if systemctl start "$UNIT" >/dev/null 2>&1; then
