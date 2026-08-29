@@ -1,0 +1,89 @@
+#!/bin/bash
+# ===========================================================================
+#  install_mainnet_node.sh -- put the mainnet node unit on a host
+# ===========================================================================
+#
+#      sudo bash scripts/install_mainnet_node.sh
+#
+#  Installs and does NOT enable. The gate in wamd-mainnet.service would
+#  refuse an early start anyway, but a unit that is not enabled cannot be
+#  started by a reboot either, and two locks are right for the one service
+#  whose early start cannot be undone.
+#
+#  WHY THE MEMORY CEILING IS COMPUTED HERE
+#
+#  The unit ships MemoryMax=2G, which is correct on the 12 GB host and
+#  meaningless on the 1.9 GB one -- a ceiling above the memory that exists is
+#  not a ceiling, and when that host runs out, the kernel's OOM killer
+#  chooses the victim rather than systemd. It scores by size, and on launch
+#  night the largest process on that machine is the node.
+#
+#  So the ceiling is derived from the machine at install time, and left alone
+#  where the shipped value already fits.
+# ===========================================================================
+
+set -euo pipefail
+
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+UNIT=wamd-mainnet.service
+DATADIR=/root/.wam-mainnet
+
+RED=$'\033[31m'; GRN=$'\033[32m'; YLW=$'\033[33m'; OFF=$'\033[0m'
+ok()   { printf '  %sok%s    %s\n' "$GRN" "$OFF" "$*"; }
+warn() { printf '  %swarn%s  %s\n' "$YLW" "$OFF" "$*"; }
+fail() { printf '  %sfail%s  %s\n' "$RED" "$OFF" "$*" >&2; exit 1; }
+
+[ "$(id -u)" = 0 ] || fail "run this with sudo"
+[ -f "$REPO/deploy/systemd/$UNIT" ] || fail "no $UNIT in $REPO/deploy/systemd"
+
+chmod 755 "$REPO/scripts/genesis_gate.sh"
+install -m 644 "$REPO/deploy/systemd/$UNIT" "/etc/systemd/system/$UNIT"
+ok "installed $UNIT"
+
+# The node needs credentials that survive its own restart. Cookie auth does
+# not: the cookie is rewritten at every start, so ElectrumX, the pool and the
+# explorer would each work once. This has to be right before the node ever
+# runs, because a mainnet node cannot be restarted before 15 September to
+# pick up a change.
+if [ -f "$DATADIR/wam.conf" ] && ! grep -q '^rpcuser=' "$DATADIR/wam.conf"; then
+    warn "$DATADIR/wam.conf has no rpcuser, so the node would authenticate by
+        cookie and every service reading it would break at the node's first
+        restart. Add a fixed rpcuser/rpcpassword pair before launch."
+fi
+
+TOTAL_MB=$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo)
+SHIPPED_MB=2048
+DROPIN=/etc/systemd/system/$UNIT.d
+if [ "${TOTAL_MB:-0}" -gt 0 ] && [ "$TOTAL_MB" -lt $((SHIPPED_MB * 4 / 3)) ]; then
+    # Half the machine: the node measured 569-596 MB on both hosts carrying a
+    # 3,400-block chain, so half of even the small host is well above what it
+    # uses, while still leaving the kernel and everything else a half.
+    LIMIT=$((TOTAL_MB / 2))
+    install -d -m 755 "$DROPIN"
+    cat > "$DROPIN/20-memory.conf" <<EOF
+[Service]
+# Sized from this machine by scripts/install_mainnet_node.sh: ${TOTAL_MB}M
+# total, so the shipped ${SHIPPED_MB}M would never bind and the OOM killer
+# would pick the victim instead.
+MemoryMax=${LIMIT}M
+EOF
+    ok "memory ceiling ${LIMIT}M of ${TOTAL_MB}M on this host"
+else
+    rm -f "$DROPIN/20-memory.conf" 2>/dev/null || true
+    ok "shipped ceiling ${SHIPPED_MB}M fits this ${TOTAL_MB}M host"
+fi
+
+systemctl daemon-reload
+
+# Prove the gate rather than trusting it. Before 15 September this must fail;
+# after it, the node starts and this script has no business starting it.
+if [ "$(date -u +%s)" -lt 1789430400 ]; then
+    if systemctl start "$UNIT" >/dev/null 2>&1; then
+        systemctl stop "$UNIT"
+        fail "the gate did not fire -- $UNIT started before its genesis date"
+    fi
+    ok "gate refuses an early start, verified just now"
+fi
+
+printf '\n  Not enabled, on purpose. On 15 September:\n\n'
+printf '      sudo systemctl enable --now %s\n\n' "$UNIT"
