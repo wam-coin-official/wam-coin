@@ -75,15 +75,38 @@ fi
 
 systemctl daemon-reload
 
-# Prove the gate rather than trusting it. Before 15 September this must fail;
-# after it, the node starts and this script has no business starting it.
-if [ "$(date -u +%s)" -lt 1789430400 ]; then
+# Prove the gate rather than trusting it, and ask the gate itself whether the
+# network is open rather than repeating the date here -- two copies of a
+# constant are one copy too many, and this one decides whether a chain can
+# start.
+"$REPO/scripts/genesis_gate.sh" mainnet >/dev/null 2>&1
+case $? in
+  0)  ok "mainnet is open; the gate no longer refuses anything" ;;
+  78)
     if systemctl start "$UNIT" >/dev/null 2>&1; then
-        systemctl stop "$UNIT"
+        systemctl stop "$UNIT" || true
         fail "the gate did not fire -- $UNIT started before its genesis date"
     fi
     ok "gate refuses an early start, verified just now"
-fi
+
+    # The refusal must be final, not a retry. Restart=always will restart a
+    # unit whose ExecStartPre failed, and before RestartPreventExitStatus=78
+    # existed this loop ran forty times in ten minutes -- the crash loop the
+    # gate was written to prevent, entered through a different door.
+    sleep "$(systemctl show "$UNIT" -p RestartSec --value | tr -dc 0-9 | head -c3)" 2>/dev/null || sleep 15
+    sleep 5
+    STATE="$(systemctl is-active "$UNIT" 2>/dev/null)"
+    if [ "$STATE" = "activating" ] || [ "$STATE" = "active" ]; then
+        systemctl stop "$UNIT" || true
+        systemctl reset-failed "$UNIT" 2>/dev/null || true
+        fail "$UNIT is retrying the refused start ($STATE). It needs
+        RestartPreventExitStatus=78, or every refusal becomes a loop."
+    fi
+    ok "refusal is final, not retried (unit is $STATE)"
+    systemctl reset-failed "$UNIT" 2>/dev/null || true
+    ;;
+  *)  warn "genesis_gate.sh returned an unexpected status; check it by hand" ;;
+esac
 
 printf '\n  Not enabled, on purpose. On 15 September:\n\n'
 printf '      sudo systemctl enable --now %s\n\n' "$UNIT"
