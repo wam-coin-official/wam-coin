@@ -1,4 +1,36 @@
-# Submitting WAM to KomodoPlatform/coins
+# Submitting WAM to the Komodo coins registry
+
+## Which repository — this took two attempts
+
+**`GLEECBTC/coins`.** Komodo's own documentation points at
+`KomodoPlatform/coins`, and [#21](https://github.com/KomodoPlatform/coins/pull/21)
+was sent there on 2026-08-29. That repository is a dead mirror:
+
+| | KomodoPlatform/coins | GLEECBTC/coins |
+|---|---|---|
+| last commit | 2025-12-05 | daily, by a bot |
+| newest PR | #21 (ours) | #1974 |
+| stars / watchers | 0 / 1 | 27 / 7 |
+| open PRs | since February, unmerged | merged within days |
+
+Its last commit was *"Merge pull request #1627 from GLEECBTC"* — it was a
+downstream mirror and the sync stopped nine months ago.
+
+Blockzero settles it. The same author submitted to both:
+GLEEC [#1934](https://github.com/GLEECBTC/coins/pull/1934) on 15 August,
+merged in two days; KomodoPlatform #19 on 13 August, still open seventeen
+days later. `cipig` and `shamardy` — Komodo's own people — work in GLEEC.
+
+**The pull request number was the tell**, and the founder saw it before I
+did: #21 against a registry of 782 coins is not a number an active
+repository hands out. It is the same mistake as BasicSwap, where
+`tecnovert/basicswap#2` was a personal fork nobody read.
+
+`make_submission.sh` builds against GLEECBTC by default. Set
+`WAM_COINS_REPO` to override.
+
+---
+
 
 Everything below was checked against `KomodoPlatform/coins` at master on
 2026-08-29: the four paths exist, the icon size matches theirs, and no `WAM`
