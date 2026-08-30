@@ -75,6 +75,12 @@ def main():
     ap.add_argument("--ours", default="169.58.159.165,5.223.52.200,41.254.76.34",
                     help="addresses we run ourselves, excluded from the count of "
                          "independent operators")
+    ap.add_argument("--window-hours", type=int, default=48,
+                    help="also count anyone who introduced themselves within "
+                         "this many hours, not only whoever is connected at "
+                         "the instant this runs. An intermittent node is "
+                         "absent most of the time and present when it "
+                         "matters. 0 disables it.")
     args = ap.parse_args()
 
     flag = {"mainnet": "", "testnet": "-testnet", "regtest": "-regtest"}[args.network]
@@ -110,6 +116,37 @@ def main():
         ip = p.get("addr", "").rsplit(":", 1)[0].strip("[]")
         v = re.search(r"/WAM:([0-9.]+)/", p.get("subver", "") or "")
         by_addr[ip] = v.group(1) if v else "unknown"
+
+    # Peers seen recently, not only peers connected at this instant.
+    #
+    # On 2026-08-30 this check went green because the one operator on an
+    # outdated version happened to be offline when it ran. He had completed a
+    # version handshake three and a half hours earlier and was gone again.
+    # Run at 19:05 the answer was red; run at 19:40 it was green; the network
+    # had not changed at all.
+    #
+    # A check whose answer depends on the minute it was run is not a check,
+    # and this is the one warning that has to be believed on 15 September. So
+    # the journal is read too: anyone who introduced themselves inside the
+    # window counts, whether or not they are here right now.
+    seen = {}
+    if args.window_hours > 0:
+        rc, log = rsh(args.node,
+                      f"journalctl -u wamd --since '-{args.window_hours}h' "
+                      f"--no-pager -o cat 2>/dev/null | "
+                      f"grep -E 'receive version message: /WAM:'", timeout=90)
+        for line in (log or "").splitlines():
+            m = re.search(r"/WAM:([0-9.]+)/", line)
+            t = re.match(r"(\S+)", line)
+            if m:
+                seen.setdefault(m.group(1), []).append(t.group(1) if t else "?")
+        if seen:
+            for v in sorted(seen, key=ver_tuple):
+                ok(f"seen in the last {args.window_hours}h: v{v} "
+                   f"({len(seen[v])} handshake(s), last {seen[v][-1]})")
+        else:
+            warn(f"the journal shows no version handshakes in {args.window_hours}h "
+                 f"-- net logging may be off, so this window proves nothing")
 
     if not by_addr:
         bad("no peers at all -- this node is alone, which proves nothing about "
@@ -164,8 +201,24 @@ def main():
         for v in sorted(set(behind.values()), key=ver_tuple):
             print(f"        {sum(1 for x in behind.values() if x == v)} on v{v}")
     else:
-        ok(f"every independent operator is on v{floor_v} or newer -- none of "
-           f"them will be rejected")
+        # Nobody connected right now is behind. That is not the same as
+        # nobody being behind: an intermittent node is absent most of the
+        # time and present when it matters. The window is what decides.
+        stale_seen = {v: t for v, t in seen.items()
+                      if ver_tuple(v) < ver_tuple(floor_v)}
+        if stale_seen:
+            for v, times in sorted(stale_seen.items(), key=lambda kv: ver_tuple(kv[0])):
+                bad(f"nobody on v{v} is connected at this moment, but one "
+                    f"introduced itself {len(times)} time(s) in the last "
+                    f"{args.window_hours}h -- last at {times[-1]}. It is "
+                    f"intermittent, not gone, and on 15 September it will "
+                    f"fork off whenever it next appears.")
+        else:
+            ok(f"every independent operator is on v{floor_v} or newer -- none "
+               f"of them will be rejected")
+            if args.window_hours > 0 and seen:
+                ok(f"and nothing older introduced itself in the last "
+                   f"{args.window_hours}h either")
         # Said, but not as a failure. Running one release behind is a choice
         # an operator is entitled to make, and calling it red teaches them to
         # stop reading the colour.
