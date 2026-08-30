@@ -9,7 +9,7 @@ but a chain client inside their node.
 
 | Venue | What it consumes | Ready |
 |---|---|---|
-| [Komodo Wallet](komodo/) | PR to `GLEECBTC/coins`: coin entry, electrum servers, explorer, icon | [#21](https://github.com/KomodoPlatform/coins/pull/21) went to a dead mirror — the live registry is `GLEECBTC/coins`, see [SUBMIT.md](komodo/SUBMIT.md) |
+| [Komodo Wallet](komodo/) | PR to `GLEECBTC/coins`: coin entry, electrum servers, explorer, icon | **open** [#1975](https://github.com/GLEECBTC/coins/pull/1975), sent 2026-08-30. [#21](https://github.com/KomodoPlatform/coins/pull/21) went to a dead mirror first — see [SUBMIT.md](komodo/SUBMIT.md) |
 | [Block DX](blockdx/) | PR to `blocknetdx/blockchain-configuration-files`: 2 confs + manifest | **open, and being worked on** [#197](https://github.com/blocknetdx/blockchain-configuration-files/pull/197) |
 | [Haveno](haveno/) | PR to `haveno-dex/haveno`: asset class, test, service entry | closed [#2528](https://github.com/haveno-dex/haveno/pull/2528) — needs a market price first |
 | [BasicSwap DEX](basicswap/) | PR to `basicswap/basicswap`: a Python interface package | closed [#701](https://github.com/basicswap/basicswap/pull/701) — *"mainnet is scheduled for 2026-09-15"*, resubmit after |
@@ -42,12 +42,15 @@ policy or timing; **not one has been about the code**:
   Resubmit after that date.
 - **Block DX** is open and a maintainer is preparing a batch that includes
   it, and intends to test the wallet in docker.
-- **Komodo** — sent 2026-08-29 to `KomodoPlatform/coins`, which is what
-  Komodo's own documentation names and which turns out to be a dead mirror:
-  last commit 2025-12-05, pull requests open since February, and its final
-  commit was a merge *from* GLEECBTC. The live registry is
-  `GLEECBTC/coins` — a bot updates it daily and #1974 merged this morning.
-  See [komodo/SUBMIT.md](komodo/SUBMIT.md).
+- **Komodo** is open at
+  [GLEECBTC/coins#1975](https://github.com/GLEECBTC/coins/pull/1975), sent
+  2026-08-30 — two hours after #1974 was merged into that same repository.
+  It went first to `KomodoPlatform/coins`, which is what Komodo's own
+  documentation names and which is a dead mirror: last commit 2025-12-05,
+  pull requests open since February, and its final commit a merge *from*
+  GLEECBTC. [#21](https://github.com/KomodoPlatform/coins/pull/21) is left
+  open there — it costs nothing, and it is where their documentation
+  points. See [komodo/SUBMIT.md](komodo/SUBMIT.md).
 
 Two mistakes worth writing down rather than learning twice.
 
