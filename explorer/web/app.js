@@ -404,9 +404,30 @@ async function renderNetwork() {
   text($('netIpv6'), String(t.ipv6 || 0));
   text($('netOnion'), String(t.onion || 0));
 
-  text($('netVersions'), n.versions.length
-    ? n.versions.map((v) => `${v.version} ×${v.count}`).join('  ')
-    : '—');
+  // Connected right now, and separately what has been on this network over
+  // the past week. A version that vanishes from the first list has not
+  // necessarily left: an intermittent node is absent most of the time and
+  // present when it matters, and on 2026-08-30 this panel showed only
+  // v0.1.6 for hours while a v0.1.4 node had introduced itself three and a
+  // half hours earlier. Absent is not gone, and the two are worth different
+  // words.
+  const h = n.history;
+  if (h && h.versions && h.versions.length) {
+    const now = h.versions.filter((v) => v.connectedNow)
+      .map((v) => {
+        const c = (n.versions.find((x) => x.version === v.version) || {}).count;
+        return c ? `${v.version} ×${c}` : v.version;
+      });
+    const away = h.versions.filter((v) => !v.connectedNow)
+      .map((v) => `${v.version} (seen ${duration(v.ageSeconds)} ago)`);
+    text($('netVersions'),
+      (now.length ? now.join('  ') : 'none connected')
+      + (away.length ? '   —   also on this network: ' + away.join('  ') : ''));
+  } else {
+    text($('netVersions'), n.versions.length
+      ? n.versions.map((v) => `${v.version} ×${v.count}`).join('  ')
+      : '—');
+  }
 
   text($('netLongest'), n.longestConnectionSeconds
     ? duration(n.longestConnectionSeconds)
