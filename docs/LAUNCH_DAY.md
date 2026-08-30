@@ -34,7 +34,7 @@ None of this is done at midnight.
 | The third seed exists | three hostnames on **three providers**, not three names on two machines |
 | Every machine already runs the release | `install_release.sh` has been run and the binaries are in place, unstarted on mainnet |
 | Mainnet configs written | `wam.conf`, pool config, ElectrumX config — written, services **not** enabled |
-| The pool's mainnet payout address is set | **impossible in advance** — no address exists until the node runs, and the node cannot run before the day. Rehearsed instead: see Phase D |
+| The pool's mainnet payout address is set | **done 2026-08-30** — `wam1qrulaxxlqf65madsmhqrevf467r6qmgdrxhf9yw`, wallet created through the gate's override and proved to survive the wipe. See Phase D |
 | Backups verified | `wam-backup.sh --verify` on every host, within the day |
 | The clock is right on every machine | `timedatectl` — genesis validation is absolute time, not relative |
 | The paper matches the binary | the founder and treasury addresses in the release equal the ones on paper |
@@ -237,63 +237,77 @@ abandoned with no consequence to anyone.
 
 Read the sentence at the top again before this step.
 
-### The pool's wallet, which cannot be prepared in advance
+### The pool's wallet — done on 2026-08-30, not on the night
 
 The pool pays miners from a wallet it can spend from, so that key is hot by
 necessity and lives on the machine. It is **not** the founder wallet and
 must never be: `WWWEvpC98mfzjRMZHtaRaucMjopqH2viQz` and
 `WdMMqW1DcgWZ6HtyJuEMdce6QkKg4raGmE` are compiled into consensus, their keys
 came out of the ceremony and are in cold backup, and putting either on an
-internet-facing server running a public service is how coins are lost.
+internet-facing machine running a public service is how coins are lost.
 
-There is no mainnet wallet yet, and there cannot be one before the day.
-`wam-wallet` creates a wallet *file* offline but has no command that
-produces an address — its verbs are create, info, dump, createfromdump — so
-an address needs a running node, and the node cannot run before 15
-September. This sequence therefore sits on the critical path at midnight,
-and the only thing that can be done in advance is to have rehearsed it.
+This section said the wallet could not exist before the day, because an
+address needs a running node and the node cannot run before 15 September.
+Both halves were true and the conclusion was wrong.
 
-**Rehearsed on regtest, 2026-08-30.** Every step below ran and did what it
-says, except the last, which is the one thing regtest cannot show: the
-address prefix. Regtest gives `wamrt1…`, mainnet gives `wam1…`, and the
-pool's own validator is what checks that — tested separately, in both
-directions, and it refuses a wrong-network address with the reason.
+**The node can run once, deliberately** — that is what the gate's override
+is for, and it was written for exactly this. `wamd` runs, RPC works fully
+while it does, and the three directories that must be emptied afterwards are
+`blocks`, `chainstate` and `indexes`. **A wallet is not in any of them.**
 
-```bash
-# after the mainnet node is up and genesis is verified (steps 5-8)
-CLI="wam-cli -chain=main -conf=/root/.wam-mainnet/wam.conf -datadir=/root/.wam-mainnet"
+So it is done:
 
-$CLI -named createwallet wallet_name=pool descriptors=true load_on_startup=true
-$CLI -rpcwallet=pool getnewaddress "pool payouts" bech32
+```
+wallet    /root/.wam-mainnet/pool/wallet.dat
+address   wam1qrulaxxlqf65madsmhqrevf467r6qmgdrxhf9yw
+config    /opt/wam/pool/config-mainnet.json   (0600, written and verified)
+backup    /root/backups/mainnet-pool-wallet-20260830.dat
 ```
 
-The address must start `wam1`. Read it back before using it:
+And proved rather than assumed: with `blocks`, `chainstate` and `indexes`
+removed — the exact state the datadir is in now, and will be in on the night
+— the node was started fresh, **loaded the `pool` wallet by itself**
+(`load_on_startup=true`), and still reported `ismine: true` for that
+address. Then it was stopped and cleared again.
+
+Two things were learned doing it, and both are corrections to this document:
+
+- **`WAM_ALLOW_PRELAUNCH_START=1 systemctl start wamd-mainnet` does
+  nothing.** systemd does not inherit the caller's environment, so the gate
+  never sees the variable and refuses exactly as it would have anyway. The
+  deliberate path is to run `wamd` directly — which touches no unit and sets
+  no global variable that could linger and quietly disable the gate for
+  everything. `systemctl set-environment` would work and is worse: it stays
+  set.
+- **Wallets live in the datadir root here, not in `wallets/`.** Bitcoin Core
+  uses `<datadir>/wallets` only if that directory already exists. It did
+  not, so the wallet is at `/root/.wam-mainnet/pool/`. A first check of mine
+  looked in `wallets/`, found nothing, and reported the wallet destroyed
+  when it was sitting one directory up.
+
+On the night, the pool therefore needs no wallet work and no JSON editing:
 
 ```bash
-$CLI -rpcwallet=pool getaddressinfo <the address>
-# "ismine": true, "solvable": true, "iswatchonly": false
+cp /opt/wam/pool/config-mainnet.json /opt/wam/pool/config.json
+systemctl restart wam-pool
 ```
 
-Then four values in `/opt/wam/pool/config.json`, and only four:
-
-| key | from | to |
-|---|---|---|
-| `network` | `testnet` | `mainnet` |
-| `poolAddress` | `twam1…` | the `wam1…` just generated |
-| `daemons[0].port` | `19554` | `9554` |
-| `daemons[0].user` / `password` | testnet's | the pair in `/root/.wam-mainnet/wam.conf` |
-
-It is `daemons[0]`, an array, not `daemon`. The rehearsal edited the wrong
-key and the pool connected to the testnet node instead — and said so and
-refused to start, which is the behaviour that makes this survivable:
+The four values that differ are already in that file — `network`,
+`poolAddress`, and `daemons[0].port` and credentials. It is `daemons[0]`, an
+array, not `daemon`: a rehearsal edited the wrong key, the pool connected to
+the testnet node, and said so rather than mining to the wrong chain:
 
 ```
 config says network='regtest' but wamd reports chain='test'. Refusing to start.
 ```
 
-**Back the wallet up before a single share is credited.** It holds real
-coins from the first block it finds, and until it is in a backup the only
-copy is on one machine.
+**One thing is still outstanding.** The nightly backup runs with testnet
+defaults (`WAM_NETWORK`, `WAM_DATADIR`), so the mainnet pool wallet is not
+in it. The copy above was taken by hand with the node stopped, which is
+safe, but it is one file from one day. `wam-backup.sh` supports mainnet
+already; it needs a second timer instance on the day, once the node is up —
+because it uses `backupwallet` over RPC, which needs a running node, and
+copying a live wallet file yields something that opens corrupt.
 
 12. **Start mining.** The pool, or a single miner — it does not matter
     which, only that a block is produced.
