@@ -46,10 +46,28 @@
 #
 #  DELIBERATE REHEARSAL
 #
+#  NOT this, which is what this comment used to say and what does nothing:
+#
 #      WAM_ALLOW_PRELAUNCH_START=1 systemctl start wamd-mainnet
 #
-#  which is allowed, warns, and is the only way past. Empty the datadir
-#  afterwards or the next start fails.
+#  systemd does not inherit the caller's environment, so the gate never sees
+#  the variable and refuses exactly as it would have anyway. It looks like
+#  the override is broken; the override was never reached.
+#
+#  Run the daemon directly instead:
+#
+#      /opt/wam-current-bin/wamd -chain=main \
+#          -conf=/root/.wam-mainnet/wam.conf -datadir=/root/.wam-mainnet
+#
+#  which touches no unit, and sets no variable that outlives the run.
+#  `systemctl set-environment WAM_ALLOW_PRELAUNCH_START=1` does work and is
+#  worse: it stays set, silently disabling this gate for everything until
+#  somebody remembers to unset it.
+#
+#  Either way, empty blocks/, chainstate/ and indexes/ afterwards or the
+#  next start fails. Wallets are not in those three and survive -- which is
+#  how the mainnet pool wallet came to exist on 2026-08-30, two weeks before
+#  the chain it belongs to.
 # ===========================================================================
 
 set -uo pipefail
