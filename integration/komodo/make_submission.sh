@@ -27,6 +27,24 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
 OUT="${1:-$HERE/submission}"
 
+# Which coins repository to build against.
+#
+# Komodo's own documentation points at KomodoPlatform/coins, and that is
+# where #21 was sent on 2026-08-29. That repository has not moved since
+# 2025-12-05, and its last commit was a merge FROM GLEECBTC -- it is a
+# downstream mirror whose sync stopped nine months ago. Pull requests sit
+# open there since February.
+#
+# GLEECBTC/coins is where the work happens: a bot updates it daily, cipig
+# and shamardy -- Komodo's own people -- merge there, and new coins go in.
+# Blockzero settles it. The same author sent it to both repositories on 13
+# and 15 August; GLEEC merged in two days, KomodoPlatform is still open
+# seventeen days later.
+#
+# The pull request number was the tell, and the founder saw it before I did:
+# #21 against a registry of 782 coins, when the live one is at #1974.
+REPO_SLUG="${WAM_COINS_REPO:-GLEECBTC/coins}"
+
 RED=$'\033[31m'; GRN=$'\033[32m'; YLW=$'\033[33m'; BLD=$'\033[1m'; OFF=$'\033[0m'
 ok()   { printf '  %sok%s    %s\n' "$GRN" "$OFF" "$*"; }
 fail() { printf '  %sfail%s  %s\n' "$RED" "$OFF" "$*" >&2; exit 1; }
@@ -50,9 +68,9 @@ ok "electrums/WAM, explorers/WAM, icons/wam.png"
 
 THEIRS="$OUT/.coins-upstream"
 curl -fsS --max-time 60 \
-    https://raw.githubusercontent.com/KomodoPlatform/coins/master/coins \
-    -o "$THEIRS" || fail "could not download their coins file"
-ok "downloaded their coins file ($(wc -c < "$THEIRS") bytes)"
+    "https://raw.githubusercontent.com/$REPO_SLUG/master/coins" \
+    -o "$THEIRS" || fail "could not download the coins file from $REPO_SLUG"
+ok "downloaded $REPO_SLUG ($(wc -c < "$THEIRS") bytes)"
 
 python3 - "$HERE/coin-entry.json" "$THEIRS" "$OUT/coins" <<'PY'
 import json, sys
@@ -113,7 +131,7 @@ cat <<EOF
     explorers/WAM    new file
     icons/wam.png    new file
 
-  Copy all four into a fork of KomodoPlatform/coins, keeping the paths, then
-  open the pull request. The title and body are in $HERE/SUBMIT.md.
+  Copy all four into a fork of $REPO_SLUG, keeping the paths, then open the
+  pull request. The title and body are in $HERE/SUBMIT.md.
 
 EOF
