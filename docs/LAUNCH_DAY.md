@@ -260,7 +260,9 @@ So it is done:
 ```
 wallet    /root/.wam-mainnet/pool/wallet.dat
 address   wam1qrulaxxlqf65madsmhqrevf467r6qmgdrxhf9yw
-config    /opt/wam/pool/config-mainnet.json   (0600, written and verified)
+config    config-mainnet.json, on the pool host beside the live config
+          (0600, written and verified). It is NOT in this repository and
+          must not be: it carries the mainnet RPC password.
 backup    /root/backups/mainnet-pool-wallet-20260830.dat
 ```
 

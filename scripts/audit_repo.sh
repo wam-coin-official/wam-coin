@@ -45,7 +45,13 @@ step "1. every referenced file exists"
 
 # Files that are referenced on purpose without existing in the repository:
 # configs a user creates from an example, and anything .gitignore keeps out.
-EXPECTED_ABSENT='pool/config\.json|bots/config\.json|.*/config\.json$'
+#
+# pool/config-mainnet.json is the pool's mainnet configuration, written on
+# the pool host on 2026-08-30 and named in docs/LAUNCH_DAY.md. It carries
+# the mainnet RPC password and therefore cannot live here. Named explicitly
+# rather than caught by the .*config.json rule, so that its absence stays a
+# decision somebody made rather than a pattern that happened to cover it.
+EXPECTED_ABSENT='pool/config\.json|pool/config-mainnet\.json|bots/config\.json|.*/config\.json$'
 
 # -o without -h prints "path:match", so the exclusion can filter on the file
 # the reference lives in. With -h the filenames are gone and $EXCLUDE matches
