@@ -53,6 +53,119 @@ function hostOf(addr) {
 }
 
 /** Reduce an address to something countable but not locatable. */
+// ---------------------------------------------------------------------------
+// Who is on this network, as opposed to who is connected this second.
+//
+// The founder watches the versions panel daily and asked the question it
+// could not answer: when the counts shift -- two on v0.1.4, then one on
+// v0.1.6, then one on v0.1.5 -- is that one operator changing version, or
+// different people arriving and leaving? A count of versions cannot tell
+// them apart, and the difference decides whether anyone forks off on 15
+// September.
+//
+// So machines are remembered, not addresses. Each peer's address is hashed
+// and truncated before anything is written down: the file on disk holds no
+// address, this module never returns one, and the panel shows counts. A
+// list of who runs a node is a list of who can be attacked, and it is not
+// ours to publish or to keep.
+//
+// Persisted because the explorer restarts on every deploy, and a memory
+// that resets every deploy would answer the same question the peer list
+// already answers badly.
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+
+const SEEN_FILE = process.env.WAM_SEEN_FILE
+    || path.join(process.env.WAM_STATE_DIR || '/var/lib/wam-explorer', 'seen.json');
+const SEEN_WINDOW_SEC = 7 * 24 * 3600;
+
+let seenCache = null;
+
+function machineId(addr) {
+    const host = String(addr || '').replace(/^\[|\]$/g, '').split(']')[0]
+        .replace(/:\d+$/, '');
+    return crypto.createHash('sha256').update(host).digest('hex').slice(0, 16);
+}
+
+function loadSeen() {
+    if (seenCache) return seenCache;
+    try {
+        seenCache = JSON.parse(fs.readFileSync(SEEN_FILE, 'utf8'));
+    } catch { seenCache = {}; }
+    return seenCache;
+}
+
+function saveSeen(data) {
+    try {
+        fs.mkdirSync(path.dirname(SEEN_FILE), { recursive: true });
+        // Written to a temporary name and renamed, so a crash mid-write
+        // cannot leave a half-file that parses as an empty history.
+        const tmp = SEEN_FILE + '.tmp';
+        fs.writeFileSync(tmp, JSON.stringify(data), { mode: 0o600 });
+        fs.renameSync(tmp, SEEN_FILE);
+    } catch { /* a dashboard must not fall over because a cache is unwritable */ }
+}
+
+function rememberVersions(list) {
+    const now = Math.floor(Date.now() / 1000);
+    const seen = loadSeen();
+
+    for (const p of list) {
+        if (!p.subver) continue;
+        const id = machineId(p.addr);
+        const rec = seen[id] || (seen[id] = { v: {}, last: 0 });
+        rec.v[p.subver] = now;
+        rec.last = now;
+    }
+
+    for (const [id, rec] of Object.entries(seen)) {
+        if (now - (rec.last || 0) > SEEN_WINDOW_SEC) { delete seen[id]; continue; }
+        for (const [v, t] of Object.entries(rec.v)) {
+            if (now - t > SEEN_WINDOW_SEC) delete rec.v[v];
+        }
+    }
+
+    saveSeen(seen);
+    return seen;
+}
+
+function summariseSeen(seen, connectedNow) {
+    const now = Math.floor(Date.now() / 1000);
+    const machines = Object.values(seen);
+    const byVersion = new Map();
+    let movers = 0;
+
+    for (const rec of machines) {
+        const vs = Object.keys(rec.v);
+        if (vs.length > 1) movers++;
+        for (const v of vs) {
+            const e = byVersion.get(v) || { version: v, machines: 0, lastSeen: 0 };
+            e.machines++;
+            e.lastSeen = Math.max(e.lastSeen, rec.v[v]);
+            byVersion.set(v, e);
+        }
+    }
+
+    return {
+        windowDays: SEEN_WINDOW_SEC / 86400,
+        machines: machines.length,
+        // Machines that have appeared under more than one version string.
+        // This is the answer to "is it one person moving, or several
+        // people": if it is zero, every version belongs to a different
+        // machine.
+        changedVersion: movers,
+        versions: [...byVersion.values()]
+            .map((e) => ({
+                version: e.version,
+                machines: e.machines,
+                ageSeconds: now - e.lastSeen,
+                connectedNow: connectedNow.has(e.version)
+            }))
+            .sort((a, b) => a.ageSeconds - b.ageSeconds)
+    };
+}
+
 function classify(addr) {
     const host = hostOf(addr);
     if (OWN_SEEDS[host]) return { kind: 'seed', ...OWN_SEEDS[host], host };
@@ -93,6 +206,18 @@ function build(peers, known, netInfo) {
     let inbound = 0;
     let longest = 0;
 
+    // Remember which versions have been seen, not only which are connected.
+    //
+    // The founder watches this panel daily and had followed one operator on
+    // v0.1.4 for weeks. On 2026-08-30 the panel showed only v0.1.6 for
+    // hours, which was true and read as "he is gone" -- while that node had
+    // completed a handshake three and a half hours earlier and was simply
+    // intermittent. The same blind spot was in check_peer_versions.py and
+    // was fixed there the same day: a panel that answers "who is here at
+    // this instant" cannot answer "who is on this network", and those are
+    // different questions with different consequences on 15 September.
+    rememberVersions(list);
+
     for (const p of list) {
         const c = classify(p.addr);
         counts[c.kind] = (counts[c.kind] || 0) + 1;
@@ -118,6 +243,8 @@ function build(peers, known, netInfo) {
         if (held > longest) longest = held;
     }
 
+    const history = summariseSeen(loadSeen(), new Set(versions.keys()));
+
     return {
         // Connected right now, from this node's point of view. A node behind a
         // home router shows as inbound here because it dialled out to us --
@@ -125,6 +252,18 @@ function build(peers, known, netInfo) {
         connected: list.length,
         inbound,
         outbound: list.length - inbound,
+
+        // Who has been on this network over the past week, which is a
+        // different question from who is on it this second and the one that
+        // actually decides whether anybody forks off on 15 September.
+        //
+        // machines        distinct machines seen, by hashed address
+        // changedVersion  how many of them have appeared under more than one
+        //                 version string. Zero means every version belongs to
+        //                 a different machine; anything else means at least
+        //                 one operator has been changing versions, which is
+        //                 the question a count of versions cannot answer.
+        history,
 
         // Addresses this node has learned of, whether or not it has ever
         // spoken to them. The closest thing to a network size we can report
