@@ -1,0 +1,56 @@
+# ===========================================================================
+#  The daily report that arrives, rather than waiting to be asked
+# ===========================================================================
+#
+#      systemctl enable --now wam-report.timer
+#
+#  Everything else this project checks writes into a journal or a file on a
+#  server, which is fine while somebody is looking. The failures that hurt
+#  are the ones nobody is looking at -- the backups died on both machines
+#  for three days while every timer stayed green.
+#
+#  This one goes to a private Telegram chat, never the announcement channel:
+#  an operations report names the weakest machine and the unwatched hour,
+#  and that is a map for whoever wants to attack this network.
+# ===========================================================================
+
+[Unit]
+Description=Send the daily WAM operations report
+Documentation=https://github.com/wam-coin-official/wam-coin/blob/main/scripts/daily_report.py
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+
+# git and ssh both read from HOME, and systemd sets none for a service that
+# names no User=. The failure is silent and reads like something else --
+# twice in this project already. See scripts/test/test_service_home.sh.
+Environment=HOME=/root
+
+WorkingDirectory=/opt/wam
+ExecStart=/usr/bin/python3 /opt/wam/scripts/daily_report.py
+
+# The report writes its sequence number here. Losing it would restart the
+# numbering at 1, which would look like a fresh install rather than a gap,
+# so it lives outside /tmp and is included in the machine's backups.
+StateDirectory=wam-report
+StateDirectoryMode=0750
+
+# It reads /etc/wam/announce.json for the bot token and the private chat id,
+# and /root/.ssh/id_report to read the other machine's status.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/wam-report /var/lib/wam-reorg-report
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryMax=512M
+TasksMax=128
