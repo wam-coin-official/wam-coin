@@ -96,3 +96,8 @@ miner/build/
 # of KomodoPlatform/coins, which is theirs and would be a merge conflict
 # waiting to happen if we kept one. Rebuild it when you submit.
 integration/komodo/submission/
+
+# Written by ops/ops.py every minute. It is a cache of what the servers
+# said, not a record of anything, and it is different on every machine.
+ops/state.json
+ops/state.json.tmp
