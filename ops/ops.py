@@ -229,7 +229,15 @@ def run_check(name, argv, timeout=240):
 
 
 FAST_EVERY = 60
-SLOW_EVERY = 900
+
+# Ten minutes rather than fifteen. The heavy checks each open their own ssh
+# connections and cannot run every minute, but at fifteen a verdict could
+# sit twelve minutes behind the facts printed directly above it -- the cards
+# saying both machines run the same commit while the check below still read
+# FAILING. The age beside each verdict makes that legible rather than
+# misleading, which is the point of showing it, but a shorter cycle means
+# the two agree sooner and the reader has less to reconcile.
+SLOW_EVERY = 600
 
 CHECKS = [
     ("backups", [sys.executable, "scripts/check_backups.py",
