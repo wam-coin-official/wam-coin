@@ -26,7 +26,10 @@ echo "###t";  $CLI -testnet getbestblockhash 2>/dev/null
 echo "###p";  $CLI -testnet getconnectioncount 2>/dev/null
 echo "###m";  free -m | awk '/Mem:/{print $7, $2}'
 echo "###s";  free -m | awk '/Swap:/{print $2, $3}'
-echo "###d";  df -BG --output=avail / | tail -1 | tr -dc 0-9
+# tr -dc strips the trailing newline along with the "G", so the next
+# section marker lands on the same line and the reader sees "185###u".
+# The echo puts the line ending back.
+echo "###d";  df -BG --output=avail / | tail -1 | tr -dc 0-9; echo
 echo "###u";  cut -d. -f1 /proc/uptime
 echo "###l";  cut -d' ' -f1 /proc/loadavg
 echo "###g";  git -C /opt/wam rev-parse --short HEAD 2>/dev/null
