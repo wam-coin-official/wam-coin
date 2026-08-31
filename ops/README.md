@@ -86,3 +86,34 @@ minutes.
 A dashboard that cries about things that are fine is a dashboard nobody
 reads, and then it is worth less than nothing, because you believe you are
 being watched.
+
+
+---
+
+## And the one that comes to you
+
+The dashboard waits to be opened. `scripts/daily_report.py` does not: it
+runs on the France server every morning at 06:00 UTC and sends one message
+to a private Telegram chat.
+
+    systemctl status wam-report.timer     # on the pool host
+
+The two are the same idea pointed in opposite directions, and neither
+replaces the other:
+
+| | |
+|---|---|
+| the dashboard | what you look at |
+| the report | what wakes you |
+
+Each report carries a **sequence number**. If #12 arrives and then #14, then
+#13 never came, the machine that sends them was down, and the gap is the
+alarm. Silence is the one failure a monitor cannot report on its own.
+
+It reads the other machine through a key that Singapore accepts only with a
+forced command -- `/usr/local/bin/wam-facts`, which prints status and
+changes nothing. Asked for a shell, or for `/etc/shadow`, sshd ignores the
+request and runs the facts script instead. That was tested, not assumed.
+
+It ends by naming what it cannot see from one server, rather than letting
+absence read as health. Those are the checks the sweep runs from here.
