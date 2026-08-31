@@ -12,37 +12,46 @@
 #
 #  WHY THIS EXISTS
 #
-#  Everything else this repository checks writes into a journal or a file on
-#  a server. That is fine while somebody is looking, and the failures that
-#  hurt are precisely the ones nobody is looking at: the nightly backup died
-#  on both machines on 23 August and stayed dead until the 26th, while every
-#  check that ran said the timer was armed and the sweep reported 21 passed.
+#  Everything else here writes into a journal or a file on a server. That is
+#  fine while somebody is looking, and the failures that hurt are precisely
+#  the ones nobody is looking at: the nightly backup died on both machines
+#  on 23 August and stayed dead until the 26th, while the timer stayed green
+#  and the sweep reported 21 passed.
 #
 #  A dashboard does not fix that either, because a dashboard also waits to
-#  be opened. What is missing is something that arrives.
+#  be opened. What was missing is something that arrives.
 #
 #  WHAT STOPS IT LYING
 #
 #  The founder's objection, in his words: "the report sometimes lies". A
 #  green message over a broken system is worse than none, because it buys
-#  calm that was not earned. Four things answer that:
+#  calm that was not earned.
 #
-#    1. A SEQUENCE NUMBER. Each report is numbered. If #12 arrives and then
-#       #14, report #13 never came -- which means the machine that sends
-#       them was down, and the absence is itself the alarm. Silence is the
-#       one failure a monitoring system cannot report on its own, so the
-#       numbering is what makes silence visible.
-#    2. AGES, NOT ADJECTIVES. Not "backups ok" but "backups 6h". A value
-#       whose age is hidden is a value you cannot judge.
-#    3. COULD-NOT-CHECK IS ITS OWN WORD. A check that failed to run is
-#       neither a pass nor a failure and is listed separately, because
-#       counting it either way is a lie in one direction or the other.
-#    4. IT RUNS THE SAME CHECKS AS THE SWEEP. Not a second implementation
-#       that will disagree one day.
+#    1. A SEQUENCE NUMBER. If #12 arrives and then #14, report #13 never
+#       came -- the machine that sends them was down, and the gap is the
+#       alarm. Silence is the one failure a monitor cannot report on its
+#       own, and numbering is what makes silence visible.
+#    2. AGES, NOT ADJECTIVES. Not "backups ok" but "backup 6h". A value
+#       whose age is hidden cannot be judged.
+#    3. COULD-NOT-CHECK IS ITS OWN WORD, listed separately from passes and
+#       failures, because counting it as either is a lie in one direction.
+#    4. IT SAYS WHAT IT CANNOT SEE FROM HERE. This runs on one server, and
+#       several checks need a workstation with keys to every host. Rather
+#       than pretend those passed, it names them and says where they are
+#       run.
+#
+#  HOW IT READS THE OTHER MACHINE
+#
+#  Not with a general ssh key. France holds a key that Singapore accepts
+#  only with a forced command -- /usr/local/bin/wam-facts, which prints
+#  status and changes nothing. Asked for a shell, or for /etc/shadow, sshd
+#  ignores the request and runs the facts script instead; that was tested
+#  rather than assumed. If France is ever taken, what that key grants on
+#  Singapore is the ability to read a status line.
 #
 #  It goes to one private chat, never to the announcement channel. An
-#  operations report names the weakest machine and the hour nobody watches,
-#  and that is a map for whoever wants to attack this network.
+#  operations report names the weakest machine and the unwatched hour, and
+#  that is a map for whoever wants to attack this network.
 # ===========================================================================
 
 import argparse
@@ -58,102 +67,71 @@ import urllib.request
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONF = "/etc/wam/announce.json"
 STATE = "/var/lib/wam-report/state.json"
+FACTS = "/usr/local/bin/wam-facts"
+KEY = "/root/.ssh/id_report"
 
-HOSTS = [("France", "169.58.159.165"), ("Singapore", "5.223.52.200")]
+ME = ("France", None)                     # gathered by running facts locally
+OTHERS = [("Singapore", "5.223.52.200")]  # gathered through the restricted key
 
-CHECKS = [
-    ("backups", [sys.executable, "scripts/check_backups.py",
-                 "169.58.159.165", "5.223.52.200"], 180),
-    ("no block un-confirmed", [sys.executable, "scripts/check_reorg.py",
-                               "--network", "testnet", "--state-dir",
-                               "/var/lib/wam-reorg-report",
-                               "169.58.159.165", "5.223.52.200"], 200),
-    ("everyone can follow mainnet",
-     [sys.executable, "scripts/check_peer_versions.py",
-      "--node", "169.58.159.165", "--network", "testnet"], 200),
-    ("nodes agree", ["bash", "scripts/check_nodes_agree.sh",
-                     "169.58.159.165", "5.223.52.200"], 180),
-    ("deployed code is origin/main",
-     ["bash", "scripts/check_deployed_code.sh",
-      "169.58.159.165", "5.223.52.200"], 180),
-    ("repository agrees with itself", ["bash", "scripts/audit_repo.sh"], 200),
-    ("listing entries match source",
-     [sys.executable, "scripts/check_listing_entry.py"], 150),
-    ("electrum answers", [sys.executable, "scripts/check_electrum.py",
-                          "--node", "169.58.159.165", "--network", "testnet",
-                          "electrum.wamcoin.org", "electrum2.wamcoin.org"], 240),
-    ("pool gives work and pays",
-     [sys.executable, "scripts/check_pool.py", "--node", "169.58.159.165",
-      "--network", "testnet"], 240),
-]
-
-
-def rsh(host, cmd, timeout=60):
+# Consensus floor: below this a node is rejected on mainnet. Read from the
+# repository rather than written here, so it cannot go stale.
+def consensus_floor():
     try:
-        p = subprocess.run(
-            ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10",
-             f"root@{host}", cmd], capture_output=True, text=True,
-            timeout=timeout)
-        return p.returncode, p.stdout
+        out = subprocess.run(
+            [sys.executable, "scripts/consensus_floor.py"], cwd=REPO,
+            capture_output=True, text=True, timeout=60).stdout
+        m = re.search(r"v?(\d+\.\d+\.\d+)", out)
+        return m.group(1) if m else None
+    except Exception:
+        return None
+
+
+def read_facts(host):
+    """Facts from one machine. Locally if it is this one, else through the
+    key that can do nothing else."""
+    try:
+        if host is None:
+            p = subprocess.run([FACTS], capture_output=True, text=True, timeout=60)
+        else:
+            p = subprocess.run(
+                ["ssh", "-i", KEY, "-o", "BatchMode=yes",
+                 "-o", "ConnectTimeout=10", f"root@{host}", "facts"],
+                capture_output=True, text=True, timeout=60)
+        if p.returncode != 0 or "###end" not in p.stdout:
+            return None, (p.stderr or p.stdout or "no answer").strip()[:120]
     except Exception as e:
-        return 255, f"{type(e).__name__}: {e}"
+        return None, f"{type(e).__name__}: {e}"
 
-
-def host_facts(name, ip):
-    rc, out = rsh(ip, r"""
-echo "###h"; /opt/wam-current-bin/wam-cli -testnet getblockcount 2>/dev/null
-echo "###p"; /opt/wam-current-bin/wam-cli -testnet getconnectioncount 2>/dev/null
-echo "###m"; free -m | awk '/Mem:/{print $7, $2}'
-echo "###s"; free -m | awk '/Swap:/{print $2}'
-echo "###d"; df -BG --output=avail / | tail -1 | tr -dc 0-9
-echo "###b"; ls -t /root/backups/*.gpg 2>/dev/null | head -1 | xargs -r stat -c %Y
-echo "###a"; ls /var/lib/wam-reorg/ALARM-* 2>/dev/null | wc -l
-echo "###g"; git -C /opt/wam rev-parse --short HEAD 2>/dev/null
-echo "###end"
-""")
-    if rc != 0 or "###end" not in out:
-        return {"name": name, "up": False, "why": (out or "").strip()[:120]}
-
-    f = {}
-    key = None
-    for line in out.splitlines():
+    f, key = {}, None
+    for line in p.stdout.splitlines():
         if line.startswith("###"):
             key = line[3:]
             f[key] = []
         elif key:
-            f[key].append(line.strip())
+            f[key].append(line.rstrip())
 
-    def g(k):
-        v = [x for x in (f.get(k) or []) if x]
-        return v[0] if v else None
+    def one(k):
+        v = [x for x in (f.get(k) or []) if x.strip()]
+        return v[0].strip() if v else None
 
-    mem = (g("m") or "").split()
+    svc = {}
+    for line in f.get("x", []):
+        p2 = line.split()
+        if len(p2) >= 3:
+            svc[p2[0]] = (p2[1], p2[2])
+
+    mem = (one("m") or "").split()
+    swap = (one("s") or "").split()
     return {
-        "name": name, "up": True,
-        "height": g("h"), "peers": g("p"),
+        "height": one("h"), "tip": one("t"), "peers": one("p"),
         "memFree": mem[0] if mem else None,
         "memTotal": mem[1] if len(mem) > 1 else None,
-        "swap": g("s"), "diskFreeG": g("d"),
-        "backup": int(g("b")) if (g("b") or "").isdigit() else None,
-        "alarms": g("a"), "git": g("g"),
-    }
-
-
-def run_check(name, argv, timeout):
-    try:
-        p = subprocess.run(argv, cwd=REPO, capture_output=True, text=True,
-                           timeout=timeout)
-        rc, out = p.returncode, p.stdout + p.stderr
-    except subprocess.TimeoutExpired:
-        return name, "unknown", f"did not finish in {timeout}s"
-    except Exception as e:
-        return name, "unknown", f"{type(e).__name__}: {e}"
-
-    clean = re.sub(r"\x1b\[[0-9;]*m", "", out)
-    fails = [l.strip() for l in clean.splitlines()
-             if re.search(r"\bFAIL\b", l)]
-    detail = fails[0][:220] if fails else (clean.strip().splitlines() or [""])[-1][:220]
-    return name, ("ok" if rc == 0 else "bad"), detail
+        "swapTotal": swap[0] if swap else None,
+        "diskFreeG": one("d"), "uptime": one("u"), "load": one("l"),
+        "git": one("g"),
+        "backup": int(one("b")) if (one("b") or "").isdigit() else None,
+        "alarms": one("a"), "version": one("v"), "services": svc,
+    }, None
 
 
 def ago(ts):
@@ -167,116 +145,177 @@ def ago(ts):
     return f"{d // 86400}d"
 
 
-def next_number():
+def origin_head():
     try:
-        os.makedirs(os.path.dirname(STATE), exist_ok=True)
+        subprocess.run(["git", "-C", REPO, "fetch", "-q", "origin"],
+                       capture_output=True, timeout=90)
+        r = subprocess.run(["git", "-C", REPO, "rev-parse", "--short",
+                            "origin/main"], capture_output=True, text=True,
+                           timeout=30)
+        return r.stdout.strip() or None
+    except Exception:
+        return None
+
+
+def local_check(name, argv, timeout):
+    """A repository check that needs no ssh to anywhere."""
+    try:
+        p = subprocess.run(argv, cwd=REPO, capture_output=True, text=True,
+                           timeout=timeout)
+        rc, out = p.returncode, p.stdout + p.stderr
+    except subprocess.TimeoutExpired:
+        return name, "unknown", f"did not finish in {timeout}s"
+    except Exception as e:
+        return name, "unknown", f"{type(e).__name__}: {e}"
+    clean = re.sub(r"\x1b\[[0-9;]*m", "", out)
+    fails = [l.strip() for l in clean.splitlines() if re.search(r"\bFAIL\b", l)]
+    return name, ("ok" if rc == 0 else "bad"), (fails[0][:200] if fails else "")
+
+
+def next_number(dry):
+    try:
         with open(STATE) as f:
             n = json.load(f).get("n", 0)
     except (OSError, ValueError):
         n = 0
     n += 1
-    try:
-        tmp = STATE + ".tmp"
-        with open(tmp, "w") as f:
-            json.dump({"n": n, "sent": int(time.time())}, f)
-        os.replace(tmp, STATE)
-    except OSError:
-        pass
+    if not dry:
+        try:
+            os.makedirs(os.path.dirname(STATE), exist_ok=True)
+            tmp = STATE + ".tmp"
+            with open(tmp, "w") as f:
+                json.dump({"n": n, "sent": int(time.time())}, f)
+            os.replace(tmp, STATE)
+        except OSError:
+            pass
     return n
 
 
 def build(n):
-    hosts = [host_facts(name, ip) for name, ip in HOSTS]
-    results = [run_check(*c) for c in CHECKS]
+    machines = []
+    for name, host in [ME] + OTHERS:
+        facts, why = read_facts(host)
+        machines.append((name, facts, why))
 
-    bad = [r for r in results if r[1] == "bad"]
-    unknown = [r for r in results if r[1] == "unknown"]
-    down = [h for h in hosts if not h["up"]]
+    problems, notes = [], []
 
-    L = []
-    L.append(f"WAM ops #{n} — {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime())}")
-    L.append("")
+    # --- what the facts themselves prove ------------------------------------
+    tips = {name: f["tip"] for name, f, _ in machines if f and f.get("tip")}
+    if len(tips) > 1 and len(set(tips.values())) > 1:
+        problems.append("the machines DISAGREE about the chain tip")
 
-    if down:
-        L.append(f"{len(down)} MACHINE(S) UNREACHABLE")
-    elif bad:
-        L.append(f"{len(bad)} check(s) failing")
-    elif unknown:
-        L.append(f"all checks passed, {len(unknown)} could not run")
-    else:
-        L.append("all clear")
-    L.append("")
-
-    for h in hosts:
-        if not h["up"]:
-            L.append(f"{h['name']}: UNREACHABLE — {h.get('why', '')}")
+    floor = consensus_floor()
+    head = origin_head()
+    for name, f, why in machines:
+        if not f:
+            problems.append(f"{name} could not be read — {why}")
             continue
-        line = (f"{h['name']}: height {h['height']}, {h['peers']} peers, "
-                f"{h['memFree']}/{h['memTotal']} MB free, {h['diskFreeG']}G disk, "
-                f"backup {ago(h['backup'])} ago")
-        if h.get("swap") in ("0", None):
-            line += ", no swap"
-        if (h.get("alarms") or "0") != "0":
-            line += f", {h['alarms']} REORG ALARM(S) UNREAD"
-        L.append(line)
+        if head and f.get("git") and not head.startswith(f["git"]) \
+                and not f["git"].startswith(head):
+            problems.append(f"{name} runs {f['git']}, origin/main is {head}")
+        if f.get("backup"):
+            age = int(time.time()) - f["backup"]
+            if age > 36 * 3600:
+                problems.append(f"{name}'s newest backup is {ago(f['backup'])} old")
+        else:
+            problems.append(f"{name} has no backup at all")
+        if (f.get("alarms") or "0") != "0":
+            problems.append(f"{name} has {f['alarms']} unread reorg alarm(s)")
+        if f.get("version") == "behind":
+            problems.append(f"{name} is running a checkout that is behind")
+        for u, (active, enabled) in (f.get("services") or {}).items():
+            if enabled == "not-found" or "mainnet" in u:
+                continue
+            if active != "active":
+                problems.append(f"{name}: {u} is {active}")
+        if f.get("swapTotal") in ("0", None):
+            notes.append(f"{name} has no swap")
+
+    # --- checks that need nothing but this checkout --------------------------
+    results = [
+        local_check("the repository agrees with itself",
+                    ["bash", "scripts/audit_repo.sh"], 200),
+        local_check("listing entries match source",
+                    [sys.executable, "scripts/check_listing_entry.py"], 150),
+        local_check("consensus is final",
+                    ["bash", "scripts/check_consensus_final.sh"], 120),
+    ]
+    for name, status, detail in results:
+        if status == "bad":
+            problems.append(f"{name} — {detail}")
+        elif status == "unknown":
+            notes.append(f"{name} could not run — {detail}")
+
+    # --- the message ---------------------------------------------------------
+    L = [f"WAM ops #{n} — {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime())}", ""]
+    L.append(f"{len(problems)} problem(s)" if problems else "all clear")
     L.append("")
 
-    if bad:
-        L.append("failing:")
-        for name, _, detail in bad:
-            L.append(f"  {name} — {detail}")
+    for name, f, why in machines:
+        if not f:
+            L.append(f"{name}: COULD NOT BE READ — {why}")
+            continue
+        L.append(f"{name}: height {f['height']}, {f['peers']} peers, "
+                 f"{f['memFree']}/{f['memTotal']} MB free, {f['diskFreeG']}G disk, "
+                 f"backup {ago(f['backup'])}, checkout {f['git']}")
+    L.append("")
+
+    if problems:
+        L.append("problems:")
+        L += [f"  - {p}" for p in problems]
         L.append("")
-    if unknown:
-        # Neither a pass nor a failure. Counted as either one, it is a lie in
-        # one direction or the other.
-        L.append("could not check (this is not a pass):")
-        for name, _, detail in unknown:
-            L.append(f"  {name} — {detail}")
+    if notes:
+        L.append("worth knowing, not failing:")
+        L += [f"  - {t}" for t in notes]
         L.append("")
 
-    okc = len([r for r in results if r[1] == "ok"])
-    L.append(f"{okc} of {len(results)} checks passed.")
+    # Rule 4. Naming what this cannot see is the difference between a report
+    # and a reassurance.
+    L.append("not checked from here (run the sweep on the laptop for these):")
+    L.append("  electrum endpoints, the pool's payouts, the explorer's numbers,")
+    L.append("  peer versions, and whether a stranger can sync from genesis.")
+    if floor:
+        L.append(f"  mainnet consensus floor is v{floor}.")
     L.append("")
-    L.append("If a number is skipped, that report never arrived and the "
+    L.append("A skipped number means that report never arrived, and the "
              "machine that sends them was down.")
     return "\n".join(L)
 
 
 def send(text, dry):
-    cfg = json.load(open(CONF))
-    chat = cfg.get("opsChatId")
-    token = cfg.get("telegram", {}).get("token")
+    try:
+        cfg = json.load(open(CONF))
+    except OSError:
+        print(text)
+        print("\n(no config -- nothing sent)")
+        return 0
+    chat, token = cfg.get("opsChatId"), cfg.get("telegram", {}).get("token")
     if dry or not chat or not token:
         print(text)
         if not dry:
-            print("\n(no opsChatId or token configured -- nothing sent)")
+            print("\n(no opsChatId or token -- nothing sent)")
         return 0
     data = urllib.parse.urlencode({
         "chat_id": chat, "text": text, "disable_web_page_preview": "true",
     }).encode()
     req = urllib.request.Request(
         f"https://api.telegram.org/bot{token}/sendMessage", data=data)
-    with urllib.request.urlopen(req, timeout=30) as f:
-        return 0 if json.load(f).get("ok") else 1
+    try:
+        with urllib.request.urlopen(req, timeout=30) as f:
+            ok = json.load(f).get("ok")
+        print("sent" if ok else "telegram refused it")
+        return 0 if ok else 1
+    except Exception as e:
+        print(f"could not send: {type(e).__name__}: {e}")
+        return 1
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--dry-run", action="store_true",
-                    help="print the report, send nothing, and do not consume "
-                         "a sequence number")
+                    help="print it, send nothing, and do not consume a number")
     a = ap.parse_args()
-
-    if a.dry_run:
-        try:
-            with open(STATE) as f:
-                n = json.load(f).get("n", 0) + 1
-        except (OSError, ValueError):
-            n = 1
-    else:
-        n = next_number()
-
-    return send(build(n), a.dry_run)
+    return send(build(next_number(a.dry_run)), a.dry_run)
 
 
 if __name__ == "__main__":
