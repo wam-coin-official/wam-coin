@@ -207,12 +207,21 @@ def main():
         stale_seen = {v: t for v, t in seen.items()
                       if ver_tuple(v) < ver_tuple(floor_v)}
         if stale_seen:
+            # A warning, not a failure, and the distinction is the whole
+            # point. Nobody outdated is connected: there is nothing to act
+            # on, nothing anyone can do about it, and no way to tell an
+            # operator who has stopped for good from one who is
+            # intermittent. Holding the check red for two days over that is
+            # the crying-wolf this file exists to avoid -- red has to mean
+            # "somebody is on this network right now who will be rejected",
+            # because that is the only version of it that is actionable.
             for v, times in sorted(stale_seen.items(), key=lambda kv: ver_tuple(kv[0])):
-                bad(f"nobody on v{v} is connected at this moment, but one "
-                    f"introduced itself {len(times)} time(s) in the last "
-                    f"{args.window_hours}h -- last at {times[-1]}. It is "
-                    f"intermittent, not gone, and on 15 September it will "
-                    f"fork off whenever it next appears.")
+                warn(f"nobody on v{v} is connected. One introduced itself "
+                     f"{len(times)} time(s) in the last {args.window_hours}h, "
+                     f"last at {times[-1]}. Absent is not the same as gone, "
+                     f"and there is no way to tell them apart -- so this is "
+                     f"worth knowing and is not a failure. It turns red the "
+                     f"moment such a node is actually connected.")
         else:
             ok(f"every independent operator is on v{floor_v} or newer -- none "
                f"of them will be rejected")
