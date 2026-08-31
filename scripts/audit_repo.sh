@@ -61,6 +61,12 @@ MISSING=0
 for ref in $(grep -roE '(brand|docs|scripts|genesis|deploy|site|pool|explorer|bots|miner)/[A-Za-z0-9/_.-]+\.(svg|png|jpg|md|sh|py|js|json|service|yml)' \
              "${SEARCH[@]}" . 2>/dev/null | grep -vE "$EXCLUDE" | cut -d: -f2- | sort -u); do
     printf '%s' "$ref" | grep -qE "$EXPECTED_ABSENT" && continue
+    # Anything .gitignore keeps out is absent on purpose, and asking the
+    # filesystem instead of git is how this check passed on the machine that
+    # happens to hold the ignored file and failed on every clean checkout --
+    # a "works on my machine" fault inside the tool whose job is to catch
+    # them. docs/LEGAL_REVIEW_BRIEF_AR.md found it on 2026-08-31.
+    git check-ignore -q "$ref" 2>/dev/null && continue
     [ -e "$ref" ] || { fail "referenced but missing: $ref"; MISSING=$((MISSING + 1)); }
 done
 [ "$MISSING" = 0 ] && ok "no broken file references"
