@@ -1,0 +1,29 @@
+# ===========================================================================
+#  Once a day, at an hour he is awake for
+# ===========================================================================
+#
+#  06:00 UTC is 09:00 in Yemen. A report that arrives at three in the
+#  morning is read at nine anyway, and one that arrives while he is asleep
+#  competes with everything else in the notification list by the time he
+#  looks. Nine is the first hour of the day it can actually be acted on.
+#
+#  Persistent=true so that a machine which was off runs the report on the
+#  way back rather than skipping the day silently -- a skipped day would
+#  otherwise look exactly like the machine having been down, which is the
+#  one thing the sequence number exists to distinguish.
+#
+#  Not randomised. The founder should be able to notice that it is late.
+# ===========================================================================
+
+[Unit]
+Description=Send the WAM operations report every morning
+Documentation=https://github.com/wam-coin-official/wam-coin/blob/main/scripts/daily_report.py
+
+[Timer]
+OnCalendar=*-*-* 06:00:00 UTC
+Persistent=true
+AccuracySec=1min
+Unit=wam-report.service
+
+[Install]
+WantedBy=timers.target
