@@ -86,6 +86,29 @@ def save(s):
         pass
 
 
+PENDING = "/var/lib/wam-login-watch/pending.txt"
+
+
+def park(text):
+    """No way to send from here. Leave it where the other machine will find
+    it.
+
+    Singapore has no bot token and must not be given one: if that machine
+    were taken, whoever took it could post to the public announcement
+    channel in the founder's name. So its alarms are written here, wam-facts
+    prints them, and the host that does hold the token forwards them within
+    five minutes. The credential stays in one place and the alarm still
+    arrives.
+    """
+    try:
+        os.makedirs(os.path.dirname(PENDING), exist_ok=True)
+        with open(PENDING, "a") as f:
+            f.write(text.replace("\n", " ") + "\n")
+    except OSError:
+        pass
+    print(text)
+
+
 def notify(text, dry):
     if dry:
         print(text)
@@ -95,7 +118,7 @@ def notify(text, dry):
         chat = cfg.get("opsChatId")
         token = cfg.get("telegram", {}).get("token")
         if not (chat and token):
-            print(text)
+            park(text)
             return
         data = urllib.parse.urlencode({
             "chat_id": chat, "text": text,
@@ -104,7 +127,7 @@ def notify(text, dry):
             f"https://api.telegram.org/bot{token}/sendMessage", data=data),
             timeout=25)
     except Exception as e:
-        print(f"could not send: {type(e).__name__}: {e}", file=sys.stderr)
+        park(f"{text}  [could not send from that host: {type(e).__name__}]")
 
 
 def network_of(ip):
@@ -250,6 +273,45 @@ def examine(events, state, dry, quiet_first_run):
     return alarms
 
 
+OTHERS = ["5.223.52.200"]
+REPORT_KEY = "/root/.ssh/id_report"
+
+
+def collect_parked(state):
+    """Forward what the other machine could not send itself.
+
+    It cannot tell us it has already been forwarded -- the key it accepts
+    runs one read-only command and cannot write anything back -- so the
+    dedupe is kept here, by hash. A line seen once is never sent twice.
+    """
+    if not os.path.exists(REPORT_KEY):
+        return []
+    forwarded = set(state.get("forwarded", []))
+    out = []
+    for ip in OTHERS:
+        try:
+            p = subprocess.run(
+                ["ssh", "-i", REPORT_KEY, "-o", "BatchMode=yes",
+                 "-o", "ConnectTimeout=10", f"root@{ip}", "facts"],
+                capture_output=True, text=True, timeout=45)
+        except Exception:
+            continue
+        if "###alarm" not in p.stdout:
+            continue
+        block = p.stdout.split("###alarm", 1)[1].split("###end", 1)[0]
+        for line in block.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            h = hashlib.sha256(line.encode()).hexdigest()[:16]
+            if h in forwarded:
+                continue
+            forwarded.add(h)
+            out.append(line)
+    state["forwarded"] = sorted(forwarded)[-500:]
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--backfill", default="30min",
@@ -261,6 +323,7 @@ def main():
     first = not state.get("fingerprints")
     events = logins_since("2 days ago" if first else a.backfill)
     alarms = examine(events, state, a.dry_run, first)
+    alarms += collect_parked(state)
     if not a.dry_run:
         save(state)
 

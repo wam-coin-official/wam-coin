@@ -46,4 +46,9 @@ for u in wamd wam-electrumx@testnet wam-pool wam-dashboard wam-announce \
     e=$(systemctl is-enabled "$u" 2>/dev/null); [ -n "$e" ] || e=-
     printf '%s %s %s\n' "$u" "$a" "$e"
 done
+# Alarms this host raised but could not send, because it holds no bot token
+# and must not: whoever took this machine could otherwise post to the public
+# announcement channel. The host that does hold the token reads them here
+# and forwards them.
+echo "###alarm"; [ -f /var/lib/wam-login-watch/pending.txt ] && cat /var/lib/wam-login-watch/pending.txt
 echo "###end"
