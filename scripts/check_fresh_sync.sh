@@ -131,14 +131,29 @@ TARGET=""
 LAST=-1
 STUCK=0
 FIRST_H=""
+FIRST_HDR=""
+HDR=""
+LAST_HDR=-1
 ELAPSED=0
+
+# A real deadline, and a measured elapsed column.
+#
+# It used to loop WAIT/5 times with a two-second sleep and print i*5 as the
+# time, which is a guess dressed as a measurement: each pass also makes three
+# RPC calls, and during initial sync getblockchaininfo is not instant. A run
+# given --timeout 40 was still going after two hundred real seconds, having
+# printed "10s" against its last reading. So the number in the report was
+# invented, and --timeout bounded nothing.
+START=$(date +%s)
+DEADLINE=$((START + WAIT))
 printf '  %-8s %-8s %-8s %s\n' "elapsed" "blocks" "headers" "peer height"
-for i in $(seq 1 $((WAIT / 5))); do
+while [ "$(date +%s)" -lt "$DEADLINE" ]; do
     H="$(ask getblockcount)"
     HDR="$(ask getblockchaininfo | grep -oE '"headers": [0-9]+' | grep -oE '[0-9]+')"
     [ -z "$TARGET" ] && TARGET="$(ask getpeerinfo | grep -oE '"startingheight": [0-9]+' | grep -oE '[0-9]+' | head -1)"
 
-    printf '  %-8s %-8s %-8s %s\n' "$((i * 5))s" "${H:-?}" "${HDR:-?}" "${TARGET:-?}"
+    ELAPSED=$(( $(date +%s) - START ))
+    printf '  %-8s %-8s %-8s %s\n' "${ELAPSED}s" "${H:-?}" "${HDR:-?}" "${TARGET:-?}"
 
     if [ -n "$TARGET" ] && [ -n "$H" ] && [ "$H" -ge "$TARGET" ] 2>/dev/null; then
         echo
@@ -147,12 +162,24 @@ for i in $(seq 1 $((WAIT / 5))); do
         exit 0
     fi
 
-    if [ "$H" = "$LAST" ]; then STUCK=$((STUCK + 1)); else STUCK=0; fi
+    # Standing still means NEITHER number moved. A node fetches the whole
+    # header chain before it validates a single block, and on this chain that
+    # phase also builds a RandomX verification context per seed epoch -- about
+    # twelve seconds each. Watching only the block count, that looks identical
+    # to a node being refused, and this check duly reported "a new node did
+    # NOT reach the tip" about a node doing exactly the right thing.
+    if [ "$H" = "$LAST" ] && [ "$HDR" = "$LAST_HDR" ]; then
+        STUCK=$((STUCK + 1))
+    else
+        STUCK=0
+    fi
     [ -z "$FIRST_H" ] && [ -n "$H" ] && FIRST_H="$H"
+    [ -z "${FIRST_HDR:-}" ] && [ -n "$HDR" ] && FIRST_HDR="$HDR"
     LAST="$H"
-    ELAPSED=$((i * 5))
-    # Six identical readings is half a minute of no progress with headers
-    # already known. That is not slow, it is refusing.
+    LAST_HDR="$HDR"
+    # Six identical readings is half a minute in which nothing at all moved,
+    # with headers already in hand that it has not validated. That is not
+    # slow, it is refusing.
     if [ "$STUCK" -ge 6 ] && [ -n "$HDR" ] && [ "$HDR" -gt "${H:-0}" ] 2>/dev/null; then
         break
     fi
@@ -169,14 +196,25 @@ done
 #
 # The question is "can a stranger join", and steady progress answers yes.
 # Only a stall answers no, and the loop above already detects a stall.
-if [ "$STUCK" -lt 6 ] && [ -n "$LAST" ] && [ "$LAST" -gt "${FIRST_H:-0}" ] 2>/dev/null; then
-    GAINED=$((LAST - FIRST_H))
+GAINED=$(( ${LAST:-0} - ${FIRST_H:-0} ))
+HDR_GAINED=$(( ${HDR:-0} - ${FIRST_HDR:-0} ))
+if [ "$STUCK" -lt 6 ] && { [ "$GAINED" -gt 0 ] || [ "$HDR_GAINED" -gt 0 ]; } 2>/dev/null; then
     echo
     printf ' %sa new node was still syncing when the clock ran out -- not refused%s\n' "$GRN" "$OFF"
-    printf '   height %s of %s, %s blocks in %ss and climbing when it stopped being watched.\n' \
-        "$LAST" "${TARGET:-?}" "$GAINED" "$ELAPSED"
-    printf '   Nothing rejected it. Give it --timeout %s to watch it finish.\n' \
-        "$(( (TARGET > 0 ? TARGET : LAST) * ELAPSED / (GAINED > 0 ? GAINED : 1) + 60 ))"
+    # Headers before blocks: a node downloads the whole header chain first and
+    # validates no blocks at all while it does. Judging only on blocks called
+    # that phase a failure, which is the opposite of the truth -- it is a node
+    # being served exactly as it should be.
+    if [ "$GAINED" -gt 0 ]; then
+        printf '   height %s of %s -- %s blocks in %ss and climbing.\n' \
+            "$LAST" "${TARGET:-?}" "$GAINED" "$ELAPSED"
+        printf '   Nothing rejected it. --timeout %s would watch it finish.\n' \
+            "$(( (TARGET > 0 ? TARGET : LAST) * ELAPSED / GAINED + 90 ))"
+    else
+        printf '   still fetching headers: %s of %s in %ss, no blocks validated yet.\n' \
+            "${HDR:-?}" "${TARGET:-?}" "$ELAPSED"
+        printf '   That is the normal first phase, not a refusal.\n'
+    fi
     echo "=================================================================="
     exit 0
 fi
