@@ -368,7 +368,19 @@ async function renderNetwork() {
 
   text($('netKnown'), n.known === null ? '—' : n.known.toLocaleString());
   text($('netConnected'), n.connected.toLocaleString());
-  text($('netInOut'), `${n.outbound} out · ${n.inbound} in`);
+  text($('netInOut'), `${n.outbound} out · ${n.inbound} in`
+    + (n.connectedOwn ? ` · ${n.connectedOwn} of them a WAM seed` : ''));
+
+  // The address book only grows. It went from four to five when a node in
+  // France appeared and stayed at five when that node vanished the same
+  // day, which reads as a network that never loses anybody. So the count is
+  // shown with the part of it that has actually been heard from lately --
+  // that number does fall -- and with how much of it is our own machines.
+  if (n.knownRecent !== null && n.knownRecent !== undefined) {
+    const bits = [`${n.knownRecent} heard from in the last ${n.knownRecentDays} days`];
+    if (n.knownOwn) bits.push(`${n.knownOwn} of them ours`);
+    text($('netKnownFine'), bits.join(' · '));
+  }
 
   // Measured from DNS, the way a node with no peers finds the network --
   // so it includes the machine serving this page, which counting peers

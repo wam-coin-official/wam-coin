@@ -163,7 +163,12 @@
       <div class="netstat">
         <div class="netnum" id="netKnown">—</div>
         <div class="netlabel">addresses known</div>
-        <div class="fine">every node this one has heard of</div>
+        <!-- An address book, not a census. It only ever grows: it went from
+             four to five when a node in France appeared and stayed at five
+             when that node vanished ten hours later. The line under it
+             carries the number that does fall. -->
+        <div class="fine">every address this node has ever heard of</div>
+        <div class="fine" id="netKnownFine">&nbsp;</div>
       </div>
       <div class="netstat">
         <div class="netnum" id="netConnected">—</div>
