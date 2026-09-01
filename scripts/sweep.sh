@@ -167,7 +167,13 @@ else
         # who did not already have it.
         set -- $NODES
         run "a new node can sync from genesis" \
-            bash scripts/check_fresh_sync.sh --network testnet --peer "$1" --timeout 120
+            # 300, not 120. A new node builds a RandomX verification context
+            # per seed epoch before it validates anything -- about twelve
+            # seconds each -- and only then starts on blocks. At 120 it
+            # regularly stopped watching during that phase. The check no
+            # longer calls that a failure, but a run that actually reaches the
+            # tip is a stronger answer than one that reports steady progress.
+            bash scripts/check_fresh_sync.sh --network testnet --peer "$1" --timeout 300
         # Each node is probed from the next one round-robin, so every host is
         # examined from a machine that is not itself.
         i=0
