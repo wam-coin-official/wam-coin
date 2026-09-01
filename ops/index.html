@@ -159,6 +159,9 @@ function hostCard(h) {
           h.newestBackup ? ageClass(h.newestBackup, 30 * 3600, 48 * 3600) : 'bad')}
     ${h.reorgAlarms ? row('reorg alarms', h.reorgAlarms + ' unread', 'bad') : ''}
     ${h.versionNotice ? row('version notice', 'this node is behind', 'bad') : ''}
+    ${(h.failedUnits || []).length
+        ? row('FAILED UNITS', (h.failedUnits || []).map(esc).join(', '), 'bad')
+        : ''}
     <div class="svc">${svc}</div>
   </div>`;
 }

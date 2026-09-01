@@ -55,10 +55,13 @@ import re
 import subprocess
 import sys
 import time
-import urllib.parse
-import urllib.request
 
-CONF = "/etc/wam/announce.json"
+# Delivery -- Telegram where there is a token, a parked file where there is
+# not -- lives in one module, because the second thing that needed to raise an
+# alarm (unit_alert.py) would otherwise have copied these rules, and a copy is
+# where two versions start to differ.
+from wamnotify import send as notify
+
 STATE = "/var/lib/wam-login-watch/state.json"
 AUTHKEYS = "/root/.ssh/authorized_keys"
 
@@ -84,59 +87,6 @@ def save(s):
         os.replace(tmp, STATE)
     except OSError:
         pass
-
-
-PENDING = "/var/lib/wam-login-watch/pending.txt"
-
-
-def park(text):
-    """No way to send from here. Leave it where the other machine will find
-    it.
-
-    Singapore has no bot token and must not be given one: if that machine
-    were taken, whoever took it could post to the public announcement
-    channel in the founder's name. So its alarms are written here, wam-facts
-    prints them, and the host that does hold the token forwards them within
-    five minutes. The credential stays in one place and the alarm still
-    arrives.
-    """
-    try:
-        os.makedirs(os.path.dirname(PENDING), exist_ok=True)
-        with open(PENDING, "a") as f:
-            f.write(text.replace("\n", " ") + "\n")
-        # The forwarding host dedupes by hash and cannot tell this one what
-        # it has already sent, so this file would otherwise grow for ever.
-        # Two hundred lines is far more than five minutes of alarms and
-        # small enough that reading it costs nothing.
-        with open(PENDING) as f:
-            lines = f.readlines()
-        if len(lines) > 200:
-            with open(PENDING, "w") as f:
-                f.writelines(lines[-200:])
-    except OSError:
-        pass
-    print(text)
-
-
-def notify(text, dry):
-    if dry:
-        print(text)
-        return
-    try:
-        cfg = json.load(open(CONF))
-        chat = cfg.get("opsChatId")
-        token = cfg.get("telegram", {}).get("token")
-        if not (chat and token):
-            park(text)
-            return
-        data = urllib.parse.urlencode({
-            "chat_id": chat, "text": text,
-            "disable_web_page_preview": "true"}).encode()
-        urllib.request.urlopen(urllib.request.Request(
-            f"https://api.telegram.org/bot{token}/sendMessage", data=data),
-            timeout=25)
-    except Exception as e:
-        park(f"{text}  [could not send from that host: {type(e).__name__}]")
 
 
 def network_of(ip):

@@ -84,15 +84,42 @@ OFFSETS = [1, 2, 3, 4, 5, 6, 8, 10, 15, 20, 30, 50, 75, 100, 150, 200, 300, 500,
 # news.
 FORGET_AFTER = 5000
 
+# How many of the older recorded heights are re-read on an ordinary run.
+#
+# It used to re-read all of them, every two minutes. By September that was
+# 1560 heights -- 1560 processes spawned every two minutes on a 2 GB server,
+# to re-confirm blocks a thousand deep that cannot change without the ones
+# above them changing first. The cost grew with the chain until it broke.
+#
+# Sixty per run, rotating, means every recorded height is re-read inside an
+# hour and the work stops growing. The heights near the tip, where a reorg
+# actually happens, are still read on every single run.
+AUDIT_PER_RUN = 60
+
 
 def run(host, cmd, timeout=60):
-    """Run a shell command locally or on a host, and return its stdout."""
+    """Run a shell command locally or on a host, and return its stdout.
+
+    The script goes in on stdin, never as an argument. `bash -lc "<script>"`
+    puts the whole thing in one element of argv, and the kernel refuses any
+    single argument over 128 KiB with E2BIG -- "Argument list too long".
+
+    That is not a theoretical limit here. This check re-read every height it
+    had ever recorded, so the command grew with the chain, and on 1 September
+    2026 at 03:11 UTC it crossed the line. From then on the deeper of the two
+    questions -- did a block that was confirmed stop being confirmed -- was
+    not asked at all, on either machine, and the failure was visible only as
+    a red service nothing was reading. Feeding stdin removes the ceiling for
+    good; bounding the work (see heights_to_check) removes the growth that
+    walked into it.
+    """
     if host in (None, "", "local", "localhost"):
-        argv = ["bash", "-lc", cmd]
+        argv = ["bash", "-ls"]
     else:
         argv = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=15",
-                f"root@{host}", cmd]
-    p = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
+                f"root@{host}", "bash -s"]
+    p = subprocess.run(argv, input=cmd, capture_output=True, text=True,
+                       timeout=timeout)
     if p.returncode != 0:
         raise RuntimeError((p.stderr or p.stdout or "no output").strip()[:300])
     return p.stdout
@@ -126,12 +153,13 @@ def load_state(path):
         return {}, {}
 
 
-def save_state(path, heights, tip):
+def save_state(path, heights, tip, cursor=0):
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     tmp = path + ".tmp"
     with open(tmp, "w") as f:
         json.dump({"heights": {str(k): v for k, v in heights.items()},
-                   "tip": tip, "written": int(time.time())}, f, indent=1)
+                   "tip": tip, "cursor": cursor,
+                   "written": int(time.time())}, f, indent=1)
     os.replace(tmp, path)          # never leave a half-written state file
 
 
@@ -159,6 +187,67 @@ def outstanding_alarms(state_dir):
         return sorted(f for f in os.listdir(state_dir) if f.startswith("ALARM-"))
     except OSError:
         return []
+
+
+def heights_to_check(tip, known, cursor):
+    """The bounded set of heights this run will re-read.
+
+    Always the offsets: they are dense near the tip, which is the only place
+    a reorganisation of the kind worth alarming about begins.
+
+    Plus a rotating slice of everything else recorded, so that nothing is
+    trusted for ever on the strength of one reading, and so that the cost of
+    a run does not grow with the length of the chain.
+    """
+    near = {tip - o for o in OFFSETS if tip - o >= 0}
+    old = sorted(h for h in known
+                 if tip - FORGET_AFTER < h <= tip and h not in near)
+    if not old:
+        return sorted(near), 0
+    start = cursor % len(old)
+    take = (old + old)[start:start + AUDIT_PER_RUN]
+    return sorted(near | set(take)), (start + AUDIT_PER_RUN) % len(old)
+
+
+def read_hashes(host, c, heights, timeout=120):
+    """Ask the node for the hash at each of these heights."""
+    script = "\n".join(f'echo "{h} $({c} getblockhash {h} 2>/dev/null)"'
+                       for h in heights)
+    out = run(host, script, timeout=timeout)
+    got = {}
+    for line in out.splitlines():
+        parts = line.split()
+        if len(parts) == 2 and len(parts[1]) == 64:
+            got[int(parts[0])] = parts[1]
+    return got
+
+
+def fork_bracket(host, c, known, unchanged, changed):
+    """Narrow where the chain we recorded and the chain we see part company.
+
+    A reorganisation replaces a run of blocks from some height to the tip, so
+    "this height changed" is true for every height above the fork and false
+    below it. That is a boundary, and a boundary is found by halving: about
+    eleven reads across fifteen hundred heights instead of fifteen hundred.
+
+    It returns a bracket, not a number, and the difference is the whole
+    point. A height can only be tested if its hash was recorded, and the
+    offsets are sparse far from the tip -- 500 then 1000. So the honest
+    answer is "deeper than this height, no deeper than that one", and the
+    caller quotes the range. Naming a single height the evidence does not
+    support would be a precise-sounding number that is wrong, given to an
+    exchange asking how deep the damage went.
+    """
+    lo, hi = unchanged, changed              # lo still matches, hi does not
+    pool = sorted(h for h in known if lo < h < hi)
+    while pool:
+        m = pool[len(pool) // 2]
+        got = read_hashes(host, c, [m], timeout=45)
+        if m in got and got[m] == known[m]:
+            lo, pool = m, [h for h in pool if h > m]
+        else:
+            hi, pool = m, [h for h in pool if h < m]
+    return lo, hi
 
 
 def check(host, network, depth_alarm, state_dir, datadir=None):
@@ -203,26 +292,17 @@ def check(host, network, depth_alarm, state_dir, datadir=None):
     known, prev = load_state(path)
     prev_tip = prev.get("tip")
 
-    wanted = sorted({tip - o for o in OFFSETS if tip - o >= 0}
-                    | {h for h in known if h <= tip and h > tip - FORGET_AFTER})
+    wanted, cursor = heights_to_check(tip, known, int(prev.get("cursor", 0)))
     if not wanted:
         ok("chain too short to have anything to compare yet")
-        save_state(path, {}, tip)
+        save_state(path, {}, tip, 0)
         return
 
-    # One command, one round trip, one line per height.
-    script = "; ".join(f'echo "{h} $({c} getblockhash {h} 2>/dev/null)"' for h in wanted)
     try:
-        out = run(host, script, timeout=120)
+        now = read_hashes(host, c, wanted)
     except Exception as e:
         bad(f"{label}: could not read block hashes ({e})")
         return
-
-    now = {}
-    for line in out.splitlines():
-        parts = line.split()
-        if len(parts) == 2 and len(parts[1]) == 64:
-            now[int(parts[0])] = parts[1]
 
     changed = [(h, known[h], now[h]) for h in sorted(known)
                if h in now and known[h] != now[h]]
@@ -232,17 +312,46 @@ def check(host, network, depth_alarm, state_dir, datadir=None):
         # now. Everything above the old tip is honest new work: counting it
         # as "rewritten" inflates the number, and this is a number that gets
         # quoted to an exchange deciding whether its deposits are safe.
+        #
+        # The offsets are sparse below the tip -- 500 then 1000 -- so the
+        # shallowest height seen to change is an upper bound on the fork, not
+        # the fork. Between the deepest height that still matches and that
+        # one, the exact boundary is found by halving, so the depth reported
+        # is the depth, not a round number that happened to be sampled.
         shallowest = min(h for h, _, _ in changed)
+        floor = None
+        still_good = [h for h in sorted(now) if h < shallowest and h in known
+                      and known[h] == now[h]]
+        if still_good:
+            try:
+                floor, shallowest = fork_bracket(host, c, known,
+                                                 still_good[-1], shallowest)
+            except Exception as e:
+                warn(f"{label}: could not narrow the fork point ({e}); "
+                     f"reporting the shallowest height sampled")
+
+        # Two depths, because the fork sits somewhere in the bracket. The
+        # larger one is quoted first: understating how deep a rewrite went is
+        # the error that costs somebody money.
         depth = (prev_tip - shallowest + 1) if prev_tip else len(changed)
-        msg = (f"{label}: REORGANISATION {depth} block(s) deep -- the chain was "
-               f"rewritten from height {shallowest}. {len(changed)} recorded "
+        deepest = (prev_tip - floor) if (prev_tip and floor is not None) else None
+        if deepest and deepest != depth:
+            how = (f"between {depth} and {deepest} block(s) deep -- the chain "
+                   f"was rewritten from a height above {floor} and no higher "
+                   f"than {shallowest}")
+        else:
+            how = (f"{depth} block(s) deep -- the chain was rewritten from "
+                   f"height {shallowest}")
+        msg = (f"{label}: REORGANISATION {how}. {len(changed)} recorded "
                f"height(s) no longer hold the block they held. Tip is now {tip}"
                + (f", was {prev_tip}." if prev_tip else "."))
         bad(msg)
         try:
             p = raise_alarm(state_dir, network, host,
                             {"message": msg, "depth": depth,
-                             "from_height": shallowest, "tip": tip,
+                             "depth_worst_case": deepest,
+                             "from_height": shallowest,
+                             "from_height_floor": floor, "tip": tip,
                              "previous_tip": prev_tip,
                              "changed": [{"height": h, "was": w, "now": n}
                                          for h, w, n in changed]})
@@ -257,8 +366,14 @@ def check(host, network, depth_alarm, state_dir, datadir=None):
         if len(changed) > 6:
             print(f"          ... and {len(changed) - 6} more")
     else:
+        # Say how many were actually re-read, not how many are on file. This
+        # run checks a bounded slice, and reporting the whole file as verified
+        # would be the exact kind of true-sounding sentence that makes a
+        # monitor worth less than no monitor at all.
+        rechecked = sum(1 for h in now if h in known)
         if known:
-            ok(f"{len(known)} recorded height(s) still hold the same blocks")
+            ok(f"{rechecked} of {len(known)} recorded height(s) re-read this "
+               f"run, all unchanged; the rest are re-read within the hour")
         else:
             ok(f"first run -- recorded {len(now)} height(s) to compare against")
 
@@ -266,7 +381,7 @@ def check(host, network, depth_alarm, state_dir, datadir=None):
     # tripwire than one recorded a minute ago.
     merged = {h: v for h, v in known.items() if h > tip - FORGET_AFTER}
     merged.update(now)
-    save_state(path, merged, tip)
+    save_state(path, merged, tip, cursor)
 
 
 def announce(text, repo):

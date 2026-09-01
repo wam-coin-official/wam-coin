@@ -131,6 +131,7 @@ def read_facts(host):
         "git": one("g"),
         "backup": int(one("b")) if (one("b") or "").isdigit() else None,
         "alarms": one("a"), "version": one("v"), "services": svc,
+        "failed": [x.strip() for x in f.get("f", []) if x.strip()],
     }, None
 
 
@@ -221,6 +222,14 @@ def build(n):
             problems.append(f"{name} has no backup at all")
         if (f.get("alarms") or "0") != "0":
             problems.append(f"{name} has {f['alarms']} unread reorg alarm(s)")
+        # The service, not the timer above it. This report listed services by
+        # is-active and a oneshot check is never "active" between runs, so a
+        # check that failed every time it ran read as normal here. That is how
+        # wam-reorg-watch went ten hours dead on both machines on 1 September
+        # 2026 with nothing said.
+        for u in f.get("failed", []):
+            problems.append(f"{name}: {u} is in the FAILED state — whatever it "
+                            f"watches has not been watched since it started failing")
         if f.get("version") == "behind":
             problems.append(f"{name} is running a checkout that is behind")
         for u, (active, enabled) in (f.get("services") or {}).items():

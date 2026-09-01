@@ -1,0 +1,61 @@
+# ===========================================================================
+#  Say it out loud when one of the watchers stops working
+# ===========================================================================
+#
+#  Not enabled or started directly. Named as OnFailure= on every unit that
+#  watches something:
+#
+#      OnFailure=wam-alert@%n.service
+#
+#  %n is the full unit name, so the instance carries it -- systemd starts
+#  wam-alert@wam-backup.service.service and this passes the name straight
+#  through to the script.
+#
+#  WHY
+#
+#  A timer stays active however often the service under it fails, and every
+#  panel in this project was reading the timer. wam-backup failed nightly
+#  from 23 August and looked fine. wam-reorg-watch failed from 03:11 UTC on
+#  1 September on one machine and 03:47 on the other, and looked fine. Both
+#  were found by a person going and looking.
+#
+#  A monitor whose own breakage is silent is worse than no monitor, because
+#  the silence is read as health.
+#
+#  NO OnFailure= ON THIS UNIT. If the alerting itself fails there is nothing
+#  left to tell, and pointing it at itself would loop.
+# ===========================================================================
+
+[Unit]
+Description=Report that %i failed
+Documentation=https://github.com/wam-coin-official/wam-coin/blob/main/scripts/unit_alert.py
+
+[Service]
+Type=oneshot
+
+# ssh-keygen and anything else that consults it. This project has shipped the
+# missing-HOME bug twice; see scripts/test/test_service_home.sh.
+Environment=HOME=/root
+
+WorkingDirectory=/opt/wam/scripts
+ExecStart=/usr/bin/python3 /opt/wam/scripts/unit_alert.py %i
+
+# It parks alarms on the host that holds no bot token, so it writes there.
+StateDirectory=wam-login-watch
+StateDirectoryMode=0750
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/wam-login-watch
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryMax=128M
+TasksMax=32

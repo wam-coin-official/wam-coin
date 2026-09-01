@@ -132,6 +132,14 @@ done
 echo "###backup"; ls -t /root/backups/*.gpg 2>/dev/null | head -1 | xargs -r stat -c %%Y
 echo "###alarms"; ls /var/lib/wam-reorg/ALARM-* 2>/dev/null | wc -l
 echo "###motd"; [ -f /etc/update-motd.d/98-wam-version ] && echo yes || echo no
+# The state of the SERVICE, not of the timer above it. This panel read only
+# is-active on the timer, and a timer stays active however often the service
+# under it fails -- which is how wam-reorg-watch failed on both machines at
+# 03:11 and 03:47 UTC on 1 September 2026 and this page stayed green for ten
+# hours. The leading bullet comes and goes with the systemd version, so strip
+# everything before the name instead of counting columns.
+echo "###failed"; systemctl list-units --state=failed --plain --no-legend --no-pager 2>/dev/null \
+  | sed 's/^[^A-Za-z0-9]*//' | awk '{print $1}' | head -20
 echo "###end"
 """ % " ".join(SERVICES)
 
@@ -193,6 +201,7 @@ echo "###end"
         "newestBackup": one("backup", int),
         "reorgAlarms": one("alarms", int, 0),
         "versionNotice": one("motd") == "yes",
+        "failedUnits": [x.strip() for x in parts.get("failed", []) if x.strip()],
     }
 
 
