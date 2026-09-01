@@ -1,0 +1,32 @@
+# ===========================================================================
+#  Every five minutes
+# ===========================================================================
+#
+#  The founder's objection to a quarter of an hour was the right one: a
+#  breach can be finished inside it. Five minutes is the compromise between
+#  that and reading the journal continuously, which would mean a process
+#  holding a journal follower open for ever on a machine whose whole job is
+#  to run a node.
+#
+#  Backfill is twenty minutes against a five-minute period on purpose. Runs
+#  overlap, so a login cannot fall through a gap if one run is slow or the
+#  machine is briefly busy -- and seeing the same login twice costs nothing,
+#  because the watcher speaks only about what is new.
+#
+#  Persistent=true so a machine that was off runs it on the way back. The
+#  hours nobody was watching are the hours worth reading.
+# ===========================================================================
+
+[Unit]
+Description=Check every five minutes for logins and key changes
+Documentation=https://github.com/wam-coin-official/wam-coin/blob/main/scripts/login_watch.py
+
+[Timer]
+OnBootSec=4min
+OnUnitActiveSec=5min
+Persistent=true
+AccuracySec=30s
+Unit=wam-login-watch.service
+
+[Install]
+WantedBy=timers.target

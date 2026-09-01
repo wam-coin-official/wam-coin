@@ -107,6 +107,23 @@ def notify(text, dry):
         print(f"could not send: {type(e).__name__}: {e}", file=sys.stderr)
 
 
+def network_of(ip):
+    """The address's network, not the address.
+
+    Six logins over three days came from six different addresses and a
+    single /24 -- 41.254.73.x, a home line changing its last octet. Keyed on
+    the whole address this watcher would announce a new one most days, and
+    an alarm that fires most days is read for a week. Keyed on the /24 it is
+    silent for that churn and speaks the moment a login arrives from a
+    network that has never been used here, which is the thing worth
+    knowing.
+    """
+    if ":" in ip:                       # IPv6: the /64 is the assignment
+        return ":".join(ip.split(":")[:4]) + "::/64"
+    parts = ip.split(".")
+    return ".".join(parts[:3]) + ".0/24" if len(parts) == 4 else ip
+
+
 def host():
     try:
         return open("/etc/hostname").read().strip()
@@ -160,7 +177,8 @@ def examine(events, state, dry, quiet_first_run):
 
     for e in events:
         fp, ip = e["fp"], e["ip"]
-        pair = (fp, ip)
+        net = network_of(ip)
+        pair = (fp, net)
         if fp not in authorised and fp != "?":
             alarms.append(
                 f"ALARM  a login on {host()} used key {fp}, which is NOT in "
@@ -173,8 +191,9 @@ def examine(events, state, dry, quiet_first_run):
                 f"never been used here before.")
         elif pair not in seen_pairs:
             alarms.append(
-                f"notice  {host()}: a known key logged in from {ip}, an "
-                f"address never seen here. If that was not you, it is not you.")
+                f"notice  {host()}: a known key logged in from {net}, a "
+                f"network never used here before. If that was not you, "
+                f"it is not you.")
         seen_fp.add(fp)
         seen_pairs.add(pair)
 
@@ -226,7 +245,7 @@ def examine(events, state, dry, quiet_first_run):
     # more than the silence.
     if quiet_first_run:
         return [f"login watch started on {host()}. It has learned "
-                f"{len(seen_fp)} key(s) and {len(seen_pairs)} address(es) as "
+                f"{len(seen_fp)} key(s) and {len(seen_pairs)} network(s) as "
                 f"normal, and will speak only when something is not."]
     return alarms
 
