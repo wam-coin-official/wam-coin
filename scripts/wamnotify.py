@@ -60,18 +60,44 @@ def send(text, dry=False):
     if dry:
         print(text)
         return
+    # A host with no announce.json is a host that was never given a token,
+    # which is the design and not a fault. Parking it quietly is right; the
+    # first version let the missing file fall through to the error path and
+    # stamped every alarm Singapore raised with "FileNotFoundError", which
+    # reads as a broken alerter rather than a working one.
     try:
         cfg = json.load(open(CONF))
         chat = cfg.get("opsChatId")
         token = cfg.get("telegram", {}).get("token")
-        if not (chat and token):
-            park(text)
-            return
+    except (OSError, ValueError):
+        park(text)
+        return
+    if not (chat and token):
+        park(text)
+        return
+    try:
         data = urllib.parse.urlencode({
             "chat_id": chat, "text": text,
             "disable_web_page_preview": "true"}).encode()
-        urllib.request.urlopen(urllib.request.Request(
-            f"https://api.telegram.org/bot{token}/sendMessage", data=data),
-            timeout=25)
+        with urllib.request.urlopen(urllib.request.Request(
+                f"https://api.telegram.org/bot{token}/sendMessage", data=data),
+                timeout=25) as r:
+            # A 200 with {"ok": false} is Telegram accepting the request and
+            # refusing the message -- a wrong chat id reads exactly like a
+            # delivered alarm if the body is not read.
+            body = json.loads(r.read().decode())
+        if not body.get("ok"):
+            park(f"{text}  [telegram refused it: "
+                 f"{str(body.get('description'))[:80]}]")
     except Exception as e:
         park(f"{text}  [could not send from that host: {type(e).__name__}]")
+
+
+if __name__ == "__main__":
+    # So a person can prove delivery whenever they want to, rather than
+    # trusting that the last alarm would have arrived:
+    #
+    #     python3 scripts/wamnotify.py "test from France"
+    import sys
+    send(" ".join(sys.argv[1:]) or "wamnotify test")
+    print("sent, or parked if this host holds no token")
