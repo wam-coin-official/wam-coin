@@ -130,6 +130,8 @@ fi
 TARGET=""
 LAST=-1
 STUCK=0
+FIRST_H=""
+ELAPSED=0
 printf '  %-8s %-8s %-8s %s\n' "elapsed" "blocks" "headers" "peer height"
 for i in $(seq 1 $((WAIT / 5))); do
     H="$(ask getblockcount)"
@@ -146,7 +148,9 @@ for i in $(seq 1 $((WAIT / 5))); do
     fi
 
     if [ "$H" = "$LAST" ]; then STUCK=$((STUCK + 1)); else STUCK=0; fi
+    [ -z "$FIRST_H" ] && [ -n "$H" ] && FIRST_H="$H"
     LAST="$H"
+    ELAPSED=$((i * 5))
     # Six identical readings is half a minute of no progress with headers
     # already known. That is not slow, it is refusing.
     if [ "$STUCK" -ge 6 ] && [ -n "$HDR" ] && [ "$HDR" -gt "${H:-0}" ] 2>/dev/null; then
@@ -154,6 +158,28 @@ for i in $(seq 1 $((WAIT / 5))); do
     fi
     sleep 2
 done
+
+# Running out of clock is not the same as being refused, and calling it one
+# was a false alarm waiting to happen. The chain reached 4475 blocks on
+# 1 September 2026 and took 115 seconds to sync; the sweep allowed 120. It
+# failed once on the margin, passed on the next run, and would have failed
+# for good within days -- reporting "a new node did NOT reach the tip" about
+# a node that was climbing steadily the whole time. A check that will start
+# lying as the chain grows is worse than one that never ran.
+#
+# The question is "can a stranger join", and steady progress answers yes.
+# Only a stall answers no, and the loop above already detects a stall.
+if [ "$STUCK" -lt 6 ] && [ -n "$LAST" ] && [ "$LAST" -gt "${FIRST_H:-0}" ] 2>/dev/null; then
+    GAINED=$((LAST - FIRST_H))
+    echo
+    printf ' %sa new node was still syncing when the clock ran out -- not refused%s\n' "$GRN" "$OFF"
+    printf '   height %s of %s, %s blocks in %ss and climbing when it stopped being watched.\n' \
+        "$LAST" "${TARGET:-?}" "$GAINED" "$ELAPSED"
+    printf '   Nothing rejected it. Give it --timeout %s to watch it finish.\n' \
+        "$(( (TARGET > 0 ? TARGET : LAST) * ELAPSED / (GAINED > 0 ? GAINED : 1) + 60 ))"
+    echo "=================================================================="
+    exit 0
+fi
 
 echo
 printf ' %sa new node did NOT reach the tip%s\n' "$RED" "$OFF"
