@@ -113,6 +113,13 @@ run "service hardening"          bash scripts/test/test_harden.sh
 # one. Knowing about a trap is not a guard rail.
 run "units that resolve ~ have a HOME"  bash scripts/test/test_service_home.sh
 
+# And the reason that one had to be found by a person: a timer stays active
+# however often the service beneath it fails, so a check that failed every
+# time it ran read as healthy on every panel here. wam-backup did it nightly
+# from 23 August; wam-reorg-watch did it on both machines on 1 September and
+# went ten and a half hours without asking its own question.
+run "units report their own failure"  bash scripts/test/test_onfailure.sh
+
 # Asked before a chain is started, not after. A consensus value that changes
 # once blocks exist invalidates every block mined under the old one, and the
 # running nodes are the last to notice.

@@ -39,10 +39,32 @@
 #  something did is the machine's.
 # ===========================================================================
 
+import json
+import os
 import subprocess
 import sys
+import time
 
 from wamnotify import send
+
+STATE = "/var/lib/wam-login-watch/alerted.json"
+
+# A unit with Restart=always that cannot start fails, restarts, and fails
+# again, for ever. wam-electrumx -- a dead leftover unit pointing at an
+# environment file that the per-network install had moved -- had done it 4738
+# times on Singapore before anyone noticed, because nobody was listening.
+#
+# The first version of this file sent one message per failure. Within three
+# minutes of being wired up it had sent that loop straight to a telephone.
+# The rule the login watcher was built on -- an alarm that fires a hundred
+# times a day is read for two days and ignored for ever after -- applies to
+# the alerter itself, and it was written by the same person who then did not
+# apply it.
+#
+# So: the first failure of a unit is sent at once. After that it is counted,
+# and one line an hour says it is still failing and how many times. Nothing
+# is lost and the telephone stays readable.
+COOLDOWN = 3600
 
 
 def prop(unit, name):
@@ -67,6 +89,40 @@ def tail(unit, n=12):
     return "\n".join(keep[-6:])
 
 
+def load():
+    try:
+        with open(STATE) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def save(s):
+    try:
+        os.makedirs(os.path.dirname(STATE), exist_ok=True)
+        tmp = STATE + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(s, f)
+        os.replace(tmp, STATE)
+    except OSError:
+        pass
+
+
+def due(unit, now, state):
+    """Send now, or count it and stay quiet.
+
+    Returns (send_it, how_many_since_the_last_one).
+    """
+    e = state.get(unit)
+    if not e or now - e.get("last_sent", 0) >= COOLDOWN:
+        state[unit] = {"last_sent": now, "since": 0,
+                       "first": (e or {}).get("first", now)}
+        return True, (e or {}).get("since", 0)
+    e["since"] = e.get("since", 0) + 1
+    state[unit] = e
+    return False, e["since"]
+
+
 def main():
     if len(sys.argv) < 2:
         print("usage: unit_alert.py <unit>", file=sys.stderr)
@@ -78,11 +134,30 @@ def main():
     status = prop(unit, "ExecMainStatus") or "?"
     result = prop(unit, "Result") or "?"
 
+    now = int(time.time())
+    state = {} if dry else load()
+    send_it, suppressed = due(unit, now, state)
+    if not dry:
+        save(state)
+
+    if not send_it:
+        print(f"{unit} failed again ({suppressed} since the last message); "
+              f"quiet until the hour is up")
+        return 0
+
+    if suppressed:
+        text = (f"ALARM  {unit} is STILL FAILING on {host} "
+                f"(result={result}, exit={status}) — {suppressed} more "
+                f"failure(s) in the last hour.\n")
+    else:
+        text = (f"ALARM  {unit} FAILED on {host} "
+                f"(result={result}, exit={status}).\n"
+                f"Whatever that unit was watching has not been watched since "
+                f"it started failing.\n")
+    text += ("Nothing will tell you when it recovers — this only speaks on "
+             "failure.\n")
+
     body = tail(unit)
-    text = (f"ALARM  {unit} FAILED on {host} "
-            f"(result={result}, exit={status}).\n"
-            f"Whatever that unit was watching has not been watched since it "
-            f"started failing.\n")
     if body:
         text += "\nlast lines:\n" + body
 
