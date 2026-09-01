@@ -113,6 +113,26 @@ def files():
     return seen
 
 
+def public(rel: str) -> bool:
+    """Is this file actually on GitHub, or only on this machine?
+
+    The legal review briefs are gitignored -- they are drafts for a lawyer,
+    not publications. A wrong table in one of them is worth fixing and worth
+    saying, but it is not the same event as a wrong table in the whitepaper,
+    and reporting them identically overstates by three. Ask git rather than
+    the filesystem: `git check-ignore` gives the same answer on every
+    checkout, which is the mistake audit_repo.sh made in August by asking
+    whether the file happened to exist here.
+    """
+    import subprocess
+    try:
+        r = subprocess.run(["git", "-C", str(ROOT), "check-ignore", "-q", rel],
+                           capture_output=True, timeout=15)
+        return r.returncode != 0
+    except Exception:
+        return True          # if git cannot say, assume the worse case
+
+
 def main() -> int:
     a = authority()
     fails, warns = [], []
@@ -231,22 +251,31 @@ def main() -> int:
                             f"network enforces {want:,}")
 
     # ---- report ------------------------------------------------------------
+    scanned = files()
+    pub = [f for f in scanned if public(f)]
     print()
     print(f"{BLD}what we publish, against what the chain enforces{OFF}")
     print(f"  authority : {HDR.relative_to(ROOT)}")
-    print(f"  documents : {len(files())} published file(s)")
+    print(f"  documents : {len(scanned)} scanned, {len(pub)} of them on GitHub")
     print(f"  enforced unlocks: {', '.join(sorted(enforced))}")
     print()
 
+    # A gitignored draft and a published whitepaper are both worth fixing and
+    # are not the same event. Marked, not merged.
+    def mark(m):
+        rel = m.split(":")[0]
+        return "" if public(rel) else f"  {YEL}[local only, not on GitHub]{OFF}"
+
     for m in fails:
-        print(f"  {RED}FAIL{OFF}  {m}")
+        print(f"  {RED}FAIL{OFF}  {m}{mark(m)}")
     for m in warns:
-        print(f"  {YEL}!!{OFF}    {m}")
+        print(f"  {YEL}!!{OFF}    {m}{mark(m)}")
 
     print()
     if fails:
-        print(f"  {RED}{len(fails)} published claim(s) the network does not "
-              f"enforce{OFF}")
+        live = sum(1 for m in fails if public(m.split(":")[0]))
+        print(f"  {RED}{len(fails)} claim(s) the network does not enforce"
+              f"{OFF} -- {live} of them published")
     elif warns:
         print(f"  {YEL}nothing false; {len(warns)} number(s) worth a human "
               f"reading{OFF}")
