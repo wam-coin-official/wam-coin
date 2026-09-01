@@ -93,7 +93,12 @@ run "repository self-agreement"  bash scripts/audit_repo.sh
 # dangerous day is not the day it was written but the day a prefix changes
 # and nobody remembers that a file in integration/ repeats it.
 run "the listing entry matches source" python3 scripts/check_listing_entry.py
-run "vesting tables agree"       python3 scripts/check_vesting_sync.py
+# Named for what it does, not for what it sounds like. It compares the three
+# MACHINE-READABLE copies of the vesting table -- header, genesis miner,
+# explorer constants. It reads no document. Called "vesting tables agree", it
+# was read as covering the whitepaper, and the whitepaper was wrong for days
+# underneath a green line.
+run "the 3 code copies of vesting agree"  python3 scripts/check_vesting_sync.py
 run "supply arithmetic"          python3 scripts/verify_supply.py
 run "executable bits in index"   bash scripts/test/test_exec_bits.sh
 
@@ -119,6 +124,14 @@ run "units that resolve ~ have a HOME"  bash scripts/test/test_service_home.sh
 # from 23 August; wam-reorg-watch did it on both machines on 1 September and
 # went ten and a half hours without asking its own question.
 run "units report their own failure"  bash scripts/test/test_onfailure.sh
+
+# Every check above this line compares code to code. On 1 September 2026 the
+# founder read the whitepaper on his telephone and found a table saying the
+# first founder tranche unlocks on launch day; consensus locks all five, and
+# the sweep had just reported 28 passed. "vesting tables agree" compares three
+# machine-readable copies and reads no document a human reads -- and neither
+# did anything else here. This one reads what we publish.
+run "published claims match consensus"  python3 scripts/check_published_claims.py
 
 # Asked before a chain is started, not after. A consensus value that changes
 # once blocks exist invalidates every block mined under the old one, and the
