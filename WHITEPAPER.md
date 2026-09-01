@@ -260,16 +260,19 @@ build log, or on a networked machine.
 ### 3.5 The founder reserve, and why it is locked
 
 The 2,000,000 WAM minted in the genesis block is **not paid to a single output.** It is
-split into five equal tranches inside the genesis coinbase, four of which are locked behind
-`OP_CHECKLOCKTIMEVERIFY` until an exact calendar date:
+split into five equal tranches inside the genesis coinbase, **every one of which** is locked
+behind `OP_CHECKLOCKTIMEVERIFY` until an exact calendar date:
 
 | Tranche | Amount | Unlocks | Cumulative | % of reserve |
 |---:|---:|---|---:|---:|
-| 1 | 400,000 WAM | 2026-09-15 (launch) | 400,000 | 20% |
-| 2 | 400,000 WAM | 2027-09-15 | 800,000 | 40% |
-| 3 | 400,000 WAM | 2028-09-15 | 1,200,000 | 60% |
-| 4 | 400,000 WAM | 2029-09-15 | 1,600,000 | 80% |
-| 5 | 400,000 WAM | 2030-09-15 | 2,000,000 | 100% |
+| 1 | 400,000 WAM | 2027-09-15 | 400,000 | 20% |
+| 2 | 400,000 WAM | 2028-09-15 | 800,000 | 40% |
+| 3 | 400,000 WAM | 2029-09-15 | 1,200,000 | 60% |
+| 4 | 400,000 WAM | 2030-09-15 | 1,600,000 | 80% |
+| 5 | 400,000 WAM | 2031-09-15 | 2,000,000 | 100% |
+
+Nothing in the reserve is spendable on launch day, and nothing in it is spendable during the
+first year of the chain.
 
 All five are additionally subject to the ordinary 100-block coinbase maturity.
 
