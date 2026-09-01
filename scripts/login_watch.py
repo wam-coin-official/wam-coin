@@ -104,6 +104,15 @@ def park(text):
         os.makedirs(os.path.dirname(PENDING), exist_ok=True)
         with open(PENDING, "a") as f:
             f.write(text.replace("\n", " ") + "\n")
+        # The forwarding host dedupes by hash and cannot tell this one what
+        # it has already sent, so this file would otherwise grow for ever.
+        # Two hundred lines is far more than five minutes of alarms and
+        # small enough that reading it costs nothing.
+        with open(PENDING) as f:
+            lines = f.readlines()
+        if len(lines) > 200:
+            with open(PENDING, "w") as f:
+                f.writelines(lines[-200:])
     except OSError:
         pass
     print(text)
