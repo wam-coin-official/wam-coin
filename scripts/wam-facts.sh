@@ -46,6 +46,17 @@ for u in wamd wam-electrumx@testnet wam-pool wam-dashboard wam-announce \
     e=$(systemctl is-enabled "$u" 2>/dev/null); [ -n "$e" ] || e=-
     printf '%s %s %s\n' "$u" "$a" "$e"
 done
+# Units in the failed state. Nothing in this project read this until three
+# services had failed silently: wam-backup nightly from 23 August, and
+# wam-reorg-watch on both machines from 03:11 and 03:47 UTC on 1 September.
+# Every panel showed the TIMER, and a timer stays active however often the
+# service under it fails. OnFailure= now sends an alarm the moment it
+# happens; this is the second answer, for a host that was down when it did.
+# The leading bullet is there or not depending on the systemd version and
+# whether it thinks it has a terminal, so strip anything before the name
+# rather than trusting a column number.
+echo "###f"; systemctl list-units --state=failed --plain --no-legend --no-pager 2>/dev/null \
+    | sed 's/^[^A-Za-z0-9]*//' | awk '{print $1}' | head -20
 # Alarms this host raised but could not send, because it holds no bot token
 # and must not: whoever took this machine could otherwise post to the public
 # announcement channel. The host that does hold the token reads them here

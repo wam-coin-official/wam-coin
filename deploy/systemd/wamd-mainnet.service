@@ -26,6 +26,13 @@ Wants=network-online.target
 # is a node nobody restarts.
 StartLimitIntervalSec=0
 
+# If this unit fails, say so. A timer stays active however often the
+# service under it fails, and every panel here was reading the timer:
+# wam-backup failed nightly from 23 August and looked fine, and
+# wam-reorg-watch failed from 03:11 UTC on 1 September and looked fine.
+# Both were found by a person going and looking.
+OnFailure=wam-alert@%n.service
+
 [Service]
 Type=simple
 
