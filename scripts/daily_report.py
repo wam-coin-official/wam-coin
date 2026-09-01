@@ -228,8 +228,17 @@ def build(n):
         # wam-reorg-watch went ten hours dead on both machines on 1 September
         # 2026 with nothing said.
         for u in f.get("failed", []):
-            problems.append(f"{name}: {u} is in the FAILED state — whatever it "
-                            f"watches has not been watched since it started failing")
+            if u.startswith("wam"):
+                problems.append(f"{name}: {u} is in the FAILED state — whatever "
+                                f"it watches has not been watched since it "
+                                f"started failing")
+            else:
+                # Ubuntu's own boot units fail on these providers and stay
+                # failed for the life of the machine. Naming them as problems
+                # every morning is how a person learns to skip the problem
+                # list; hiding them is how a real one goes unseen. So: named,
+                # not shouted about.
+                notes.append(f"{name}: {u} is failed — not ours, failed at boot")
         if f.get("version") == "behind":
             problems.append(f"{name} is running a checkout that is behind")
         for u, (active, enabled) in (f.get("services") or {}).items():

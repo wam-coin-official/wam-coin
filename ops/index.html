@@ -159,8 +159,18 @@ function hostCard(h) {
           h.newestBackup ? ageClass(h.newestBackup, 30 * 3600, 48 * 3600) : 'bad')}
     ${h.reorgAlarms ? row('reorg alarms', h.reorgAlarms + ' unread', 'bad') : ''}
     ${h.versionNotice ? row('version notice', 'this node is behind', 'bad') : ''}
-    ${(h.failedUnits || []).length
-        ? row('FAILED UNITS', (h.failedUnits || []).map(esc).join(', '), 'bad')
+    ${(h.failedUnits || []).filter(u => u.indexOf('wam') === 0).length
+        ? row('FAILED UNITS',
+              (h.failedUnits || []).filter(u => u.indexOf('wam') === 0).map(esc).join(', '),
+              'bad')
+        : ''}
+    ${/* Ubuntu's own boot units fail on these providers and stay failed for
+          the life of the machine. Red for those teaches a person to stop
+          reading red; leaving them out entirely is how a real one is missed.
+          Named, in grey. */''}
+    ${(h.failedUnits || []).filter(u => u.indexOf('wam') !== 0).length
+        ? row('failed at boot, not ours',
+              (h.failedUnits || []).filter(u => u.indexOf('wam') !== 0).map(esc).join(', '))
         : ''}
     <div class="svc">${svc}</div>
   </div>`;
