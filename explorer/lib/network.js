@@ -244,6 +244,7 @@ function build(peers, known, netInfo) {
     }
 
     const history = summariseSeen(loadSeen(), new Set(versions.keys()));
+    const nowSec = Math.floor(Date.now() / 1000);
 
     return {
         // Connected right now, from this node's point of view. A node behind a
@@ -268,7 +269,36 @@ function build(peers, known, netInfo) {
         // Addresses this node has learned of, whether or not it has ever
         // spoken to them. The closest thing to a network size we can report
         // without crawling, and it does not require anyone to be online now.
+        //
+        // It is also the number most easily misread, and was misread. It
+        // went from four to five when a node in France appeared, and stayed
+        // at five when that node vanished ten hours later -- because an
+        // address book does not forget. It also holds this node's own
+        // address, self-advertised, and both WAM seeds. So the count alone
+        // says almost nothing about how many machines are up, and the page
+        // now carries the two numbers that do.
         known: Array.isArray(known) ? known.length : null,
+
+        // How many of those have actually been heard from inside the window.
+        // This one falls when a node goes away, which is the property the
+        // number above does not have.
+        knownRecent: Array.isArray(known)
+            ? known.filter((a) => nowSec - (a.time || 0) <= SEEN_WINDOW_SEC).length
+            : null,
+        knownRecentDays: SEEN_WINDOW_SEC / 86400,
+
+        // How many of the known addresses are WAM's own machines. Naming
+        // them costs nobody anything -- they are in public DNS -- and
+        // leaving them silently inside the total is how "five addresses"
+        // reads as five strangers.
+        knownOwn: Array.isArray(known)
+            ? known.filter((a) => OWN_SEEDS[hostOf(a.address)]).length
+            : null,
+
+        // Of the peers connected right now, how many are our own seeds. The
+        // headline number counts every connection, and on a two-seed network
+        // that is mostly us talking to ourselves.
+        connectedOwn: counts.seed,
 
         byType: counts,
         versions: [...versions.entries()]
