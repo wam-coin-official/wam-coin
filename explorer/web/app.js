@@ -377,7 +377,7 @@ async function renderNetwork() {
   // shown with the part of it that has actually been heard from lately --
   // that number does fall -- and with how much of it is our own machines.
   if (n.knownRecent !== null && n.knownRecent !== undefined) {
-    const bits = [`${n.knownRecent} heard from in the last ${n.knownRecentDays} days`];
+    const bits = [`${n.knownRecent} heard from in the last ${n.knownRecentHours}h`];
     if (n.knownOwn) bits.push(`${n.knownOwn} of them ours`);
     text($('netKnownFine'), bits.join(' · '));
   }
@@ -430,8 +430,15 @@ async function renderNetwork() {
         const c = (n.versions.find((x) => x.version === v.version) || {}).count;
         return c ? `${v.version} ×${c}` : v.version;
       });
+    // With the machine count, not without it. "also on this network:
+    // /WAM:0.1.5/" reads as a stranger running an old build, and every
+    // /WAM:0.1.5/ handshake in the seven days to 1 September 2026 came from
+    // one machine -- the founder's own laptop, started on an old binary.
+    // Saying "on 1 machine" does not name anybody and stops the sentence
+    // implying a crowd.
     const away = h.versions.filter((v) => !v.connectedNow)
-      .map((v) => `${v.version} (seen ${duration(v.ageSeconds)} ago)`);
+      .map((v) => `${v.version} on ${v.machines} machine${v.machines === 1 ? '' : 's'}`
+                + ` (seen ${duration(v.ageSeconds)} ago)`);
     text($('netVersions'),
       (now.length ? now.join('  ') : 'none connected')
       + (away.length ? '   —   also on this network: ' + away.join('  ') : ''));

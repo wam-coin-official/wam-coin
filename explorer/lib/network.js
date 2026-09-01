@@ -82,10 +82,30 @@ const SEEN_WINDOW_SEC = 7 * 24 * 3600;
 
 let seenCache = null;
 
+// The network an address sits in, not the address.
+//
+// This page said eight machines had been on the network in seven days. Six
+// of those eight were one laptop on a home line that changes its last octet
+// -- 41.254.73.4, .29, .35, .68, .85, .97 -- and it belongs to the founder.
+// Counting addresses counted his router's mood as seven strangers, on a
+// public page whose entire purpose is to answer "is this a real network or
+// one person's laptop" honestly.
+//
+// Keyed on the /24 (or the IPv6 /64, which is what a subscriber is given),
+// that laptop is one machine. Two operators behind the same /24 would count
+// as one, which is rare and errs downward -- and a page about
+// decentralisation should undercount itself, never the reverse.
+function networkOf(host) {
+    if (host.includes(':')) return host.split(':').slice(0, 4).join(':') + '::/64';
+    const p = host.split('.');
+    return p.length === 4 ? p.slice(0, 3).join('.') + '.0/24' : host;
+}
+
 function machineId(addr) {
     const host = String(addr || '').replace(/^\[|\]$/g, '').split(']')[0]
         .replace(/:\d+$/, '');
-    return crypto.createHash('sha256').update(host).digest('hex').slice(0, 16);
+    return crypto.createHash('sha256').update(networkOf(host))
+        .digest('hex').slice(0, 16);
 }
 
 function loadSeen() {
@@ -279,13 +299,16 @@ function build(peers, known, netInfo) {
         // now carries the two numbers that do.
         known: Array.isArray(known) ? known.length : null,
 
-        // How many of those have actually been heard from inside the window.
+        // How many of those have actually been heard from in the last day.
         // This one falls when a node goes away, which is the property the
-        // number above does not have.
+        // number above does not have. A day, not the seven used for version
+        // history: the question here is whether the network is up now, and
+        // a week-long window would have gone on counting the French node
+        // for six days after it disappeared.
         knownRecent: Array.isArray(known)
-            ? known.filter((a) => nowSec - (a.time || 0) <= SEEN_WINDOW_SEC).length
+            ? known.filter((a) => nowSec - (a.time || 0) <= 86400).length
             : null,
-        knownRecentDays: SEEN_WINDOW_SEC / 86400,
+        knownRecentHours: 24,
 
         // How many of the known addresses are WAM's own machines. Naming
         // them costs nobody anything -- they are in public DNS -- and
