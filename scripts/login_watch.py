@@ -235,6 +235,13 @@ def examine(events, state, dry, quiet_first_run):
 OTHERS = ["5.223.52.200"]
 REPORT_KEY = "/root/.ssh/id_report"
 
+# The parked file holds up to two hundred lines, and a machine in a restart
+# loop fills it. Forwarding all of them would turn one broken unit on the
+# other side of the world into two hundred messages on a telephone -- the
+# flood this whole path exists to avoid, arriving by the back door. Six per
+# run, and a line saying how many are still queued.
+FORWARD_PER_RUN = 6
+
 
 def collect_parked(state):
     """Forward what the other machine could not send itself.
@@ -258,6 +265,7 @@ def collect_parked(state):
         if "###alarm" not in p.stdout:
             continue
         block = p.stdout.split("###alarm", 1)[1].split("###end", 1)[0]
+        fresh = []
         for line in block.splitlines():
             line = line.strip()
             if not line:
@@ -265,8 +273,16 @@ def collect_parked(state):
             h = hashlib.sha256(line.encode()).hexdigest()[:16]
             if h in forwarded:
                 continue
+            fresh.append((h, line))
+        # Oldest first: the line that explains why the rest happened is the
+        # one at the top, and it is the one worth having.
+        for h, line in fresh[:FORWARD_PER_RUN]:
             forwarded.add(h)
             out.append(line)
+        if len(fresh) > FORWARD_PER_RUN:
+            out.append(f"({len(fresh) - FORWARD_PER_RUN} more line(s) waiting "
+                       f"on {ip}; they follow at six per run. Something over "
+                       f"there is repeating.)")
     state["forwarded"] = sorted(forwarded)[-500:]
     return out
 
