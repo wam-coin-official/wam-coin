@@ -1,0 +1,54 @@
+# ===========================================================================
+#  Know within minutes when somebody gets into this machine
+# ===========================================================================
+#
+#      systemctl enable --now wam-login-watch.timer
+#
+#  Everything else here watches health -- is the node up, is the chain
+#  intact, did the backup run. Nothing watched who comes in, and a machine
+#  holding the pool wallet had no answer at all to "did anyone log in
+#  today".
+#
+#  It cannot alert on every login: there were 103 successful
+#  authentications on the pool host in one day, all of them the founder's
+#  own automation, and an alarm that fires a hundred times a day is read for
+#  two days and ignored for ever after. It alerts on what is new -- a key
+#  fingerprint never seen here, a change to authorized_keys, a new account
+#  that can log in, a login from a network never used before.
+# ===========================================================================
+
+[Unit]
+Description=Watch for logins, key changes and new accounts on this host
+Documentation=https://github.com/wam-coin-official/wam-coin/blob/main/scripts/login_watch.py
+After=network-online.target
+
+[Service]
+Type=oneshot
+
+# It reads /root/.ssh/authorized_keys and /etc/wam/announce.json, and both
+# are found through paths rather than through HOME -- but ssh-keygen still
+# consults it. See scripts/test/test_service_home.sh: this project has shipped
+# the missing-HOME bug twice.
+Environment=HOME=/root
+
+WorkingDirectory=/opt/wam
+ExecStart=/usr/bin/python3 /opt/wam/scripts/login_watch.py --backfill 20min
+
+StateDirectory=wam-login-watch
+StateDirectoryMode=0750
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/wam-login-watch
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryMax=256M
+TasksMax=64
