@@ -144,8 +144,21 @@ function hostCard(h) {
     return `<span class="pill ${cls}">${esc(label)}</span>`;
   }).join('');
 
+  // Declared work. It silences nothing -- see scripts/wam-maint.sh -- so this
+  // is not an excuse for the red lines below it, only a note that somebody
+  // said in advance they would be there. A red line with no note above it is
+  // the one to look at.
+  const maint = (h.maintenance || '').trim();
+  let maintRow = '';
+  if (maint) {
+    const sp = maint.indexOf(' ');
+    const mins = Math.max(0, Math.round(parseInt(maint.slice(0, sp), 10) / 60));
+    maintRow = row('planned work', `${esc(maint.slice(sp + 1))} · ${mins} min left`, 'warn');
+  }
+
   return `<div class="card">
     <h2>${esc(h.name)} <span class="${ageClass(h.checked, 180, 600)}">${ago(h.checked)}</span></h2>
+    ${maintRow}
     ${row('height', esc(h.height))}
     ${row('tip', esc((h.tip || '').slice(0, 16)))}
     ${row('peers', esc(h.peers))}
