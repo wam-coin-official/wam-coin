@@ -405,6 +405,24 @@ randomxmining=0
 
 dbcache=450
 
+# Log who connects, and keep logging it across restarts.
+#
+# This was switched on at run time on the two seed nodes and never written
+# down. On 2 September 2026 unattended-upgrades replaced libevent -- which
+# wamd links against -- restarted the node, and the setting went with it. From
+# then on the node still knew who was connected that second and had no memory
+# of anyone who connected and left, which is the only way to tell an operator
+# from a port scanner: a scanner is accepted and closed in the same second and
+# never sends a version message.
+#
+# logips puts the address on messages that would otherwise carry only a peer
+# number, so a line can answer "from where" and not only "how many".
+#
+# It is verbose. scripts/harden_server.sh caps the journal so it can never
+# take the disk the chain needs.
+debug=net
+logips=1
+
 # Everything below binds to one chain only. Core enforces the separation; the
 # section header is what tells it which chain these lines belong to.
 [$NET_SECTION]
