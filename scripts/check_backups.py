@@ -42,32 +42,71 @@
 import argparse
 import subprocess
 import sys
+import time
 
 RED = "\033[31m"; GRN = "\033[32m"; YEL = "\033[33m"; BLD = "\033[1m"; OFF = "\033[0m"
 _fails = []
 
 
+_warns = []
+
+
 def ok(m):   print(f"  {GRN}ok{OFF}    {m}")
 def bad(m):  print(f"  {RED}FAIL{OFF}  {m}"); _fails.append(m)
-def warn(m): print(f"  {YEL}!!{OFF}    {m}")
+def warn(m): print(f"  {YEL}!!{OFF}    {m}"); _warns.append(m)
+
+
+# Returned instead of an exit code when the question could not be put at all.
+# "I could not ask" and "the answer is no" are different, and collapsing them
+# is how this check announced that backups were not running on a machine whose
+# backups were running: one ssh call took longer than the timeout while the
+# dashboard fired every check at once, and the line printed was
+# "wam-backup.timer is ... -- nothing will run".
+#
+# A false red costs as much as a false green. It is the thing that teaches a
+# person to stop reading red, and then the true one arrives among the noise.
+UNREACHABLE = -1
+
+# Two tries before giving up. The single failure that caused this was a
+# connection under load, and it succeeded immediately afterwards by hand.
+TRIES = 2
 
 
 def rsh(host, cmd, timeout=45):
-    try:
-        r = subprocess.run(
-            ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=15",
-             f"root@{host}", cmd],
-            capture_output=True, text=True, timeout=timeout)
-        return r.returncode, r.stdout.strip()
-    except Exception as e:
-        return 1, str(e)
+    last = ""
+    for attempt in range(TRIES):
+        try:
+            r = subprocess.run(
+                ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=15",
+                 f"root@{host}", cmd],
+                capture_output=True, text=True, timeout=timeout)
+            # 255 is ssh's own error code -- it reserves it for its own
+            # failures and never uses it for a remote exit status it received.
+            # A host that is down therefore looks exactly like a host that
+            # answered "no", unless this line is here. The first version only
+            # caught the timeout path, so a genuinely unreachable machine
+            # still came back as three backup failures.
+            if r.returncode == 255:
+                last = (r.stderr.strip().splitlines() or ["connection failed"])[-1][:120]
+            else:
+                return r.returncode, r.stdout.strip()
+        except subprocess.TimeoutExpired:
+            last = f"no answer within {timeout}s"
+        except Exception as e:
+            last = f"{type(e).__name__}: {e}"
+        if attempt + 1 < TRIES:
+            time.sleep(3)
+    return UNREACHABLE, last
 
 
 def check(host, max_age_hours, backup_dir):
     print(f"\n{BLD}{host}{OFF}")
 
     rc, timer = rsh(host, "systemctl is-active wam-backup.timer")
-    if rc == 0 and timer == "active":
+    if rc == UNREACHABLE:
+        warn(f"could not ask whether the timer is armed ({timer}). "
+             f"That is not the same as it being off.")
+    elif rc == 0 and timer == "active":
         ok("the timer is armed")
     else:
         bad(f"wam-backup.timer is {timer or 'unreadable'} -- nothing will run")
@@ -75,7 +114,9 @@ def check(host, max_age_hours, backup_dir):
     # The result of the last run, not whether it is running now: this is a
     # oneshot, so it is inactive almost always and that says nothing.
     rc, result = rsh(host, "systemctl show wam-backup.service -p Result --value")
-    if rc == 0 and result == "success":
+    if rc == UNREACHABLE:
+        warn(f"could not ask how the last run ended ({result})")
+    elif rc == 0 and result == "success":
         ok("the last run succeeded")
     elif rc == 0 and result in ("", "unknown"):
         warn("the service has not run yet on this host")
@@ -93,6 +134,10 @@ def check(host, max_age_hours, backup_dir):
         f"[ -n \"$f\" ] && echo \"$(( ( $(date +%s) - $(stat -c %Y \"$f\") ) / 3600 )) "
         f"$(basename \"$f\")\" || echo NONE")
 
+    if rc == UNREACHABLE:
+        warn(f"could not look for an archive ({out}). Whether one exists is "
+             f"unknown, which is not the same as none existing.")
+        return
     if rc != 0 or out == "NONE" or not out:
         bad(f"no archive at all in {backup_dir} -- there is nothing to restore from")
         return
@@ -130,6 +175,15 @@ def main():
     if _fails:
         print(f"{RED}the backup is not doing its job{OFF}\n")
         return 1
+    # A host that could not be reached is not a host with good backups, and
+    # the closing line must not say it is. Exit 0 all the same: an unreachable
+    # machine is somebody else's alarm -- the ops panel and the reachability
+    # check both shout about it -- and turning it into a backup failure here
+    # is how "backups FAILING" ends up meaning "the network was slow".
+    if _warns:
+        print(f"{YEL}no backup fault found, but {len(_warns)} question(s) "
+              f"could not be put -- see the '!!' lines above{OFF}\n")
+        return 0
     print(f"{GRN}every host has a recent, verified archive{OFF}\n")
     return 0
 
