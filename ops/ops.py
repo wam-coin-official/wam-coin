@@ -58,6 +58,7 @@ import http.server
 import json
 import os
 import re
+import shlex
 import socketserver
 import subprocess
 import sys
@@ -143,12 +144,20 @@ echo "###failed"; systemctl list-units --state=failed --plain --no-legend --no-p
 # Planned work, declared with wam-maint. It silences nothing; the panel shows
 # it so a red line during a reboot reads as expected rather than as a fault --
 # and so that a red line with NO declared work reads as what it is.
+# Every literal percent in here must be doubled -- including in comments.
+# This whole string goes through Python's %% operator to substitute the
+# service list, so a lone %%d is eaten there and never reaches the shell.
+# Adding the block below without doubling them broke every host card with
+# "not enough arguments for format string", and the panel then showed both
+# machines as unreachable -- which reads exactly like two servers being down.
+# The first attempt at this comment had single percents in it and re-broke
+# the same thing while explaining it.
 echo "###maint"; [ -f /var/lib/wam-login-watch/maintenance.json ] && \
   python3 -c "
 import json,time
 m=json.load(open('/var/lib/wam-login-watch/maintenance.json'))
 left=int(float(m.get('until',0))-time.time())
-print('%d %s'%(left,m.get('reason','?')) if left>0 else '')" 2>/dev/null
+print('%%d %%s'%%(left,m.get('reason','?')) if left>0 else '')" 2>/dev/null
 echo "###end"
 """ % " ".join(SERVICES)
 
@@ -215,6 +224,39 @@ echo "###end"
     }
 
 
+WINDOWS = os.name == "nt"
+
+# Where this repository lives as seen from inside WSL, for the checks that are
+# shell scripts. Derived, not hardcoded: C:\wam-blockchain-core -> /mnt/c/...
+def _wsl_path(p):
+    d, rest = os.path.splitdrive(os.path.abspath(p))
+    return "/mnt/" + d[0].lower() + rest.replace("\\", "/")
+
+
+def portable(argv):
+    """The same check, runnable from a Windows process.
+
+    The dashboard now serves the page from Windows rather than from inside
+    WSL, because a page bound to 127.0.0.1 inside the WSL virtual machine is
+    not reliably reachable from the Windows browser -- on 2 September 2026 it
+    was not reachable at all, by localhost or by the VM's own address, and the
+    one tool whose job is to say when something is wrong was itself
+    unreachable with nothing to announce it.
+
+    But half of these checks are shell scripts, and Windows has no bash. So
+    the HTTP server runs natively and the shell checks are handed to WSL,
+    which is where they were written to run. Python checks run under the
+    Windows interpreter directly.
+    """
+    if not WINDOWS:
+        return argv, REPO
+    if argv and argv[0] == "bash":
+        inner = " ".join(shlex.quote(a) for a in argv[1:])
+        return (["wsl", "-e", "bash", "-lc",
+                 f"cd {shlex.quote(_wsl_path(REPO))} && bash {inner}"], None)
+    return argv, REPO
+
+
 def run_check(name, argv, timeout=240):
     """Run one of the repository's own check scripts and keep its verdict.
 
@@ -224,8 +266,9 @@ def run_check(name, argv, timeout=240):
     instrument, so they cannot disagree about what is true.
     """
     started = int(time.time())
+    argv, cwd = portable(argv)
     try:
-        p = subprocess.run(argv, cwd=REPO, capture_output=True, text=True,
+        p = subprocess.run(argv, cwd=cwd, capture_output=True, text=True,
                            timeout=timeout)
         rc, out = p.returncode, (p.stdout + p.stderr)
     except subprocess.TimeoutExpired:
