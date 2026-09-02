@@ -40,9 +40,8 @@
 # ===========================================================================
 
 import argparse
-import subprocess
+import os
 import sys
-import time
 
 RED = "\033[31m"; GRN = "\033[32m"; YEL = "\033[33m"; BLD = "\033[1m"; OFF = "\033[0m"
 _fails = []
@@ -56,47 +55,22 @@ def bad(m):  print(f"  {RED}FAIL{OFF}  {m}"); _fails.append(m)
 def warn(m): print(f"  {YEL}!!{OFF}    {m}"); _warns.append(m)
 
 
-# Returned instead of an exit code when the question could not be put at all.
-# "I could not ask" and "the answer is no" are different, and collapsing them
-# is how this check announced that backups were not running on a machine whose
-# backups were running: one ssh call took longer than the timeout while the
-# dashboard fired every check at once, and the line printed was
-# "wam-backup.timer is ... -- nothing will run".
+# Asking a server a question lives in one module. This file had its own copy
+# and needed the same fix twice: once for the timeout path -- it announced
+# "wam-backup.timer is -- nothing will run" on a machine whose backups were
+# running, because one ssh call took longer than 45 seconds -- and again
+# because ssh exits 255 on a connection failure rather than timing out, so a
+# genuinely dead host still read as three backup failures.
 #
-# A false red costs as much as a false green. It is the thing that teaches a
-# person to stop reading red, and then the true one arrives among the noise.
-UNREACHABLE = -1
-
-# Two tries before giving up. The single failure that caused this was a
-# connection under load, and it succeeded immediately afterwards by hand.
-TRIES = 2
+# A false red costs as much as a false green. It is what teaches a person to
+# stop reading red, and the true one then arrives among the noise.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from wamssh import run as _run, UNREACHABLE   # noqa: E402
 
 
 def rsh(host, cmd, timeout=45):
-    last = ""
-    for attempt in range(TRIES):
-        try:
-            r = subprocess.run(
-                ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=15",
-                 f"root@{host}", cmd],
-                capture_output=True, text=True, timeout=timeout)
-            # 255 is ssh's own error code -- it reserves it for its own
-            # failures and never uses it for a remote exit status it received.
-            # A host that is down therefore looks exactly like a host that
-            # answered "no", unless this line is here. The first version only
-            # caught the timeout path, so a genuinely unreachable machine
-            # still came back as three backup failures.
-            if r.returncode == 255:
-                last = (r.stderr.strip().splitlines() or ["connection failed"])[-1][:120]
-            else:
-                return r.returncode, r.stdout.strip()
-        except subprocess.TimeoutExpired:
-            last = f"no answer within {timeout}s"
-        except Exception as e:
-            last = f"{type(e).__name__}: {e}"
-        if attempt + 1 < TRIES:
-            time.sleep(3)
-    return UNREACHABLE, last
+    rc, out = _run(host, cmd, timeout=timeout)
+    return rc, out.strip()
 
 
 def check(host, max_age_hours, backup_dir):
@@ -176,14 +150,15 @@ def main():
         print(f"{RED}the backup is not doing its job{OFF}\n")
         return 1
     # A host that could not be reached is not a host with good backups, and
-    # the closing line must not say it is. Exit 0 all the same: an unreachable
-    # machine is somebody else's alarm -- the ops panel and the reachability
-    # check both shout about it -- and turning it into a backup failure here
-    # is how "backups FAILING" ends up meaning "the network was slow".
+    # the closing line must not say it is.
     if _warns:
         print(f"{YEL}no backup fault found, but {len(_warns)} question(s) "
               f"could not be put -- see the '!!' lines above{OFF}\n")
-        return 0
+        # 2, this project's convention for "the check could not run". Not 1,
+        # which says a fault was found and would put "backups FAILING" on the
+        # panel over a slow ssh; and not 0, which would say every host has a
+        # good archive when one of them was never asked.
+        return 2
     print(f"{GRN}every host has a recent, verified archive{OFF}\n")
     return 0
 
