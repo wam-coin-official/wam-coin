@@ -63,15 +63,32 @@ bad=0
 for h in "${HOSTS[@]}"; do
     before="$(ssh -o BatchMode=yes -o ConnectTimeout=15 "root@$h" \
         'git -C /opt/wam rev-parse --short HEAD' 2>/dev/null)"
+    # The default protocol first, then v0. Measured on 2 September 2026:
+    # git 2.43.0 on Ubuntu 24.04 fails protocol v2 against GitHub six times in
+    # eight, on both servers, with "expected flush after ref listing"; v0
+    # failed none in eight. The laptop's newer git passes both, which is why
+    # this only ever bit the servers.
+    #
+    # The default is tried first on purpose. Pinning v0 outright would work
+    # today and go on working silently after the underlying bug is fixed,
+    # which is how a machine ends up years behind on a protocol nobody
+    # remembers choosing. This way the fallback announces itself every time
+    # it is needed, and stops being needed on its own.
     got=""
     for try in $(seq 1 $TRIES); do
+        proto=""
+        [ $try -gt 1 ] && proto="-c protocol.version=0"
         err="$(ssh -o BatchMode=yes -o ConnectTimeout=15 "root@$h" \
-            'git -C /opt/wam fetch -q origin && git -C /opt/wam reset -q --hard origin/main' 2>&1)"
+            "git $proto -C /opt/wam fetch -q origin && git -C /opt/wam reset -q --hard origin/main" 2>&1)"
         rc=$?
-        if [ $rc -eq 0 ]; then break; fi
+        if [ $rc -eq 0 ]; then
+            [ $try -gt 1 ] && printf '  %s!!%s    %s needed protocol v0 (v2 is broken on this git)\n' \
+                "$YEL" "$OFF" "$h"
+            break
+        fi
         printf '  %s!!%s    %s attempt %d: %s\n' "$YEL" "$OFF" "$h" "$try" \
             "$(printf '%s' "$err" | tail -1 | cut -c1-80)"
-        sleep 5
+        sleep 3
     done
 
     # Read it back. Not "the command exited 0" -- what the machine now holds.
