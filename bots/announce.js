@@ -500,7 +500,7 @@ async function main() {
     log(`WAM announcement bot`);
     log(`node      ${cfg.node.host}:${cfg.node.port}`);
     log(`channels  ${sinks.map((s) => s.name).join(', ')}`);
-    log(`heartbeat every ${cfg.heartbeatHours}h, stall alert after ${cfg.stallMinutes}m`);
+    log(`daily post at ${String(cfg.heartbeatHourUtc).padStart(2, '0')}:00 UTC, stall alert after ${cfg.stallMinutes}m`);
     if (args.dry) log(`DRY RUN -- messages are printed, not sent`);
 
     const runOnce = async () => {
