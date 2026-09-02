@@ -132,6 +132,7 @@ def read_facts(host):
         "backup": int(one("b")) if (one("b") or "").isdigit() else None,
         "alarms": one("a"), "version": one("v"), "services": svc,
         "failed": [x.strip() for x in f.get("f", []) if x.strip()],
+        "maint": one("maint"),
     }, None
 
 
@@ -248,6 +249,17 @@ def build(n):
                 problems.append(f"{name}: {u} is {active}")
         if f.get("swapTotal") in ("0", None):
             notes.append(f"{name} has no swap")
+        # Declared work silences nothing -- it only labels. Saying so here
+        # means a person reading an alarm from last night can tell at once
+        # whether it was expected, without having to remember.
+        if f.get("maint"):
+            secs, _, why = f["maint"].partition(" ")
+            try:
+                mins = int(secs) // 60
+            except ValueError:
+                mins = 0
+            notes.append(f"{name}: planned work declared — {why} "
+                         f"({mins} min left). Alarms are still being sent.")
 
     # --- checks that need nothing but this checkout --------------------------
     results = [

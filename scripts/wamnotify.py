@@ -28,11 +28,13 @@
 
 import json
 import os
+import time
 import urllib.parse
 import urllib.request
 
 CONF = "/etc/wam/announce.json"
 PENDING = "/var/lib/wam-login-watch/pending.txt"
+MAINT = "/var/lib/wam-login-watch/maintenance.json"
 
 # Two hundred lines is far more than the few minutes between forwarding runs,
 # and small enough that reading the file costs nothing.
@@ -55,11 +57,52 @@ def park(text):
     print(text)
 
 
+def maintenance():
+    """The open maintenance window, if there is one and it has not expired.
+
+    NOTHING IS EVER SILENCED BY IT. It only adds a label.
+
+    The first design of this suppressed alarms during planned work, because
+    rebooting both servers on 2 September raised two perfectly correct alarms
+    that were both mine -- a check that could not reach a node I had stopped,
+    and a machine whose ports "were closed before" because it had just come
+    back.
+
+    The founder rejected suppression, and his reason is the right one: a
+    switch that silences the alarms is the first thing an intruder would want,
+    and an intrusion that happens to land inside a window we opened ourselves
+    would arrive as silence. The noise is the smaller problem. He knows when
+    he is doing maintenance; he cannot know when somebody else is.
+
+    So the window answers "was this expected?" and never "should this be
+    sent?". Every alarm still leaves the machine. The label is there so a
+    person can see at a glance which ones were us -- and, more usefully, which
+    ones were not.
+
+    It still carries an absolute expiry, so a forgotten window stops labelling
+    on its own rather than mislabelling a real fault as routine next week.
+    """
+    try:
+        with open(MAINT) as f:
+            m = json.load(f)
+    except (OSError, ValueError):
+        return None
+    if time.time() >= float(m.get("until", 0)):
+        return None
+    return m
+
+
 def send(text, dry=False):
-    """Deliver, or park it for the host that can."""
+    """Deliver, or park it for the host that can. Always."""
     if dry:
         print(text)
         return
+
+    m = maintenance()
+    if m:
+        left = int((float(m["until"]) - time.time()) / 60)
+        text = (f"[planned work in progress: {m.get('reason', '?')} "
+                f"— {left} min left. This alarm was still sent.]\n{text}")
     # A host with no announce.json is a host that was never given a token,
     # which is the design and not a fault. Parking it quietly is right; the
     # first version let the missing file fall through to the error path and

@@ -140,6 +140,15 @@ echo "###motd"; [ -f /etc/update-motd.d/98-wam-version ] && echo yes || echo no
 # everything before the name instead of counting columns.
 echo "###failed"; systemctl list-units --state=failed --plain --no-legend --no-pager 2>/dev/null \
   | sed 's/^[^A-Za-z0-9]*//' | awk '{print $1}' | head -20
+# Planned work, declared with wam-maint. It silences nothing; the panel shows
+# it so a red line during a reboot reads as expected rather than as a fault --
+# and so that a red line with NO declared work reads as what it is.
+echo "###maint"; [ -f /var/lib/wam-login-watch/maintenance.json ] && \
+  python3 -c "
+import json,time
+m=json.load(open('/var/lib/wam-login-watch/maintenance.json'))
+left=int(float(m.get('until',0))-time.time())
+print('%d %s'%(left,m.get('reason','?')) if left>0 else '')" 2>/dev/null
 echo "###end"
 """ % " ".join(SERVICES)
 
@@ -202,6 +211,7 @@ echo "###end"
         "reorgAlarms": one("alarms", int, 0),
         "versionNotice": one("motd") == "yes",
         "failedUnits": [x.strip() for x in parts.get("failed", []) if x.strip()],
+        "maintenance": one("maint"),
     }
 
 

@@ -61,5 +61,21 @@ echo "###f"; systemctl list-units --state=failed --plain --no-legend --no-pager 
 # and must not: whoever took this machine could otherwise post to the public
 # announcement channel. The host that does hold the token reads them here
 # and forwards them.
+# Planned work, if any was declared. It silences nothing -- see
+# scripts/wam-maint.sh -- but the morning report should say so plainly rather
+# than let a person wonder later whether an alarm was us.
+echo "###maint"
+if [ -f /var/lib/wam-login-watch/maintenance.json ]; then
+    python3 - <<'PY' 2>/dev/null
+import json, time
+try:
+    m = json.load(open("/var/lib/wam-login-watch/maintenance.json"))
+    left = int(float(m.get("until", 0)) - time.time())
+    if left > 0:
+        print("%d %s" % (left, m.get("reason", "?")))
+except Exception:
+    pass
+PY
+fi
 echo "###alarm"; [ -f /var/lib/wam-login-watch/pending.txt ] && cat /var/lib/wam-login-watch/pending.txt
 echo "###end"
