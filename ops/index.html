@@ -156,9 +156,15 @@ function hostCard(h) {
     maintRow = row('planned work', `${esc(maint.slice(sp + 1))} · ${mins} min left`, 'warn');
   }
 
+  // The host answered but part of the collection failed. Not a dead machine,
+  // not a clean read -- and it must not be shown as either.
+  const collectRow = h.collectWarning
+    ? row('collector', esc(h.collectWarning) + ' — the values below may be incomplete', 'warn')
+    : '';
+
   return `<div class="card">
     <h2>${esc(h.name)} <span class="${ageClass(h.checked, 180, 600)}">${ago(h.checked)}</span></h2>
-    ${maintRow}
+    ${maintRow}${collectRow}
     ${row('height', esc(h.height))}
     ${row('tip', esc((h.tip || '').slice(0, 16)))}
     ${row('peers', esc(h.peers))}

@@ -93,13 +93,44 @@ _lock = threading.Lock()
 
 
 def rsh(host, cmd, timeout=45):
-    """One read-only command on a host. Returns (rc, stdout)."""
+    """One read-only command on a host. Returns (rc, stdout).
+
+    The script goes in on STDIN, never as an argument.
+
+    Passing it as the last argv element worked for as long as this ran under
+    WSL. Moved to Windows Python it began timing out on both hosts at once:
+    Windows has no argv, so subprocess rebuilds a single command line and
+    escapes the double quotes inside the script. ssh delivered that to the
+    remote shell, which saw an unbalanced quote and sat waiting for the rest
+    of it until the 45-second limit expired -- and the panel then showed two
+    healthy servers as unreachable.
+
+    `bash -s` reads from stdin, so nothing quotes anything. This is the same
+    fix, for the same reason, as the one made to check_reorg.py earlier the
+    same day, where a script passed as an argument hit the kernel's 128 KiB
+    limit. A script belongs on stdin.
+
+    AND IT IS SENT AS BYTES, NOT AS TEXT.
+
+    With text=True, Python opens that pipe in text mode, and on Windows text
+    mode rewrites every \\n as \\r\\n. The remote bash then receives a shell
+    script with Windows line endings and says:
+
+        cut: '/proc/uptime'$'\\r': No such file or directory
+        bash: syntax error near unexpected token $'do\\r'
+
+    Half the sections came back empty and the rest of the script never ran.
+    Encoding here and decoding the answer keeps the bytes the bytes, on any
+    platform. Stripping the carriage returns afterwards would have been the
+    patch; not letting the platform rewrite them is the fix.
+    """
     try:
         p = subprocess.run(
             ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10",
-             "-o", "StrictHostKeyChecking=accept-new", f"root@{host}", cmd],
-            capture_output=True, text=True, timeout=timeout)
-        return p.returncode, p.stdout
+             "-o", "StrictHostKeyChecking=accept-new", f"root@{host}",
+             "bash -s"],
+            input=cmd.encode("utf-8"), capture_output=True, timeout=timeout)
+        return p.returncode, p.stdout.decode("utf-8", "replace")
     except Exception as e:
         return 255, f"{type(e).__name__}: {e}"
 
@@ -163,9 +194,30 @@ echo "###end"
 
     rc, out = rsh(ip, script, timeout=60)
     now = int(time.time())
-    if rc != 0 or "###end" not in out:
+
+    # "unreachable" means the machine did not answer. It does not mean the
+    # script answered and something in it exited non-zero.
+    #
+    # This conflated the two, and so twice in one afternoon it painted two
+    # perfectly healthy servers as unreachable -- once for a Python format
+    # error in the script it sends, once for carriage returns in it. Both
+    # times the machines were up, answering ssh in milliseconds, mining and
+    # serving. A panel that says a live server is unreachable is worse than
+    # one that says nothing: it sends a person to look for a fault that is
+    # not there, and the next time it says it, they will not believe it.
+    #
+    # The marker is the evidence. If ###end came back, the machine answered
+    # and ran the script to the end; whatever else went wrong belongs in the
+    # fields, not in a verdict about the host being gone.
+    if "###end" not in out:
         return {"name": name, "ip": ip, "reachable": False, "checked": now,
                 "why": (out or "no answer").strip()[:200]}
+    # It answered. Keep whatever fields came back, and note separately that
+    # part of the collection failed -- shown as a warning on the card, not as
+    # a dead host and not swallowed into a green one.
+    collect_warning = None
+    if rc != 0:
+        collect_warning = f"the collector script exited {rc} on this host"
 
     parts = {}
     key = None
@@ -221,6 +273,7 @@ echo "###end"
         "versionNotice": one("motd") == "yes",
         "failedUnits": [x.strip() for x in parts.get("failed", []) if x.strip()],
         "maintenance": one("maint"),
+        "collectWarning": collect_warning,
     }
 
 
