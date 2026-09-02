@@ -62,9 +62,22 @@ run() {
     # failure of its own making on top of whatever the check actually said.
     local log="$LOGDIR/$(printf '%s' "$name" | tr -c 'A-Za-z0-9-' '_').log"
     printf '  %-34s ' "$name"
-    if "$@" >"$log" 2>&1; then
+    "$@" >"$log" 2>&1
+    local rc=$?
+    if [ $rc -eq 0 ]; then
         printf '%sok%s\n' "$GRN" "$OFF"
         PASSED+=("$name")
+    elif [ $rc -eq 2 ]; then
+        # Exit 2 is this project's convention for "the check could not run" --
+        # a host that did not answer, an ssh that timed out. It is not a pass
+        # and it is not a finding, and it must be neither: reported as a
+        # failure it says something was measured and found wrong, which is how
+        # "everyone can follow mainnet: FAILING" came to mean an ssh call took
+        # longer than a minute.
+        printf '%scould not check%s\n' "$YLW" "$OFF"
+        SKIPPED+=("$name -- the check could not run")
+        sed 's/\x1b\[[0-9;]*m//g' "$log" | grep -iE '^ *(!!|could not)' | head -2 \
+            | sed 's/^/       /'
     else
         printf '%sFAIL%s\n' "$RED" "$OFF"
         FAILED+=("$name")

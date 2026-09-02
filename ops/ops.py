@@ -336,7 +336,13 @@ def run_check(name, argv, timeout=240):
     lines = [l.rstrip() for l in clean.splitlines() if l.strip()]
     return {
         "name": name,
-        "status": "ok" if rc == 0 else "bad",
+        # Exit 2 is this project's convention for "the check could not run" --
+        # a host that did not answer, an ssh that timed out. It is not a
+        # finding, and showing it as one is how "everyone can follow mainnet:
+        # FAILING" came to mean that an ssh call took longer than a minute.
+        # A check that says somebody will be rejected at launch, when it never
+        # managed to look, is worse than no check.
+        "status": "ok" if rc == 0 else ("unknown" if rc == 2 else "bad"),
         "exit": rc,
         "ran": started,
         "detail": "\n".join(lines[-14:]),

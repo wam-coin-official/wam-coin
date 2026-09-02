@@ -70,6 +70,18 @@ function loadConfig(file) {
     // wondering why the setting does nothing.
     cfg.pollSeconds       = cfg.pollSeconds       ?? 60;
     cfg.heartbeatHours    = cfg.heartbeatHours    ?? 24;
+
+    // The UTC hour the daily post goes out. Fixed, not an interval, because an
+    // interval drifts: every restart pushes the post later by however long the
+    // bot was down and it never comes back. By 2 September 2026 it had drifted
+    // to 04:53 UTC -- before dawn in Libya -- so the channel read as silent to
+    // the founder and to everyone else in it for a whole day while the bot was
+    // working perfectly.
+    //
+    // 12:00 UTC is early afternoon in Libya, evening in Singapore, morning in
+    // the Americas: awake in most of the places anyone reading this is.
+    cfg.heartbeatHourUtc  = cfg.heartbeatHourUtc  ?? 12;
+
     cfg.stallMinutes      = cfg.stallMinutes      ?? 60;
     cfg.githubRepo        = cfg.githubRepo        ?? null;
     cfg.stateFile         = cfg.stateFile         ?? path.join(path.dirname(file), 'announce-state.json');

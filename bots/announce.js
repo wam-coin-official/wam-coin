@@ -437,11 +437,40 @@ async function tick(cfg, rpc, state, log) {
     }
 
     // ---- heartbeat ---------------------------------------------------------
-    const sinceBeat = now - (state.lastHeartbeatAt || 0);
-    if (sinceBeat >= cfg.heartbeatHours * 3600 * 1000) {
+    //
+    // At a fixed hour, not "heartbeatHours since the last one".
+    //
+    // The interval version drifts. Every restart of this bot -- a reboot, a
+    // deploy, a crash -- pushes the daily post later by however long it was
+    // down, and it never comes back. By 2 September the post was landing at
+    // 04:53 UTC, which is before dawn where the founder is, so the channel
+    // looked silent to him for a whole day while the bot was working
+    // perfectly. He watches this channel to see that the test network is
+    // alive, and other people in it do the same. A daily post nobody is awake
+    // for does not do that job.
+    //
+    // A fixed hour also makes silence mean something. If the post is due at a
+    // known time and does not arrive, that is a fact anyone in the channel can
+    // notice, without knowing anything about the machine.
+    const beatHour = cfg.heartbeatHourUtc ?? 12;
+    const last = state.lastHeartbeatAt || 0;
+    const d = new Date(now);
+    const dueToday = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(),
+                              beatHour, 0, 0);
+    // Due if today's slot has passed and nothing has been sent since it. The
+    // "since it" is what stops a restart at 12:05 from posting a second time.
+    if (now >= dueToday && last < dueToday) {
+        out.push(heartbeat(s, cfg));
+        state.lastHeartbeatAt = now;
+    } else if (last && now - last >= 36 * 3600 * 1000) {
+        // A machine that was off across its slot would otherwise wait for
+        // tomorrow. Thirty-six hours of silence in a public channel is long
+        // enough to look like a dead project, so it speaks late rather than
+        // not at all.
         out.push(heartbeat(s, cfg));
         state.lastHeartbeatAt = now;
     }
+    state.nextHeartbeatDueAt = (now >= dueToday ? dueToday + 86400000 : dueToday);
 
     return { messages: out, snapshot: s };
 }

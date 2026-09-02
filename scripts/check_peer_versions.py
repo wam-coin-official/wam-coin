@@ -37,9 +37,9 @@
 
 import argparse
 import json
+import os
 import pathlib
 import re
-import subprocess
 import sys
 from collections import Counter
 
@@ -55,11 +55,16 @@ def bad(m):  print(f"  {RED}FAIL{OFF}  {m}"); _fails.append(m)
 def warn(m): print(f"  {YEL}!!{OFF}    {m}")
 
 
-def rsh(host, cmd, timeout=60):
-    p = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=15",
-                        f"root@{host}", cmd],
-                       capture_output=True, text=True, timeout=timeout)
-    return p.returncode, p.stdout
+# Asking a server a question lives in one module now. This file had its own
+# copy, which let subprocess.TimeoutExpired escape: on 2 September 2026 a
+# single getpeerinfo took longer than sixty seconds -- thirteen ssh
+# connections open at once against a MaxStartups of ten, on a machine whose
+# CPU was 80% consumed by the miner -- and the script died with a traceback
+# and exit 1. The ops panel printed that as "everyone can follow mainnet:
+# FAILING", which says somebody on the network will be rejected at launch.
+# Nothing of the kind had been measured. A crash is not a verdict.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from wamssh import run as rsh, UNREACHABLE   # noqa: E402
 
 
 def ver_tuple(s):
@@ -89,6 +94,16 @@ def main():
     print(f"\n{BLD}who is on this network, and on what{OFF}")
 
     rc, out = rsh(args.node, f"wam-cli {flag} getpeerinfo")
+    if rc == UNREACHABLE:
+        # Exit 2, not 1. The ops panel and the sweep both read 1 as "this
+        # check found something", and what it printed was "everyone can follow
+        # mainnet: FAILING" -- which says somebody on the network will be
+        # rejected on launch day. Nothing of the kind had been measured; the
+        # question was never put. 2 says the check did not run.
+        warn(f"could not reach {args.node} to read the peer list ({out}). "
+             f"This says nothing about who is on the network.")
+        print()
+        return 2
     if rc != 0 or not out.strip():
         bad(f"could not read the peer list from {args.node}")
         print()
