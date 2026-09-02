@@ -168,6 +168,13 @@ else
     else
         run "nodes agree with each other" bash scripts/check_nodes_agree.sh $NODES
 
+        # A node that cannot say who connected is not unhealthy -- it answers
+        # every other question correctly. It simply stops being able to tell
+        # an operator from a port scanner, and the founder asks that more
+        # often than he asks anything else. It was lost on 2 September by a
+        # libevent upgrade restarting the daemon, and nothing noticed.
+        run "nodes can still say who connected" bash scripts/check_node_logging.sh $NODES
+
         # The node binaries are only part of what this repository deploys. The
         # pool, the bot and the dashboard drift the same way and are noticed
         # far later, because the wrong version of working software produces no
