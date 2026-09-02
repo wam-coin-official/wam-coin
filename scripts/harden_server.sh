@@ -372,3 +372,26 @@ echo
 echo "   * keep the pool wallet small. This machine is on the internet;"
 echo "     treat whatever it holds as spendable by whoever takes it."
 echo "=================================================================="
+
+# ---------------------------------------------------------------------------
+# git over HTTP/1.1, not HTTP/2.
+#
+# Measured on both seed servers, 2026-09-02. git 2.43.0 with libcurl 8.5.0 and
+# nghttp2 1.59.0 -- what Ubuntu 24.04 ships -- fails against GitHub over
+# HTTP/2 about one time in three, and six times in eight in a bad spell:
+#
+#   fatal: expected flush after ref listing
+#   fatal: the remote end hung up unexpectedly
+#
+# The founder's laptop has a newer git and never failed once, which is exactly
+# why this went unnoticed: every push succeeded, and the servers quietly
+# stayed behind. The ops panel showed "deployed code is origin/main" going red
+# a few minutes after every green, over and over, and it was telling the
+# truth each time.
+#
+# HTTP/1.1 rather than protocol.version=0. Both make it work; the broken layer
+# is the transport, and pinning git's protocol to its oldest version would go
+# on hiding that for years after the transport is fixed.
+# ---------------------------------------------------------------------------
+step "git fetches over HTTP/1.1 (HTTP/2 is broken in this git+curl pair)"
+git config --system http.version HTTP/1.1
