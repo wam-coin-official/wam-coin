@@ -55,12 +55,24 @@ else
 fi
 
 TAG="${1:-}"
-API="https://api.github.com/repos/$REPO/releases"
-[ -n "$TAG" ] && API="$API/tags/$TAG" || API="$API/latest"
+if [ -n "$TAG" ]; then
+    json="$(curl -sS --max-time 25 "https://api.github.com/repos/$REPO/releases/tags/$TAG" 2>/dev/null)"
+else
+    # NOT /releases/latest. That endpoint silently skips anything marked as a
+    # pre-release or a draft, and v0.1.6 is exactly that -- so this check
+    # reported "no release published" about a release that was published, with
+    # an unsigned SHA256SUMS sitting on it. An endpoint that hides the thing
+    # you are checking for is worse than one that errors.
+    json="$(curl -sS --max-time 25 "https://api.github.com/repos/$REPO/releases?per_page=1" 2>/dev/null \
+            | sed -n '/^\[/,$p' | sed '1s/^\[//' | sed '$s/\]$//')"
+fi
 
-json="$(curl -sS --max-time 25 "$API" 2>/dev/null)"
 if [ -z "$json" ] || printf '%s' "$json" | grep -q '"message": *"Not Found"'; then
     warn "GitHub did not return a release (rate limit, or none published yet)"
+    echo; exit 2
+fi
+if printf '%s' "$json" | grep -q '"message": *"API rate limit'; then
+    warn "GitHub rate limit reached from this address -- try again in an hour"
     echo; exit 2
 fi
 
