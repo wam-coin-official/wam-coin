@@ -463,11 +463,50 @@ step "5. checksums"
 ( cd "$OUT" && sha256sum "$TARBALL_NODE" "$TARBALL_MINER" > SHA256SUMS )
 cat "$OUT/SHA256SUMS" | sed 's/^/  /'
 
+# ---------------------------------------------------------------------------
+step "6. signature"
+
+# The fingerprint published in SECURITY.md, and nowhere else.
+SIGNING_KEY="4BD4A8D3AFD43F5CBCB500E23798462FE00ADBA4"
+
+# Until 3 September 2026 this script ended by printing "sign it" as advice.
+# Advice at the end of a script is a step that gets skipped on the night it
+# matters, and an unsigned release is one a stranger cannot tell from a
+# substituted one. It signs, or it says loudly that it did not.
+if ! command -v gpg >/dev/null 2>&1; then
+    echo "  ${YLW:-}gpg is not installed -- THIS RELEASE IS UNSIGNED${OFF:-}"
+elif ! gpg --list-secret-keys "$SIGNING_KEY" >/dev/null 2>&1; then
+    echo "  the signing key $SIGNING_KEY is not on this machine."
+    echo "  THIS RELEASE IS UNSIGNED. Do not publish it."
+else
+    ( cd "$OUT" && gpg --batch --yes --local-user "$SIGNING_KEY" \
+        --detach-sign --armor --output SHA256SUMS.asc SHA256SUMS )
+    if [ -s "$OUT/SHA256SUMS.asc" ]; then
+        echo "  SHA256SUMS.asc written"
+        # Verified here, not assumed. A signature that does not verify is
+        # worse than none: it is published, it looks like protection, and it
+        # fails in the hands of the first person who checks it.
+        if gpg --verify "$OUT/SHA256SUMS.asc" "$OUT/SHA256SUMS" 2>&1 \
+             | grep -q "Good signature"; then
+            echo "  and it verifies against the published key"
+        else
+            fail "the signature was written but does not verify"
+        fi
+    else
+        fail "signing produced nothing -- do not publish this release"
+    fi
+fi
+
 echo
 echo "=================================================================="
 echo " Release staged in $OUT"
 echo
-echo " Publish the two tarballs and SHA256SUMS together. A checksum file"
-echo " hosted beside the file it describes proves only that both came from"
-echo " the same place; sign it, or post the hashes somewhere else as well."
+echo " Publish all four together:"
+echo "   $TARBALL_NODE"
+echo "   $TARBALL_MINER"
+echo "   SHA256SUMS"
+echo "   SHA256SUMS.asc     <- without this the other three prove nothing"
+echo
+echo " Anyone can then check the download with one command:"
+echo "   bash scripts/verify_release.sh <the directory they downloaded into>"
 echo "=================================================================="

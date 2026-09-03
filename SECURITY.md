@@ -58,31 +58,79 @@ should go to [Bitcoin Core's security process](https://bitcoincore.org/en/contac
 first — they maintain it, and every fork including this one benefits from
 disclosure to them. Send it here too if you believe WAM's changes make it worse.
 
-## PGP
+## The signing key
 
-Not yet. Mail is accepted in plain text today; if you need encryption before
-sending, say so in a first message with no details and a key will be published
-and pointed to from this file.
-
-### The signing key
-
-When that key exists, its fingerprint goes here — on this line, in this file,
-in this repository, and in no other place:
+Its fingerprint goes here — on this line, in this file, in this repository,
+and in no other place:
 
 ```
-(no key has been published yet)
+4BD4 A8D3 AFD4 3F5C BCB5  00E2 3798 462F E00A DBA4
 ```
 
-That matters beyond encrypted mail. [CHANNELS.txt](CHANNELS.txt) lists the
-project's official channels, and a list of accounts that vouch for each
-other is only as strong as the weakest of them: take one, repoint it at three
-impostors, and the mutual linking now argues *for* the attacker. A detached
-signature over CHANNELS.txt removes that. The reader stops needing to trust
-any account and only needs one fingerprint, checked here.
+```
+WAM Coin (release signing) <wam.coin.official@proton.me>
+RSA 4096 · created 2026-09-03 · expires 2031-09-02
+```
 
-Until the ceremony is held there is no signature, and this file says so rather
-than implying a protection that does not exist. Anyone quoting a WAM
-fingerprint from anywhere other than this file is quoting an invention.
+The public key is [SIGNING-KEY.asc](SIGNING-KEY.asc) in this repository.
+
+**Anyone quoting a WAM fingerprint from anywhere other than this file is
+quoting an invention.** Not from an email, not from a chat message, not from a
+forum post, and not from a copy of this repository hosted somewhere else.
+Check it here, on GitHub, over HTTPS.
+
+### What it signs, and what that is worth
+
+Every release carries `SHA256SUMS` and `SHA256SUMS.asc`. The first lists the
+hash of each file; the second is a signature over that list.
+
+A checksum file on its own protects against a corrupted download and nothing
+else: whoever can replace the binary can replace the list beside it, and both
+will agree. The signature is what a stranger cannot forge without this key.
+
+To check a download:
+
+```
+gpg --import SIGNING-KEY.asc
+gpg --verify SHA256SUMS.asc SHA256SUMS
+sha256sum --ignore-missing -c SHA256SUMS
+```
+
+or run [scripts/verify_release.sh](scripts/verify_release.sh), which does the
+three and refuses to say "ok" unless all three pass.
+
+`gpg --verify` printing `Good signature` with a `WARNING: This key is not
+certified with a trusted signature` is the normal and expected result. It
+means the signature is genuine and that you have not personally vouched for
+the key — which nobody should, on first contact. The fingerprint above is what
+you check instead.
+
+### The key is not on any server this project runs
+
+It was generated on the founder's own machine and exists in two places: that
+machine, and an offline backup. No node, no seed, no pool and no build server
+has ever held it. A server that is compromised cannot be used to sign a
+release, which is the entire point of keeping it off them.
+
+A revocation certificate was created in the same session and is stored apart
+from the key. If this fingerprint ever changes, or a revocation is published,
+treat every release signed after that moment as untrusted until this file
+says otherwise.
+
+### CHANNELS.txt
+
+[CHANNELS.txt](CHANNELS.txt) lists the project's official channels, and a list
+of accounts that vouch for each other is only as strong as the weakest of
+them: take one, repoint it at three impostors, and the mutual linking now
+argues *for* the attacker. A detached signature over CHANNELS.txt removes
+that. The reader stops needing to trust any account and only needs the one
+fingerprint above.
+
+## PGP mail
+
+Mail is accepted in plain text. The key above is for signing releases; if you
+need to encrypt a report before sending it, say so in a first message with no
+details.
 
 ---
 
