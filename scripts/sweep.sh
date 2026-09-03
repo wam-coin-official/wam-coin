@@ -163,6 +163,12 @@ fi
 
 if command -v curl >/dev/null 2>&1; then
     run "published download is this network" bash scripts/check_release_matches.sh
+
+    # Everything else here proves the release is the right software. This
+    # proves a stranger can tell that it is ours -- which until 3 September
+    # 2026 nobody could, because SHA256SUMS was published unsigned and whoever
+    # can replace a binary can replace the list of hashes beside it.
+    run "the published release is signed"  bash scripts/check_release_signed.sh
 else
     skip "published download is this network" "curl is not installed"
 fi
