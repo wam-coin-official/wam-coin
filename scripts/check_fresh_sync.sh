@@ -92,7 +92,34 @@ CLI="$(dirname "$BINARY")/wam-cli"
 echo "=================================================================="
 echo " Can a node with nothing reach this chain?"
 echo "=================================================================="
-printf '\n  binary  %s\n  peer    %s\n  network %s\n\n' "$BINARY" "$PEER" "$NETWORK"
+
+# WHICH PROGRAM IS BEING TESTED, AND WHY IT MATTERS TWICE
+#
+# The question is whether a stranger who downloads the published release can
+# join. Answering it with a binary built here months ago answers a different
+# question, and the difference is invisible in the result.
+#
+# It is also not private. This starts a real node that dials the seed and
+# introduces itself by version, so every run of the sweep put its version on
+# the public network panel. The build in this checkout was made on 23 August
+# and calls itself v0.1.5; the servers run v0.1.6. So the sweep spent the
+# afternoon announcing "/WAM:0.1.5/ is on this network" -- and the founder
+# spent it asking who that stranger was. It was this check.
+BINVER="$("$BINARY" -version 2>/dev/null | head -1 | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+')"
+RELVER="$(grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' "$HERE/doc/release-notes.md" 2>/dev/null | head -1)"
+[ -z "$RELVER" ] && RELVER="$(git -C "$HERE" tag --list 'v*' --sort=-v:refname 2>/dev/null | head -1)"
+
+printf '\n  binary  %s\n  version %s\n  peer    %s\n  network %s\n' \
+    "$BINARY" "${BINVER:-unknown}" "$PEER" "$NETWORK"
+if [ -n "$BINVER" ] && [ -n "$RELVER" ] && [ "$BINVER" != "$RELVER" ]; then
+    printf '\n  %s!!%s    this binary is %s; the published release is %s.\n' \
+        "$YLW" "$OFF" "$BINVER" "$RELVER"
+    printf '        It answers "can THIS build join", not "can a stranger who\n'
+    printf '        downloaded %s join" -- and while it runs it announces\n' "$RELVER"
+    printf '        %s to the network, where it reads as an outsider on an\n' "$BINVER"
+    printf '        old version. Rebuild, or pass --binary.\n'
+fi
+echo
 
 DD="$(mktemp -d)"
 # A port nobody is using, so this never collides with a node already running
