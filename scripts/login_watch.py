@@ -270,6 +270,11 @@ def collect_parked(state):
             line = line.strip()
             if not line:
                 continue
+            # The parking host stamps each line with the time it was written,
+            # so it can drop its own stale ones. Strip it before hashing and
+            # before sending: the reader does not need an epoch, and hashing
+            # it would make the same alarm look new every time it is parked.
+            line = re.sub(r"^\[\d+\]\s*", "", line)
             h = hashlib.sha256(line.encode()).hexdigest()[:16]
             if h in forwarded:
                 continue

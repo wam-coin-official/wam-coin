@@ -28,6 +28,7 @@
 
 import json
 import os
+import re
 import time
 import urllib.parse
 import urllib.request
@@ -41,17 +42,42 @@ MAINT = "/var/lib/wam-login-watch/maintenance.json"
 KEEP = 200
 
 
+# A parked line older than this is dropped, forwarded or not.
+#
+# The forwarding host dedupes by hash and cannot write an acknowledgement back
+# through a read-only key, so a parked line is never removed when it is sent.
+# By 4 September Singapore held twenty-one lines, all forwarded, all from the
+# day's own testing -- and the ONLY thing preventing them being sent again was
+# a state file on France. Lose that file, or rebuild that machine, and
+# yesterday's alarms arrive as today's.
+#
+# An alarm nobody forwarded within a day is not going to be forwarded, and one
+# that was forwarded has already done its work. Either way it should go.
+STALE_HOURS = 24
+
+
 def park(text):
     """No way to send from here. Leave it where the other machine looks."""
+    stamp = int(time.time())
     try:
         os.makedirs(os.path.dirname(PENDING), exist_ok=True)
+        # Each line carries the time it was parked, as a leading field the
+        # forwarder strips. Without it there is no way to tell a line written
+        # an hour ago from one written last week.
         with open(PENDING, "a") as f:
-            f.write(text.replace("\n", " ") + "\n")
-        with open(PENDING) as f:
-            lines = f.readlines()
-        if len(lines) > KEEP:
-            with open(PENDING, "w") as f:
-                f.writelines(lines[-KEEP:])
+            f.write(f"[{stamp}] " + text.replace("\n", " ") + "\n")
+
+        cutoff = stamp - STALE_HOURS * 3600
+        kept = []
+        for line in open(PENDING):
+            m = re.match(r"\[(\d+)\] ", line)
+            # A line with no timestamp is from before this change. Keep it
+            # once more rather than dropping something that may not have been
+            # forwarded, and it ages out on the next pass.
+            if not m or int(m.group(1)) >= cutoff:
+                kept.append(line)
+        with open(PENDING, "w") as f:
+            f.writelines(kept[-KEEP:])
     except OSError:
         pass
     print(text)
