@@ -100,6 +100,11 @@ printf '\n%sthe repository%s\n' "$BLD" "$OFF"
 
 run "repository self-agreement"  bash scripts/audit_repo.sh
 
+# Asked for, done, and then undone by a default that never stopped running.
+# The backlog stays until a change that rewrites history anyway; this only
+# guarantees the backlog does not grow.
+run "no assistant attribution"   python3 scripts/check_attribution.py
+
 # The listing entry repeats constants that live in src/wam. Hand-written
 # copies drift, and this one is read by software rather than by a person: a
 # wrong pubtype does not look wrong, it sends somebody's coins nowhere. The
