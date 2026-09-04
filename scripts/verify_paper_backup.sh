@@ -27,6 +27,12 @@
 # ===========================================================================
 
 set -uo pipefail
+
+# An interpreter that is actually Python: `python3` on Windows is a
+# Microsoft Store stub that runs nothing and exits 49.
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+. "$SCRIPTS_DIR/lib/python.sh"
+
 G=$'\033[32m'; R=$'\033[31m'; Y=$'\033[33m'; O=$'\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -70,7 +76,7 @@ fi
 
 echo
 echo "  ---------------------------------------------------------------"
-printf '%s\n' "$WIF" | python3 "$GEN" --network "$NETWORK" --verify-backup "$ADDR" 2>&1 \
+printf '%s\n' "$WIF" | "$PY" "$GEN" --network "$NETWORK" --verify-backup "$ADDR" 2>&1 \
     | grep -vE "reading from stdin" | sed 's/^/  /'
 echo "  ---------------------------------------------------------------"
 echo

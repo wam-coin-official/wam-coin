@@ -19,6 +19,12 @@
 # ===========================================================================
 
 set -uo pipefail
+
+# An interpreter that is actually Python: `python3` on Windows is a
+# Microsoft Store stub that runs nothing and exits 49.
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+. "$SCRIPTS_DIR/lib/python.sh"
+
 CLI=/opt/wam-current-bin/wam-cli
 
 echo "###h";  $CLI -testnet getblockcount 2>/dev/null
@@ -66,7 +72,7 @@ echo "###f"; systemctl list-units --state=failed --plain --no-legend --no-pager 
 # than let a person wonder later whether an alarm was us.
 echo "###maint"
 if [ -f /var/lib/wam-login-watch/maintenance.json ]; then
-    python3 - <<'PY' 2>/dev/null
+    "$PY" - <<'PY' 2>/dev/null
 import json, time
 try:
     m = json.load(open("/var/lib/wam-login-watch/maintenance.json"))

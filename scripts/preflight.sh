@@ -30,6 +30,11 @@
 
 set -uo pipefail
 
+# An interpreter that is actually Python: `python3` on Windows is a
+# Microsoft Store stub that runs nothing and exits 49.
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+. "$SCRIPTS_DIR/lib/python.sh"
+
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$HERE"
 
@@ -45,11 +50,20 @@ while [ $# -gt 0 ]; do
 done
 
 GRN=$'\033[32m'; RED=$'\033[31m'; YLW=$'\033[33m'; BLD=$'\033[1m'; OFF=$'\033[0m'
-PASS=0; FAIL=0; GATE=0
+PASS=0; FAIL=0; GATE=0; UNCHECKED=0
 
 ok()   { printf '  %sok%s     %s\n' "$GRN" "$OFF" "$*"; PASS=$((PASS+1)); }
 bad()  { printf '  %sFAIL%s   %s\n' "$RED" "$OFF" "$*"; FAIL=$((FAIL+1)); }
 gate() { printf '  %sgate%s   %s\n' "$YLW" "$OFF" "$*"; GATE=$((GATE+1)); }
+# A missing tool is not a finding about the thing the tool would have looked at.
+#
+# Two of these were reported as failures: a missing dig became "seeding could
+# not be checked at all" counted as red, and a release check that had exited 2
+# -- this project's word for "could not run" -- became "the published download
+# is NOT this network". The download was fine, the binaries were fine, and the
+# report said otherwise on both counts, every run, on the machine the founder
+# uses. Red lines that are always there are red lines nobody reads.
+unchecked() { printf '  %swarn%s   %s\n' "$YLW" "$OFF" "$*"; UNCHECKED=$((UNCHECKED+1)); }
 sect() { printf '\n%s%s%s\n' "$BLD" "$*" "$OFF"; }
 
 rsh() { timeout 40 ssh -o BatchMode=yes -o ConnectTimeout=12 "root@$HOST" "$@" 2>/dev/null; }
@@ -106,11 +120,11 @@ fi
 
 if [ -d build/wam-core/src ] || [ -d "$HOME/wam/build/wam-core/src" ]; then
     T="build/wam-core"; [ -d "$T/src" ] || T="$HOME/wam/build/wam-core"
-    if python3 scripts/rename_binaries.py --tree "$T" --check >/dev/null 2>&1; then
+    if "$PY" scripts/rename_binaries.py --tree "$T" --check >/dev/null 2>&1; then
         ok "the build tree builds wamd / wam-cli / wam-tx / wam-util / wam-wallet"
     else
         bad "the build tree still builds Bitcoin's binary names
-           run: python3 scripts/rename_binaries.py --tree $T"
+           run: "$PY" scripts/rename_binaries.py --tree $T"
     fi
 fi
 
@@ -163,8 +177,8 @@ bash scripts/check_dns_seeds.sh >/dev/null 2>&1
 case $? in
     0) ok "every DNS seed answers the prefixed query Core actually sends" ;;
     2) bad "check_dns_seeds.sh rejected its argument -- this call is wrong" ;;
-    3) bad "dig is missing, so seeding could not be checked at all:
-           sudo apt-get install -y dnsutils" ;;
+    3) unchecked "dig is missing, so seeding was NOT checked -- this is not a
+           pass:  sudo apt-get install -y dnsutils" ;;
     *) bad "a DNS seed does not answer x9.<name> -- new nodes find nobody,
            silently, with no error" ;;
 esac
@@ -189,12 +203,14 @@ fi
 # check_release_matches.sh asks the question that has consequences: it
 # downloads the published artifact and looks inside it for the constants this
 # source declares.
-if bash scripts/check_release_matches.sh >/dev/null 2>&1; then
-    ok "the published download carries this source's chains and addresses"
-else
-    bad "the published download is NOT this network -- run:
-           bash scripts/check_release_matches.sh --source"
-fi
+bash scripts/check_release_matches.sh >/dev/null 2>&1
+case $? in
+    0) ok "the published download carries this source's chains and addresses" ;;
+    2) unchecked "part of the published download was NOT examined -- run:
+           bash scripts/check_release_matches.sh" ;;
+    *) bad "the published download is NOT this network -- run:
+           bash scripts/check_release_matches.sh --source" ;;
+esac
 
 # A local tarball is a build artifact, so it is reported and never graded.
 if [ -d out/release ]; then
@@ -208,7 +224,7 @@ fi
 # ---------------------------------------------------------------------------
 sect "Money"
 
-python3 scripts/verify_supply.py >/dev/null 2>&1 \
+"$PY" scripts/verify_supply.py >/dev/null 2>&1 \
     && ok "the 22,000,000 cap is enforced by the arithmetic" \
     || bad "the supply audit fails"
 
@@ -304,7 +320,15 @@ fi
 
 echo
 echo "=================================================================="
-printf ' %s%d passed%s   %s%d failed%s   %s%d gated on the key ceremony%s\n' \
-    "$GRN" "$PASS" "$OFF" "$RED" "$FAIL" "$OFF" "$YLW" "$GATE" "$OFF"
+printf ' %s%d passed%s   %s%d failed%s   %s%d NOT checked%s   %s%d gated on the key ceremony%s\n' \
+    "$GRN" "$PASS" "$OFF" "$RED" "$FAIL" "$OFF" \
+    "$YLW" "$UNCHECKED" "$OFF" "$YLW" "$GATE" "$OFF"
+if [ "$UNCHECKED" -gt 0 ]; then
+    echo
+    echo ' The lines marked warn were not measured. They are not passes, and'
+    echo ' launch day is not the moment to discover what they would have said.'
+fi
 echo "=================================================================="
-[ "$FAIL" -eq 0 ]
+[ "$FAIL" -eq 0 ] || exit 1
+[ "$UNCHECKED" -eq 0 ] || exit 2
+exit 0

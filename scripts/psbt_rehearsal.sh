@@ -42,6 +42,18 @@
 
 set -uo pipefail
 
+# These patterns use grep -P. Where -P is unavailable it prints nothing
+# and succeeds, and an empty capture in a signing flow is a silent wrong
+# value rather than an error. Refuse instead.
+SCRIPTS_DIR="${SCRIPTS_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)}"
+. "$SCRIPTS_DIR/lib/pcre.sh"
+
+
+# An interpreter that is actually Python: `python3` on Windows is a
+# Microsoft Store stub that runs nothing and exits 49.
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+. "$SCRIPTS_DIR/lib/python.sh"
+
 CORE="${CORE:-$HOME/wam/build/wam-core}"
 ONLINE_DIR="${ONLINE_DIR:-$HOME/wam-regtest}"
 OFFLINE_DIR="${OFFLINE_DIR:-$HOME/wam-offline}"
@@ -156,7 +168,7 @@ DEST=$("${ONLINE[@]}" -rpcwallet=spender getnewaddress)
 note "destination: $DEST"
 
 SPEND=399999
-FEE_LEFT=$(python3 -c "print(f'{400000 - $SPEND - 0.01:.8f}')")
+FEE_LEFT=$("$PY" -c "import sys; sys.stdout.reconfigure(newline='\n'); print(f'{400000 - $SPEND - 0.01:.8f}')")
 
 RAW=$("${ONLINE[@]}" createpsbt \
       "[{\"txid\":\"$GEN_TXID\",\"vout\":0}]" \

@@ -40,6 +40,11 @@
 
 set -uo pipefail
 
+# An interpreter that is actually Python: `python3` on Windows is a
+# Microsoft Store stub that runs nothing and exits 49.
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+. "$SCRIPTS_DIR/lib/python.sh"
+
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$HERE"
 CHAINPARAMS="src/wam/chainparams.cpp"
@@ -54,6 +59,11 @@ esac
 
 GRN=$'\033[32m'; RED=$'\033[31m'; YLW=$'\033[33m'; BLD=$'\033[1m'; OFF=$'\033[0m'
 FAIL=0
+# Set when something could not be measured at all. It is deliberately separate
+# from FAIL: "I could not look" and "I looked and it is wrong" are different
+# answers, and a summary that shows them the same way teaches people to ignore
+# both. Exit 2 is this project's word for the first one.
+COULD_NOT_CHECK=0
 ok()   { printf '  %sok%s     %s\n' "$GRN" "$OFF" "$*"; }
 bad()  { printf '  %sFAIL%s   %s\n' "$RED" "$OFF" "$*"; FAIL=$((FAIL + 1)); }
 warn() { printf '  %swarn%s   %s\n' "$YLW" "$OFF" "$*"; }
@@ -95,7 +105,8 @@ if [ -z "$API" ]; then
     exit 1
 fi
 
-read -r TAG URL < <(printf '%s' "$API" | python3 -c "
+read -r TAG URL < <(printf '%s' "$API" | "$PY" -c "
+import sys; sys.stdout.reconfigure(newline='\n')  # no \r on Windows
 import json, sys
 try:
     rs = json.load(sys.stdin)
@@ -169,8 +180,28 @@ done
 # machine that produced the release. The tarball is already unpacked here, so
 # the question costs nothing to ask.
 printf '\n%swill it run on the CPU someone has?%s\n' "$BLD" "$OFF"
-if bash "$HERE/scripts/check_isa_baseline.sh" "$(dirname "$BIN")"/* >"$TMP/isa.log" 2>&1; then
+bash "$HERE/scripts/check_isa_baseline.sh" "$(dirname "$BIN")"/* >"$TMP/isa.log" 2>&1
+ISA_RC=$?
+if [ "$ISA_RC" -eq 0 ]; then
     ok "no instruction above the x86-64 baseline"
+elif [ "$ISA_RC" -eq 2 ] || [ "$ISA_RC" -eq 3 ]; then
+    # 3 is check_isa_baseline.sh saying objdump is not installed; 2 is its
+    # usage error. Neither is a finding about the binaries.
+    #
+    # This branch did not exist, and every non-zero exit was reported as
+    # "the published binaries carry instructions many CPUs do not have" --
+    # a specific, alarming claim about something never examined. On Windows,
+    # where objdump is absent, it fired on every run. Asked on a machine that
+    # has objdump, the real answer is that all five binaries stay inside the
+    # baseline with zero AVX-512.
+    #
+    # This project already has a word for this: exit 2 means the check could
+    # not run, and sweep.sh prints it as "could not check" rather than as a
+    # failure. The distinction exists because a fault that cannot be measured
+    # and a fault that was measured look identical in a summary, and only one
+    # of them is a reason to stop.
+    warn "the CPU baseline was NOT checked: $(head -1 "$TMP/isa.log")"
+    COULD_NOT_CHECK=1
 else
     sed -n '/^  [a-z]/p' "$TMP/isa.log" | sed 's/^/         /'
     bad "the published binaries carry instructions many CPUs do not have"
@@ -194,13 +225,21 @@ fi
 
 echo
 echo "=================================================================="
-if [ "$FAIL" -eq 0 ]; then
-    printf ' %sthe published download is this network%s\n' "$GRN" "$OFF"
-else
+if [ "$FAIL" -ne 0 ]; then
     printf ' %sthe published download is NOT this network%s\n' "$RED" "$OFF"
     echo
     echo ' Anyone who downloads it gets a node that cannot join. Rebuild and'
     echo ' republish from current source before telling anyone to download it.'
+    echo "=================================================================="
+    exit 1
 fi
+if [ "$COULD_NOT_CHECK" -ne 0 ]; then
+    printf ' %severything asked matched -- but not everything could be asked%s\n' "$YLW" "$OFF"
+    echo
+    echo ' The lines marked warn above were not measured. They are not passes.'
+    echo "=================================================================="
+    exit 2
+fi
+printf ' %sthe published download is this network%s\n' "$GRN" "$OFF"
 echo "=================================================================="
-[ "$FAIL" -eq 0 ]
+exit 0

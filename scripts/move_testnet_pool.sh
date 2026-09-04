@@ -66,8 +66,14 @@ echo
 echo "  moving the config and restarting..."
 ssh -o BatchMode=yes "root@$H" '
   set -e
+
+# An interpreter that is actually Python: `python3` on Windows is a
+# Microsoft Store stub that runs nothing and exits 49.
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+. "$SCRIPTS_DIR/lib/python.sh"
+
   cp /opt/wam/pool/config.json /root/config.json.bak-$(date -u +%Y%m%dT%H%M%SZ)
-  python3 - <<PY
+  "$PY" - <<PY
 import json
 p = "/opt/wam/pool/config.json"
 c = json.load(open(p))
@@ -103,7 +109,7 @@ if [ "$ok" -eq 0 ]; then
     echo
     echo "  ${RED}rolling back -- a pool no miner can reach is worse than the collision${OFF}"
     ssh -o BatchMode=yes "root@$H" '
-      python3 - <<PY
+      "$PY" - <<PY
 import json
 p = "/opt/wam/pool/config.json"
 c = json.load(open(p))

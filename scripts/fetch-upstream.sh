@@ -24,6 +24,11 @@
 
 set -euo pipefail
 
+# An interpreter that is actually Python: `python3` on Windows is a
+# Microsoft Store stub that runs nothing and exits 49.
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+. "$SCRIPTS_DIR/lib/python.sh"
+
 # --- pinned upstream -------------------------------------------------------
 UPSTREAM_REPO="${UPSTREAM_REPO:-https://github.com/bitcoin/bitcoin.git}"
 UPSTREAM_TAG="${UPSTREAM_TAG:-v28.1}"
@@ -42,7 +47,7 @@ warn() { printf '\033[0;33m!!\033[0m  %s\n' "$*"; }
 die()  { printf '\033[0;31mERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 
 command -v git >/dev/null    || die "git is not installed"
-command -v python3 >/dev/null || die "python3 is not installed"
+command -v "$PY" >/dev/null || die ""$PY" is not installed"
 command -v cmake >/dev/null  || die "cmake is not installed (needed for RandomX)"
 
 mkdir -p "$BUILD_DIR"
@@ -138,7 +143,7 @@ if [ "$PATCHED" = "1" ]; then
     log "     tree is already patched; re-running (the patcher is idempotent)"
 fi
 
-python3 "$REPO_ROOT/scripts/patch_upstream.py" --tree "$CORE_DIR" --repo "$REPO_ROOT"
+"$PY" "$REPO_ROOT/scripts/patch_upstream.py" --tree "$CORE_DIR" --repo "$REPO_ROOT"
 
 # ---------------------------------------------------------------------------
 # Rename the binaries.
@@ -157,11 +162,11 @@ python3 "$REPO_ROOT/scripts/patch_upstream.py" --tree "$CORE_DIR" --repo "$REPO_
 # built for -- it renames identifiers across a file rather than replacing a
 # known string at a known anchor.
 log "     renaming binaries to wamd / wam-cli / wam-tx / wam-util / wam-wallet"
-python3 "$REPO_ROOT/scripts/rename_binaries.py" --tree "$CORE_DIR"
+"$PY" "$REPO_ROOT/scripts/rename_binaries.py" --tree "$CORE_DIR"
 
 # Verify rather than assume. --check re-reads the tree and fails if any
 # upstream name survived, so a partial rename cannot pass silently.
-python3 "$REPO_ROOT/scripts/rename_binaries.py" --tree "$CORE_DIR" --check
+"$PY" "$REPO_ROOT/scripts/rename_binaries.py" --tree "$CORE_DIR" --check
 
 cat > "$CORE_DIR/.wam-patched" <<EOF
 upstream_repo=$UPSTREAM_REPO
@@ -189,7 +194,7 @@ if grep -q "WNg2svm2qApxheBKndKGQ9sRwporvRgRpT" \
     warn "destroyed -- 750,000 WAM across 400,000 blocks."
     warn ""
     warn "  Before a mainnet binary is usable:"
-    warn "    1. python3 scripts/gen_founder_key.py --network mainnet   (OFFLINE,"
+    warn "    1. "$PY" scripts/gen_founder_key.py --network mainnet   (OFFLINE,"
     warn "       and a DIFFERENT key from the founder's)"
     warn "    2. paste it over WAM_TREASURY_ADDRESS_MAINNET in src/wam/chainparams.cpp"
     warn "    3. re-run this script"

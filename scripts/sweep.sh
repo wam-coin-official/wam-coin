@@ -35,6 +35,11 @@
 
 set -uo pipefail
 
+# An interpreter that is actually Python: `python3` on Windows is a
+# Microsoft Store stub that runs nothing and exits 49.
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+. "$SCRIPTS_DIR/lib/python.sh"
+
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$HERE"
 
@@ -103,21 +108,21 @@ run "repository self-agreement"  bash scripts/audit_repo.sh
 # Asked for, done, and then undone by a default that never stopped running.
 # The backlog stays until a change that rewrites history anyway; this only
 # guarantees the backlog does not grow.
-run "no assistant attribution"   python3 scripts/check_attribution.py
+run "no assistant attribution"   "$PY" scripts/check_attribution.py
 
 # The listing entry repeats constants that live in src/wam. Hand-written
 # copies drift, and this one is read by software rather than by a person: a
 # wrong pubtype does not look wrong, it sends somebody's coins nowhere. The
 # dangerous day is not the day it was written but the day a prefix changes
 # and nobody remembers that a file in integration/ repeats it.
-run "the listing entry matches source" python3 scripts/check_listing_entry.py
+run "the listing entry matches source" "$PY" scripts/check_listing_entry.py
 # Named for what it does, not for what it sounds like. It compares the three
 # MACHINE-READABLE copies of the vesting table -- header, genesis miner,
 # explorer constants. It reads no document. Called "vesting tables agree", it
 # was read as covering the whitepaper, and the whitepaper was wrong for days
 # underneath a green line.
-run "the 3 code copies of vesting agree"  python3 scripts/check_vesting_sync.py
-run "supply arithmetic"          python3 scripts/verify_supply.py
+run "the 3 code copies of vesting agree"  "$PY" scripts/check_vesting_sync.py
+run "supply arithmetic"          "$PY" scripts/verify_supply.py
 run "executable bits in index"   bash scripts/test/test_exec_bits.sh
 
 # Its neighbour above checks that a script is marked runnable. This checks
@@ -149,7 +154,7 @@ run "units report their own failure"  bash scripts/test/test_onfailure.sh
 # the sweep had just reported 28 passed. "vesting tables agree" compares three
 # machine-readable copies and reads no document a human reads -- and neither
 # did anything else here. This one reads what we publish.
-run "published claims match consensus"  python3 scripts/check_published_claims.py
+run "published claims match consensus"  "$PY" scripts/check_published_claims.py
 
 # The same failure, one layer out: not "is what we publish true" but "does
 # the list of who we are name everybody who is us". CHANNELS.txt says "There
@@ -157,12 +162,12 @@ run "published claims match consensus"  python3 scripts/check_published_claims.p
 # our own file. That happened to the explorer, the pool and the Electrum
 # server in August, was fixed by hand, and happened again to the BitcoinTalk
 # thread three weeks later -- because the fix was a person remembering.
-run "the channel list names all of us"  python3 scripts/check_channels.py
+run "the channel list names all of us"  "$PY" scripts/check_channels.py
 
 # And the same question about the text we post: SECURITY.md is a filename to
 # us and a hostname to Telegram, which linked the sentence about verifying
 # our fingerprint to a shop in Moldova. Found by the founder pressing it.
-run "no filename reads as a domain"  python3 scripts/check_post_text.py
+run "no filename reads as a domain"  "$PY" scripts/check_post_text.py
 
 # Asked before a chain is started, not after. A consensus value that changes
 # once blocks exist invalidates every block mined under the old one, and the
@@ -257,7 +262,7 @@ else
         # report of where this stands rather than a gap nothing mentions.
         set -- $NODES
         run "electrum servers answer and agree" \
-            python3 scripts/check_electrum.py --node "$1" --network testnet \
+            "$PY" scripts/check_electrum.py --node "$1" --network testnet \
             electrum.wamcoin.org electrum2.wamcoin.org
 
         # The pool had found 150 blocks, owed 16,176 WAM to two miners and had
@@ -270,7 +275,7 @@ else
         # So this asks the two questions nothing else did: does every stratum
         # port actually hand out a job, and have miners actually been paid.
         run "pool gives work and pays for it" \
-            python3 scripts/check_pool.py --node "$1" --network testnet
+            "$PY" scripts/check_pool.py --node "$1" --network testnet
 
         # The explorer is where a stranger goes to check us without building
         # anything. A node that is wrong is a bug; an explorer that is wrong
@@ -278,7 +283,7 @@ else
         # publishes is compared against wam-params.h using the same parser
         # verify_supply.py uses, so the page and consensus cannot drift.
         run "explorer publishes what consensus enforces" \
-            python3 scripts/check_explorer.py --node "$1" --network testnet
+            "$PY" scripts/check_explorer.py --node "$1" --network testnet
 
         # v0.1.5 changed the mainnet treasury address, which is consensus. A
         # node left on v0.1.4 will reject every valid block on 15 September
@@ -291,7 +296,7 @@ else
         # launch blocker held by other people, and the only lever is to keep
         # saying so.
         run "every independent node can follow mainnet" \
-            python3 scripts/check_peer_versions.py --node "$1" --network testnet
+            "$PY" scripts/check_peer_versions.py --node "$1" --network testnet
 
         # The nightly backup failed on both servers every night from 23 to 26
         # August and this sweep said 21 passed on each of those mornings,
@@ -303,7 +308,7 @@ else
         # every time, and the question that cannot be fooled is the age of the
         # newest file: a run can succeed and write nothing.
         run "there is something to restore from" \
-            python3 scripts/check_backups.py $NODES
+            "$PY" scripts/check_backups.py $NODES
 
         # Who tried to join, and why they did not stay.
         #
@@ -319,7 +324,7 @@ else
         # It needs net logging on, and says so plainly when it is off
         # rather than reading an empty journal as nobody having come.
         run "why visitors did not stay" \
-            python3 scripts/check_visitors.py --host "${NODES%% *}" --network testnet
+            "$PY" scripts/check_visitors.py --host "${NODES%% *}" --network testnet
 
         # Has a block that was confirmed stopped being confirmed?
         #
@@ -337,7 +342,7 @@ else
         # Proved on 2026-08-29 against a throwaway regtest chain rewritten
         # on purpose: seven blocks replaced, reported as seven.
         run "no confirmed block has been un-confirmed" \
-            python3 scripts/check_reorg.py --network testnet \
+            "$PY" scripts/check_reorg.py --network testnet \
                 --state-dir "${WAM_REORG_STATE:-$HOME/.wam-reorg}" $NODES
     fi
 fi
@@ -353,14 +358,14 @@ printf '\n%show the project looks to someone who has never heard of it%s\n' "$BL
 # anywhere as bare URLs. Five submissions had already gone to five venues
 # before anyone looked at the front page they pointed at.
 run "the project presents itself as a real one" \
-    python3 scripts/check_first_impression.py
+    "$PY" scripts/check_first_impression.py
 
 # START_HERE told beginners to download v0.1.3 for four releases after its
 # binaries were deliberately withdrawn -- so the first command on the page
 # written to make someone feel capable returned 404 instead. Found by the
 # founder reading his own documentation, which is not a mechanism.
 run "the documented version still exists" \
-    python3 scripts/check_docs_version.py
+    "$PY" scripts/check_docs_version.py
 
 # The bot is how a node operator learns that a release changes a consensus
 # rule. There is no other way: the protocol carries blocks, not notices. A
@@ -371,7 +376,7 @@ run "the documented version still exists" \
 # shape of gap as the backup: a check that works, and nothing calling it.
 if [ -n "$NODES" ]; then
     run "the announcer is alive and can be heard" \
-        python3 scripts/check_bots.py --host "${NODES%% *}" --network testnet
+        "$PY" scripts/check_bots.py --host "${NODES%% *}" --network testnet
 else
     skip "the announcer is alive and can be heard" "no --nodes given"
 fi
