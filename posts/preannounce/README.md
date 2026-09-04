@@ -67,6 +67,36 @@ Fixed by resolving the script's own directory to an absolute path before the
 in-repo case still exits 0, and the keyring was confirmed empty so no key
 was quietly borrowed from a previous run.
 
+## Which of these files is a record, and which is a draft
+
+`bitcointalk.txt` and `discord.txt` are **records**. Those posts are live and
+carry the text in these files, including "Eleven days out", which was true on
+the day and is dated by the post itself. Editing them here would make the
+repository disagree with what people can read.
+
+`telegram.txt` is a **draft** again: both messages were deleted before anyone
+saw them, so it is text that will be posted, not text that was. It has been
+brought up to date — and stripped of anything that ages.
+
+`x.txt` never carried a countdown.
+
+## Nothing in a post may age on its own
+
+The Telegram messages opened "mainnet in 11 days". That was true for exactly
+one day. The date says the same thing and stays true, so the countdown is
+gone.
+
+The same applies to every measured figure. The chain height moves every two
+minutes, and the drafts said 5,136 when the chain was at 5,227. A number in
+an announcement is a number somebody checks, and one that is quietly a day
+old is the easiest kind of wrong to catch us in. The header of `telegram.txt`
+carries the date its figures were measured and the two commands that
+re-measure them.
+
+This is the same failure as "four accounts that link to each other" in
+CHANNELS.txt, which was written when there were four and was wrong at five.
+Anything counted in prose goes stale; write what does not move.
+
 ## Never write a bare filename that ends in a TLD
 
 The posts said "check the fingerprint against SECURITY.md on GitHub".
