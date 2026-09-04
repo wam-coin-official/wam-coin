@@ -51,6 +51,13 @@ import urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from verify_supply import PARAMS_H, parse_params_header  # noqa: E402
 
+# Addressing a chain with wam-cli lives in one place. Each of these files
+# had its own copy, and every copy mapped mainnet to an EMPTY flag -- which
+# means the default datadir, which on both servers is the TESTNET node. Asked
+# to check mainnet, they all quietly checked testnet.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from wamcli import flags as _wamcli_flags   # noqa: E402
+
 RED = "\033[31m"; GRN = "\033[32m"; YEL = "\033[33m"; BLD = "\033[1m"; OFF = "\033[0m"
 _fails = []
 
@@ -120,7 +127,7 @@ def main():
     head("it sees the same chain as the node")
     ok(f"explorer: chain={chain.get('name')} height={chain.get('blocks')}")
     if args.node:
-        flag = {"mainnet": "", "testnet": "-testnet", "regtest": "-regtest"}[args.network]
+        flag = _wamcli_flags(args.network)
         p = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=15",
                             f"root@{args.node}", f"wam-cli {flag} getblockcount"],
                            capture_output=True, text=True, timeout=60)
@@ -184,8 +191,25 @@ def main():
             f"block goes nowhere. (address shown: {addr})")
     else:
         ok(f"{addr}")
+        # The treasury rule starts at height 1 (WAM_DEVFEE_START_HEIGHT), so on
+        # a chain that is still at genesis it has correctly not begun. Saying
+        # so as a finding was wrong twice over: the explorer was telling the
+        # truth, and this counted the warning towards the failure total, so a
+        # rehearsal against a height-0 mainnet node reported "1 check(s)
+        # failed" about a chain where every number was right.
+        #
+        # Above height 0 an inactive treasury is a real fault and stays one:
+        # it means 5% of every block is not reaching the address consensus
+        # says it must.
+        height = chain.get("blocks")
         if treasury.get("active") is False:
-            warn("the explorer reports the treasury rule as inactive")
+            if height == 0:
+                ok("the treasury rule has not started yet -- it begins at "
+                   "height 1, and this chain is at genesis")
+            else:
+                bad(f"the treasury rule reads as INACTIVE at height {height}, "
+                    f"and it must be active from height 1. Five per cent of "
+                    f"every block is not reaching {addr}.")
 
     # --- vesting ----------------------------------------------------------
     v = supply.get("vesting") or {}

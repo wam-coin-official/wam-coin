@@ -438,6 +438,48 @@ stop `wam-pool` before starting the mainnet one.
     python3 scripts/check_pool.py --node <host1> --network mainnet
     ```
 
+### Rehearsed against a real mainnet node, 2026-09-04
+
+A mainnet node was started deliberately on France, ElectrumX and the explorer
+were run against it, every check in this phase was run, and the whole thing was
+torn down — blocks, chainstate and indexes emptied, the pool wallet verified
+byte-identical afterwards by checksum, and the testnet untouched throughout.
+
+What it proved:
+
+- The mainnet node comes up correctly. `chain=main`, height 0, genesis
+  `d8d3debea987b62a…` matching the hash asserted in `chainparams.cpp`,
+  circulating 2,000,000 — the premine present in the UTXO set — and 9555
+  listening.
+- ElectrumX serves the **published** ports 50001/50002/50004 and answers.
+- The explorer reads a mainnet node with no configuration beyond
+  `WAM_CONF=/root/.wam-mainnet/wam.conf`, and publishes the treasury address,
+  the 400,000 end height, the 120-second spacing and **2,000,000 WAM locked
+  across five tranches, 0 unlocked**.
+
+What it found, none of which reading would have shown:
+
+- **Six checks silently read the wrong chain.** `check_bots`, `check_electrum`,
+  `check_explorer`, `check_peer_versions`, `check_pool` and `check_visitors`
+  all mapped `mainnet` to an EMPTY `wam-cli` flag — which means the default
+  datadir, which on both servers is the **testnet** node. Asked about mainnet
+  they answered about testnet, confidently. Among them the check that says
+  "everyone can follow mainnet" and the one this runbook requires before a
+  single share is credited. Now `scripts/wamcli.py`, one place, and mainnet
+  carries `-chain=main -conf=… -datadir=…` as it always needed to.
+- **The gate printed an override that does nothing.** Its refusal told the
+  operator to run `WAM_ALLOW_PRELAUNCH_START=1 systemctl start <unit>`;
+  systemd does not pass the caller's environment to a unit, so the gate never
+  saw it and refused anyway. It looked like a broken override on the one night
+  it would be needed. It now prints the direct `wamd` command, which works.
+- **The explorer ignores `PORT`.** Its port is a `--port` flag. Two instances
+  cannot run side by side without it, which is exactly what the night needs:
+  the mainnet one starting while the testnet one is still up.
+- **`check_explorer` called a height-0 chain a fault.** It reported the
+  treasury rule "inactive" — which is correct at genesis, since the rule
+  starts at height 1 — and counted it towards the failures. Above height 0 an
+  inactive treasury is still a real failure and now reads as one.
+
 18. **The explorer**, and confirm it publishes what consensus enforces:
 
     ```bash

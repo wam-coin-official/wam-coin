@@ -53,6 +53,7 @@
 #  Exit 0 only if all of it holds. Nothing checked is a failure, not a pass.
 # ===========================================================================
 
+import os
 import argparse
 import json
 import socket
@@ -61,6 +62,13 @@ import subprocess
 import sys
 import time
 import urllib.request
+
+# Addressing a chain with wam-cli lives in one place. Each of these files
+# had its own copy, and every copy mapped mainnet to an EMPTY flag -- which
+# means the default datadir, which on both servers is the TESTNET node. Asked
+# to check mainnet, they all quietly checked testnet.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from wamcli import flags as _wamcli_flags   # noqa: E402
 
 RED = "\033[31m"; GRN = "\033[32m"; YEL = "\033[33m"; BLD = "\033[1m"; OFF = "\033[0m"
 COIN = 100_000_000
@@ -81,7 +89,7 @@ def fetch(url, timeout=25):
 
 
 def node_height(host, network):
-    flag = {"mainnet": "", "testnet": "-testnet", "regtest": "-regtest"}[network]
+    flag = _wamcli_flags(network)
     p = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=15",
                         f"root@{host}", f"wam-cli {flag} getblockcount"],
                        capture_output=True, text=True, timeout=60)

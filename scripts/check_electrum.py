@@ -52,12 +52,20 @@
 #  the height tolerance. Nothing checked is a failure, not a pass.
 # ===========================================================================
 
+import os
 import argparse
 import json
 import socket
 import ssl
 import subprocess
 import sys
+
+# Addressing a chain with wam-cli lives in one place. Each of these files
+# had its own copy, and every copy mapped mainnet to an EMPTY flag -- which
+# means the default datadir, which on both servers is the TESTNET node. Asked
+# to check mainnet, they all quietly checked testnet.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from wamcli import flags as _wamcli_flags   # noqa: E402
 
 RED = "\033[31m"; GRN = "\033[32m"; YEL = "\033[33m"; OFF = "\033[0m"
 
@@ -149,7 +157,7 @@ def probe(ip, port, use_tls, sni, timeout=15):
 
 def node_state(host, network):
     """Height and genesis from the node itself, over ssh."""
-    flag = {"mainnet": "", "testnet": "-testnet", "regtest": "-regtest"}[network]
+    flag = _wamcli_flags(network)
     def run(cmd):
         p = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=15",
                             f"root@{host}", f"wam-cli {flag} {cmd}"],

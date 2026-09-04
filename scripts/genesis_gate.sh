@@ -156,9 +156,23 @@ cat >&2 <<EOF
   error about a block from the future -- most likely at a reboot nobody
   planned, on the night it mattered.
 
-  If this is a deliberate rehearsal:
+  If this is a deliberate rehearsal, run the daemon DIRECTLY:
 
-      WAM_ALLOW_PRELAUNCH_START=1 systemctl start <unit>
+      /opt/wam-current-bin/wamd -chain=main \\
+          -conf=${DATADIR:-/root/.wam-mainnet}/wam.conf \\
+          -datadir=${DATADIR:-/root/.wam-mainnet} -printtoconsole=1
+
+  NOT \`WAM_ALLOW_PRELAUNCH_START=1 systemctl start <unit>\`, which this
+  message used to print and which does nothing: systemd does not pass the
+  caller's environment to a unit, so this gate never sees the variable and
+  refuses exactly as it would have anyway. Tested on 2026-09-04 -- the unit
+  stayed inactive and looked like a broken override, when the override had
+  simply never been reached.
+
+  Afterwards, empty these three or the next start fails. The wallet is not
+  among them and survives:
+
+      rm -rf ${DATADIR:-<datadir>}/blocks ${DATADIR:-<datadir>}/chainstate ${DATADIR:-<datadir>}/indexes
 
 EOF
 exit 78

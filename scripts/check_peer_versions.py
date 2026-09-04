@@ -66,6 +66,13 @@ def warn(m): print(f"  {YEL}!!{OFF}    {m}")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from wamssh import run as rsh, UNREACHABLE   # noqa: E402
 
+# Addressing a chain with wam-cli lives in one place. Each of these files
+# had its own copy, and every copy mapped mainnet to an EMPTY flag -- which
+# means the default datadir, which on both servers is the TESTNET node. Asked
+# to check mainnet, they all quietly checked testnet.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from wamcli import flags as _wamcli_flags   # noqa: E402
+
 
 def ver_tuple(s):
     m = re.search(r"(\d+)\.(\d+)\.(\d+)", s or "")
@@ -88,7 +95,7 @@ def main():
                          "matters. 0 disables it.")
     args = ap.parse_args()
 
-    flag = {"mainnet": "", "testnet": "-testnet", "regtest": "-regtest"}[args.network]
+    flag = _wamcli_flags(args.network)
     ours = {a.strip() for a in args.ours.split(",") if a.strip()}
 
     print(f"\n{BLD}who is on this network, and on what{OFF}")
