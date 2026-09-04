@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Whitepaper — WAM Coin</title>
+<link rel="icon" href="/favicon.png" type="image/png">
+<meta name="description" content="Why WAM's money works the way it does: a 22,000,000 cap, RandomX proof of work, and a founder reserve locked in the genesis block itself.">
+<link rel="canonical" href="https://wamcoin.org/whitepaper/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="WAM Coin">
+<meta property="og:title" content="Whitepaper — WAM Coin">
+<meta property="og:description" content="The monetary design in full — emission, the treasury that ends, and a premine that consensus refuses to release early.">
+<meta property="og:image" content="https://wamcoin.org/og-card.png">
+<meta property="og:url" content="https://wamcoin.org/whitepaper/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@WAMCoinCore">
+<meta name="twitter:image" content="https://wamcoin.org/og-card.png">
+<style>
+:root{--bg:#faf9f7;--fg:#1a1a1a;--dim:#5c5a57;--rule:#e3e0db;--code:#f2f0ec;--accent:#8a6d1f}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0e1211;--fg:#eceae7;--dim:#9a9691;--rule:#242a29;--code:#171d1c;--accent:#c9a94a}}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);margin:0;padding:2.2rem 1.1rem 5rem;
+ font:16px/1.72 ui-serif,Georgia,"Times New Roman",serif;-webkit-text-size-adjust:100%}
+main{max-width:44rem;margin:0 auto}
+h1{font-size:1.85rem;line-height:1.25;margin:0 0 .4rem;letter-spacing:-.01em}
+h2{font-size:1.28rem;margin:2.6rem 0 .7rem;padding-top:1.1rem;border-top:1px solid var(--rule)}
+h3{font-size:1.06rem;margin:1.8rem 0 .5rem}
+p,li{margin:.75rem 0}
+a{color:inherit;text-decoration:underline;text-underline-offset:2px;text-decoration-color:var(--accent)}
+code{background:var(--code);padding:.12em .38em;border-radius:3px;
+ font:13.5px/1.5 ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;word-break:break-word}
+pre{background:var(--code);padding:.95rem 1.05rem;border-radius:6px;overflow-x:auto;
+ border:1px solid var(--rule)}
+pre code{background:none;padding:0;white-space:pre}
+blockquote{margin:1.1rem 0;padding:.1rem 0 .1rem 1rem;border-inline-start:3px solid var(--accent);color:var(--dim)}
+table{border-collapse:collapse;width:100%;margin:1.1rem 0;font-size:.94rem;display:block;overflow-x:auto}
+th,td{border-bottom:1px solid var(--rule);padding:.5rem .6rem;text-align:start}
+th{font-weight:600}
+hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
+/* The mark, on every page. A reader who meets WAM in a search result should
+   have seen the same coin four times before they read the name. */
+.mast{display:flex;align-items:center;gap:.7rem;margin-bottom:1.4rem}
+.mast img{width:44px;height:44px;flex:none;border-radius:50%}
+.mast .wordmark{font-weight:600;letter-spacing:-.01em;font-size:1.05rem}
+.mast .wordmark span{display:block;font-size:.8rem;font-weight:400;color:var(--dim);
+ letter-spacing:0}
+.top{display:flex;gap:1rem;flex-wrap:wrap;font-size:.9rem;color:var(--dim);
+ margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid var(--rule)}
+.foot{margin-top:3.5rem;padding-top:1.2rem;border-top:1px solid var(--rule);
+ font-size:.87rem;color:var(--dim)}
+[dir=rtl]{font-family:ui-serif,"Noto Naskh Arabic","Amiri",Georgia,serif}
+[dir=rtl] pre,[dir=rtl] code{direction:ltr;text-align:left}
+</style>
+</head>
+<body>
+<main>
+<a class="mast" href="/">
+  <img src="/wam-coin.png" alt="The WAM Coin mark" width="44" height="44">
+  <span class="wordmark">WAM Coin<span>A CPU-mineable proof-of-work currency</span></span>
+</a>
+<nav class="top">
+  <a href="/">wamcoin.org</a>
+  <a href="/start/">start</a>
+  <a href="/start-ar/">بالعربية</a>
+  <a href="/security/">security</a>
+  <a href="/build/">build</a>
+  <a href="/pool/">pool</a>
+  <a href="/rehearsals/">rehearsals</a>
+  <a href="https://github.com/wam-coin-official/wam-coin/blob/main/WHITEPAPER.md">source</a>
+</nav>
+<h1 id="wam-coin">WAM Coin</h1>
+<h3 id="a-cpu-mineable-proof-of-work-currency-with-a-hard-22-000-000-cap">A CPU-mineable proof-of-work currency with a hard 22,000,000 cap</h3>
+<p><strong>Version 1.0 — 2026</strong></p>
+<hr>
+<h2 id="abstract">Abstract</h2>
+<p>WAM Coin is a proof-of-work cryptocurrency built on the Bitcoin Core codebase with four deliberate departures: a hard supply ceiling of <strong>22,000,000 WAM</strong>, a <strong>two-minute</strong> block target, <strong>RandomX</strong> proof of work so that ordinary CPUs remain competitive, and <strong>DarkGravityWave v3</strong> difficulty retargeting on every block.</p>
+<p>The founder and operating allocations are stated up front, separately, with their totals:</p>
+<table><tr><th>Allocation</th><th>Amount</th><th>Share</th><th>Status</th></tr><tr><td><strong>Public mining</strong></td><td>19,250,000 WAM</td><td><strong>87.50%</strong></td><td>issued to miners over ~25 years</td></tr><tr><td>Founder reserve</td><td>2,000,000 WAM</td><td>9.09%</td><td>genesis block, <strong>locked 5 years, none liquid at launch</strong></td></tr><tr><td>Operating budget</td><td>750,000 WAM</td><td>3.41%</td><td>5% of subsidy, <strong>ends at block 400,000</strong></td></tr><tr><td><em>Founder + operating</em></td><td><em>2,750,000 WAM</em></td><td><em><strong>12.50%</strong></em></td><td>—</td></tr></table>
+<p>Both founder allocations are time-constrained by consensus, not by promise. The reserve is locked behind <code>OP_CHECKLOCKTIMEVERIFY</code> in the genesis block itself, releasing 20% per year across five tranches. The operating fee expires permanently at height 400,000 — roughly eighteen months after launch — after which miners receive <strong>100%</strong> of every block subsidy.</p>
+<p>Every number in this document is checkable. <code>scripts/verify_supply.py</code> reads the constants directly out of the consensus header and replays the entire emission schedule with exact integer arithmetic. If the arithmetic in this whitepaper and the arithmetic in the shipped binary ever disagree, that script fails.</p>
+<blockquote><h3 id="before-you-read-further">Before you read further</h3>
+<p><strong>This coin may be worth nothing.</strong> The overwhelming majority of new cryptocurrencies fail, and there is no reason to assume this one is different. <strong>Nobody will buy it back from you</strong> — the founder does not sell WAM and does not buy it. Treat anything you acquire as money you can afford to lose entirely. Section 9 says the rest.</p></blockquote>
+<hr>
+<h2 id="1-motivation">1. Motivation</h2>
+<p>Two failure modes dominate small proof-of-work launches.</p>
+<p><strong>The first is mining centralisation on day one.</strong> A chain that uses SHA-256 or Scrypt is mineable by hardware that already exists in warehouses. Within days of launch a handful of operators control the majority of the hash rate, and the "community mining phase" that the launch announcement promised never actually happens. WAM uses RandomX, which is optimised for the general-purpose CPU pipeline and is deliberately hostile to fixed-function silicon. A laptop is a legitimate mining device on WAM.</p>
+<p><strong>The second is a difficulty algorithm that cannot survive its own launch.</strong> Bitcoin retargets every 2,016 blocks. On a young chain with almost no hash rate, a rented gigahash farm can mine weeks of blocks in an hour, trigger an enormous difficulty increase, and then leave — freezing the chain at a difficulty nobody remaining can reach. Chains have died this way. WAM retargets on <em>every</em> block using DarkGravityWave v3, which absorbs a hundred-fold hash rate spike within roughly half an hour and recovers from its departure just as quickly.</p>
+<p>A third concern is honesty about the founder allocation. Many projects fund development through opaque mechanisms — an unannounced premine, a "foundation wallet" of unclear provenance, or a fee that can be silently turned off. WAM states both mechanisms up front, fixes them in consensus code, and makes both auditable from any node with a single RPC call.</p>
+<hr>
+<h2 id="2-monetary-policy">2. Monetary policy</h2>
+<h3 id="2-1-the-supply-identity">2.1 The supply identity</h3>
+<p>For a Bitcoin-style halving schedule, the total ever mined converges to:</p>
+<pre><code>total = halving_interval × initial_subsidy × 2</code></pre>
+<p>WAM chooses the parameters so that this closes on a round number:</p>
+<pre><code>200,000 blocks × 50 WAM × 2 = 20,000,000 WAM</code></pre>
+<p>Adding the genesis premine:</p>
+<table><tr><th>What the coinbase creates</th><th>Amount</th><th>Of which goes to</th><th></th></tr><tr><td>Genesis premine (block 0)</td><td>2,000,000 WAM</td><td>founder reserve, locked 5 years</td><td>2,000,000</td></tr><tr><td>Mined emission (blocks 1 →)</td><td>20,000,000 WAM</td><td><strong>miners</strong></td><td><strong>19,250,000</strong></td></tr><tr><td></td><td></td><td>operating treasury (blocks 1–400,000)</td><td>750,000</td></tr><tr><td><strong>Absolute maximum supply</strong></td><td><strong>22,000,000 WAM</strong></td><td></td><td></td></tr></table>
+<p>Two different questions have two different answers, and both are stated here so neither can be quoted out of context:</p>
+<ul><li><strong>What does the coinbase create?</strong> 2,000,000 premine + 20,000,000 mined = 22,000,000.</li><li><strong>Who ends up holding it?</strong> Miners 19,250,000 (<strong>87.50%</strong>), founder reserve 2,000,000 (9.09%), operating treasury 750,000 (3.41%).</li></ul>
+<p>The 20,000,000 figure is an <em>emission</em> number; the 19,250,000 figure is a <em>destination</em> number. The difference between them is the 750,000 WAM treasury fee, which stops entirely at block 400,000 (§3.2).</p>
+<p>This is why the halving interval is 200,000 blocks and not Bitcoin's 210,000. At 210,000 the emission would be 21,000,000 WAM, which together with the premine would be 23,000,000 — a million over the stated cap. The interval was chosen to fit the cap, rather than the cap being quietly adjusted to fit a borrowed constant.</p>
+<p>Because the subsidy halves by integer right-shift, the true terminal supply is <strong>21,999,999.978 WAM</strong> — about 0.022 WAM below the ceiling, lost to truncation. <code>MAX_MONEY</code> is therefore a strict upper bound that is approached but never reached, exactly as in Bitcoin.</p>
+<h3 id="2-2-parameters">2.2 Parameters</h3>
+<table><tr><th>Parameter</th><th>Value</th></tr><tr><td>Ticker</td><td>WAM</td></tr><tr><td>Base unit</td><td>1 WAM = 100,000,000 watoshi (8 decimals)</td></tr><tr><td>Maximum supply</td><td>22,000,000 WAM (hard-coded)</td></tr><tr><td>Genesis premine</td><td>2,000,000 WAM</td></tr><tr><td>Initial block subsidy</td><td>50 WAM</td></tr><tr><td>Halving interval</td><td>200,000 blocks (~9.1 months)</td></tr><tr><td>Block target</td><td>120 seconds</td></tr><tr><td>Blocks per day</td><td>720</td></tr><tr><td>Launch date</td><td>2026-09-15 00:00 UTC</td></tr><tr><td>Operating fee</td><td>5% of the block subsidy, heights 1–400,000 only</td></tr><tr><td>Founder reserve vesting</td><td>5 tranches, 20% per year, 2027-09-15 to 2031-09-15</td></tr><tr><td>Coinbase maturity</td><td>100 blocks (~3.3 hours)</td></tr><tr><td>Emission ends</td><td>height 6,600,000 (~25.1 years)</td></tr><tr><td>Proof of work</td><td>RandomX</td></tr><tr><td>Difficulty algorithm</td><td>DarkGravityWave v3, every block</td></tr><tr><td>Address prefix</td><td><code>W</code> (mainnet P2PKH)</td></tr></table>
+<h3 id="2-3-emission-schedule">2.3 Emission schedule</h3>
+<table><tr><th>Epoch</th><th>Heights</th><th>Subsidy</th><th>Epoch total</th><th>Cumulative supply</th></tr><tr><td>—</td><td>0 (genesis)</td><td>2,000,000</td><td>2,000,000</td><td>2,000,000</td></tr><tr><td>0</td><td>1 – 200,000</td><td>50</td><td>10,000,000</td><td>12,000,000</td></tr><tr><td>1</td><td>200,001 – 400,000</td><td>25</td><td>5,000,000</td><td>17,000,000</td></tr><tr><td>2</td><td>400,001 – 600,000</td><td>12.5</td><td>2,500,000</td><td>19,500,000</td></tr><tr><td>3</td><td>600,001 – 800,000</td><td>6.25</td><td>1,250,000</td><td>20,750,000</td></tr><tr><td>4</td><td>800,001 – 1,000,000</td><td>3.125</td><td>625,000</td><td>21,375,000</td></tr><tr><td>5</td><td>1,000,001 – 1,200,000</td><td>1.5625</td><td>312,500</td><td>21,687,500</td></tr><tr><td>6</td><td>1,200,001 – 1,400,000</td><td>0.78125</td><td>156,250</td><td>21,843,750</td></tr><tr><td>…</td><td>…</td><td>…</td><td>…</td><td>…</td></tr><tr><td>32</td><td>6,400,001 – 6,600,000</td><td>0.00000001</td><td>0.002</td><td>21,999,999.978</td></tr><tr><td>33+</td><td>6,600,001 →</td><td>0</td><td>0</td><td>21,999,999.978</td></tr></table>
+<p>Over half the entire supply (12,000,000 WAM) exists after the first epoch. This is a deliberate front-load: a chain needs its security budget early, when it is most vulnerable, not in year twenty.</p>
+<p>After height 6,600,000 the subsidy is exactly zero and miners are compensated entirely by transaction fees.</p>
+<p>Run <code>python3 scripts/verify_supply.py --schedule</code> to print this table from the actual consensus constants, or <code>wam-cli getemissionschedule</code> to get it from a running node.</p>
+<hr>
+<h2 id="3-the-operating-budget-5-fee">3. The operating budget (5% fee)</h2>
+<h3 id="3-1-mechanism">3.1 Mechanism</h3>
+<p>Five percent of every block subsidy is paid to a fixed treasury address through an output in the coinbase transaction. At epoch 0:</p>
+<pre><code>block subsidy      50.0 WAM
+  ├─ miner         47.5 WAM   + all transaction fees
+  └─ treasury       2.5 WAM</code></pre>
+<p><strong>The fee is carved out of the subsidy, not added to it.</strong> This distinction is the reason the 22,000,000 cap survives. A fee added on top would raise the real emission to 21,000,000 WAM of mining issuance and break the ceiling; carving it out leaves total emission exactly unchanged.</p>
+<p><strong>Transaction fees are never touched.</strong> They belong entirely to the miner. Sharing fee revenue with a treasury would distort the fee market, and there is no good reason to do it.</p>
+<h3 id="3-2-it-expires-consensus-rule-not-a-promise">3.2 It expires — consensus rule, not a promise</h3>
+<p>The fee applies to heights <strong>1 through 400,000</strong> and to no height after that. From block 400,001 the treasury receives nothing and miners keep 100% of the subsidy plus 100% of fees. The expiry is a constant in the consensus code (<code>WAM_DEVFEE_LAST_HEIGHT</code>), so extending it would require a hard fork that every node operator would have to install.</p>
+<table><tr><th>Period</th><th>Heights</th><th>Subsidy</th><th>To miner</th><th>To treasury</th><th>Treasury total</th></tr><tr><td>Epoch 0</td><td>1 – 200,000</td><td>50 WAM</td><td>47.5</td><td>2.5</td><td>500,000 WAM</td></tr><tr><td>Epoch 1</td><td>200,001 – 400,000</td><td>25 WAM</td><td>23.75</td><td>1.25</td><td>250,000 WAM</td></tr><tr><td><strong>Epoch 2 onward</strong></td><td><strong>400,001 →</strong></td><td>12.5 → 0</td><td><strong>100%</strong></td><td><strong>0</strong></td><td><strong>0</strong></td></tr><tr><td></td><td></td><td></td><td></td><td><strong>Lifetime</strong></td><td><strong>750,000 WAM</strong></td></tr></table>
+<p>At 120 seconds per block, the window is roughly <strong>18.3 months</strong>.</p>
+<p>Two things follow from the halving schedule that are worth stating plainly:</p>
+<ul><li>The fee is heavily front-loaded. Epoch 0 alone yields 500,000 of the 750,000 WAM — two thirds of the lifetime total arrives in the first nine months, which is when a new chain actually needs funding.</li><li>Extending the window would have yielded little. A third epoch would have added only 125,000 WAM while converting a bounded commitment into an open-ended one.</li></ul>
+<p><strong>Why a sunset at all.</strong> A permanent 5% is economically small but reads to a miner as a tax without end. The same money collected inside a fixed, published window reads as launch funding. The amounts barely differ; the incentive story does. WAM's RandomX audience is the Monero audience — a community with zero premine and zero dev fee — and that is precisely the audience for whom "forever" is the objectionable word.</p>
+<p><strong>What it funds.</strong> Exchange listings, an independent security audit, seed-node and explorer infrastructure, legal and entity costs, and development. Unlocked and flowing from block 1 at roughly <strong>1,800 WAM per day</strong>, which is why the founder reserve does not need to be liquid (§3.5).</p>
+<h3 id="3-3-enforcement">3.3 Enforcement</h3>
+<p>The fee is not a convention that mining software is asked to respect. It is consensus rule <strong>WAM-1</strong>, implemented in <code>src/wam/consensus/devfee.cpp</code> and checked when every block is connected:</p>
+<blockquote><p>For every block at height between 1 and 400,000 inclusive, the coinbase transaction MUST contain at least one output whose <code>scriptPubKey</code> is exactly the treasury script and whose value is at least 5% of the block subsidy. A block that fails this is rejected with <code>bad-cb-devfee-amount</code>. Outside that height range the rule imposes nothing.</p></blockquote>
+<p>A miner who omits or reduces the output produces a block that no node will accept. Paying <em>more</em> than the required amount is allowed, so that pools which merge outputs, and anyone who wishes to donate, are not penalised.</p>
+<p>Once the subsidy has decayed so far that 5% truncates to zero base units (epoch 26 onward), the rule stops requiring an output rather than demanding a zero-value one that would only bloat the UTXO set.</p>
+<p>Anyone can audit any block:</p>
+<pre><code>wam-cli getdevfeeinfo "&lt;blockhash&gt;"</code></pre>
+<p>which reports the required amount, the amount actually paid, and a <code>compliant</code> boolean.</p>
+<h3 id="3-4-the-treasury-address">3.4 The treasury address</h3>
+<p>The address is compiled into <code>chainparams.cpp</code> and cannot be changed without a hard fork that every node operator would have to consent to. It is generated offline by <code>scripts/gen_founder_key.py</code>, a dependency-free script whose entire trust surface is one auditable file, and the corresponding private key never appears in the repository, in a build log, or on a networked machine.</p>
+<hr>
+<h3 id="3-5-the-founder-reserve-and-why-it-is-locked">3.5 The founder reserve, and why it is locked</h3>
+<p>The 2,000,000 WAM minted in the genesis block is <strong>not paid to a single output.</strong> It is split into five equal tranches inside the genesis coinbase, <strong>every one of which</strong> is locked behind <code>OP_CHECKLOCKTIMEVERIFY</code> until an exact calendar date:</p>
+<table><tr><th>Tranche</th><th>Amount</th><th>Unlocks</th><th>Cumulative</th><th>% of reserve</th></tr><tr><td>1</td><td>400,000 WAM</td><td>2027-09-15</td><td>400,000</td><td>20%</td></tr><tr><td>2</td><td>400,000 WAM</td><td>2028-09-15</td><td>800,000</td><td>40%</td></tr><tr><td>3</td><td>400,000 WAM</td><td>2029-09-15</td><td>1,200,000</td><td>60%</td></tr><tr><td>4</td><td>400,000 WAM</td><td>2030-09-15</td><td>1,600,000</td><td>80%</td></tr><tr><td>5</td><td>400,000 WAM</td><td>2031-09-15</td><td>2,000,000</td><td>100%</td></tr></table>
+<p>Nothing in the reserve is spendable on launch day, and nothing in it is spendable during the first year of the chain.</p>
+<p>All five are additionally subject to the ordinary 100-block coinbase maturity.</p>
+<p><strong>This is verifiable from block 0, not from this document.</strong> The lock scripts are written <em>bare</em>, not wrapped in P2SH. A P2SH output would publish only a hash and a reader would have to trust a separately distributed redeem script; bare, the unlock timestamp sits in the <code>scriptPubKey</code> itself, where <code>wam-cli getblock &lt;genesis&gt; 2</code> prints it in plain sight. <code>wam-cli getsupplyinfo</code> reports the locked/unlocked split at any moment.</p>
+<p><strong>The locks are timestamp-based, not height-based.</strong> A height-based lock of "262,980 blocks" only equals one year if the chain sustains exactly 120 seconds per block forever; if hash rate falls, a four-year commitment silently becomes five. Timestamps are what the public will hold this schedule to, so timestamps are what consensus enforces.</p>
+<p><strong>Why none of it is liquid at launch.</strong> An earlier version of this schedule released the first tranche at genesis, and justified it as working capital for listings, audits and infrastructure. That justification did not survive the paragraph after it: the operating fee (§3.2) already delivers ~1,800 WAM per day, unlocked from block 1, and <em>that</em> is what pays for operations. The reserve was never needed for it.</p>
+<p>So the only thing an unlocked tranche bought was 400,000 WAM the founder could sell on day one into a market with no depth — which is precisely the fear a premine creates, granted voluntarily, for no benefit. Removing it costs nothing: the same coins arrive twelve months later, and the operating fee covers the interval. The reserve is strategic and held long, and now the chain enforces that rather than asking anyone to believe it.</p>
+<p><strong>Why locking matters more than the size of the number.</strong> The fear a premine creates is not "the founder owns 9%" — it is "the founder can sell 9% into a thin market tomorrow." A vesting schedule enforced by script addresses that fear directly, and costs the founder nothing in coins. It is the cheapest credibility available.</p>
+<h3 id="3-6-the-founder-allocation-in-total">3.6 The founder allocation in total</h3>
+<p>Stated plainly, in one place, so that nobody has to assemble it from footnotes:</p>
+<table><tr><th>Source</th><th>Amount</th><th>Share of cap</th><th>Constraint</th></tr><tr><td>Founder reserve (genesis)</td><td>2,000,000 WAM</td><td>9.09%</td><td>locked 5 years, on-chain</td></tr><tr><td>Operating fee (blocks 1–400,000)</td><td>750,000 WAM</td><td>3.41%</td><td>expires by consensus</td></tr><tr><td><strong>Founder + operating total</strong></td><td><strong>2,750,000 WAM</strong></td><td><strong>12.50%</strong></td><td>—</td></tr><tr><td><strong>Public mining</strong></td><td><strong>19,250,000 WAM</strong></td><td><strong>87.50%</strong></td><td>—</td></tr></table>
+<p>Twelve and a half percent. Of that, <strong>none</strong> is liquid on launch day: the entire 2,000,000 reserve is time-locked until 2027 at the earliest, and the operating fee has to be mined block by block on the same schedule as everyone else's coins.</p>
+<p>For comparison, and without claiming that comparison is a justification: Zcash allocated 20% to founders for four years, Dash directs 10% to a treasury permanently, and Decred premined 8%. Monero and Litecoin allocated nothing — and Monero, being the RandomX chain, is the comparison WAM's miners are most likely to reach for. That is a fair criticism to make, and it is why both WAM allocations are bounded rather than perpetual.</p>
+<hr>
+<h2 id="4-proof-of-work">4. Proof of work</h2>
+<h3 id="4-1-why-randomx">4.1 Why RandomX</h3>
+<p>RandomX generates a random program from a key and executes it in a virtual machine against the input. The program uses the same instruction mix as general-purpose code — integer and floating-point arithmetic, branches, and a 2 GiB working set with random access patterns. A fixed-function ASIC has no advantage over a CPU here, because the thing being accelerated is "being a CPU."</p>
+<p>The practical consequence for WAM is that a laptop, a desktop, and a rented cloud instance are all viable mining devices from block 1. There is no window during which specialised hardware exists and ordinary participants are excluded.</p>
+<p>RandomX is not novel or experimental. It has secured Monero since 2019 and has been extensively cryptanalysed.</p>
+<h3 id="4-2-integration-into-a-bitcoin-style-header">4.2 Integration into a Bitcoin-style header</h3>
+<p>WAM keeps Bitcoin's 80-byte block header and its double-SHA256 <strong>block identifier</strong>. Only the proof-of-work comparison changes: the value tested against the target is <code>RandomX(seed, header)</code> rather than <code>SHA256d(header)</code>.</p>
+<p>This separation matters. Block hashes, transaction IDs, the block index, and every RPC that reports a hash behave exactly as in Bitcoin. Only one comparison in <code>CheckProofOfWork</code> is different.</p>
+<h3 id="4-3-key-rotation">4.3 Key rotation</h3>
+<p>RandomX requires a key that all participants agree on. WAM derives it from a buried block:</p>
+<pre><code>seed_height = floor((height − 64) / 2048) × 2048
+key         = block_hash(seed_height)</code></pre>
+<ul><li><strong>Epoch length: 2,048 blocks</strong> (~2.8 days). Rotation forces every miner to rebuild the 2 GiB dataset, which keeps the algorithm hostile to hardware built around a fixed key.</li><li><strong>Lag: 64 blocks</strong> (~2.1 hours). By the time a height becomes a seed it is buried deeply enough that no realistic reorganisation can change it, so no miner ever discards a dataset because of a reorg.</li></ul>
+<p><strong>The bootstrap epoch.</strong> Seeding the first epoch from the genesis hash would be circular: mining the genesis block requires a key, and that key would require the hash mining is trying to produce. Epoch 0 is therefore keyed by <code>SHA256("WAM/RandomX/epoch-0/2026")</code>, a fixed constant. Every later epoch uses a real block hash.</p>
+<p>Validating nodes run RandomX in light mode (~256 MiB); miners use the full dataset (~2.1 GiB) for roughly eight times the hash rate. Both produce identical results.</p>
+<p><code>wam-cli getrandomxinfo</code> reports the current seed and how many blocks remain before the next rotation.</p>
+<h3 id="4-4-darkgravitywave-v3">4.4 DarkGravityWave v3</h3>
+<p>Difficulty is recalculated on <strong>every block</strong> from a weighted average of the last 24 block targets, rescaled by the observed elapsed time against the expected 48 minutes. The observed timespan is clamped to between one third and three times the expected value, so that a miner manipulating timestamps within the network's tolerance cannot move difficulty by more than 3× in a single step.</p>
+<p>The result is a chain that responds to hash rate changes in tens of minutes rather than weeks — which is the difference between surviving a flash-mining attack and being abandoned because of one.</p>
+<hr>
+<h2 id="5-network">5. Network</h2>
+<table><tr><th>Parameter</th><th>Mainnet</th><th>Testnet</th></tr><tr><td>P2P port</td><td>9555</td><td>19555</td></tr><tr><td>RPC port</td><td>9554</td><td>19554</td></tr><tr><td>Message prefix</td><td><code>WAM!</code></td><td><code>wam!</code></td></tr><tr><td>P2PKH prefix</td><td><code>73</code> → addresses start with <code>W</code></td><td><code>65</code> → <code>T</code></td></tr><tr><td>P2SH prefix</td><td><code>135</code> → <code>w</code></td><td><code>128</code> → <code>t</code></td></tr><tr><td>WIF prefix</td><td><code>190</code> → <code>V</code></td><td><code>239</code> → <code>c</code></td></tr><tr><td>Bech32 HRP</td><td><code>wam</code></td><td><code>twam</code></td></tr></table>
+<p>The version bytes were selected by brute force, not by guesswork: for each candidate, thousands of random hashes were encoded and the leading base58 character was required to be identical every time. Values such as 72 and 74 were rejected precisely because they straddle a digit boundary and would produce addresses beginning with either <code>V</code> or <code>W</code> depending on the key. <code>scripts/gen_founder_key.py --selftest</code> re-verifies this on every install.</p>
+<p>WAM launches with BIP34, BIP65, BIP66, CSV, SegWit and Taproot active from height 1. There is no legacy chain to remain compatible with, and dormant activation machinery is where consensus bugs hide.</p>
+<hr>
+<h2 id="6-genesis-block">6. Genesis block</h2>
+<p>The genesis coinbase commits the launch phrase:</p>
+<blockquote><p><code>WAM Network Launching Next Generation Decentralized Economy 2026</code></p></blockquote>
+<p>Because the phrase is inside the coinbase, it is inside the merkle root, and therefore inside the genesis hash. It is unforgeable proof that the chain was not created before the phrase existed.</p>
+<p>The outputs pay 2,000,000 WAM to the founder address across the five vesting tranches described in §3.5 — one liquid, four time-locked.</p>
+<p><strong>One consensus change is required for this to work.</strong> Stock Bitcoin Core never adds the genesis coinbase to the UTXO set — this is why Satoshi's original 50 BTC are unspendable. WAM patches <code>ConnectBlock</code> to add it (change <strong>WAM-005</strong>), because otherwise the entire 2,000,000 WAM premine would be burned at launch. The output remains subject to normal coinbase maturity.</p>
+<p>The genesis block is mined by <code>genesis/genesis_generator.py</code>, whose serialization is verified byte-for-byte by reproducing Bitcoin's real genesis block hash (<code>000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f</code>) using the same code path. If those bytes were wrong, that reproduction would fail.</p>
+<hr>
+<h2 id="7-mining-and-pools">7. Mining and pools</h2>
+<p>The reference stratum pool implements both <strong>PPLNS</strong> (default) and <strong>PROP</strong>.</p>
+<p>PROP splits each block among the shares submitted since the previous block. It is intuitive but rewards pool hopping: a miner who mines only the early part of each round earns more than their fair share, paid for by everyone else.</p>
+<p>PPLNS splits each block among the last <em>N</em> units of difficulty submitted, regardless of round boundaries, with <em>N</em> = 2 × network difficulty by default. Leaving the pool means forfeiting a share of every block found before your work ages out, which removes the incentive to hop.</p>
+<p>The pool distributes the coinbase value <strong>minus the consensus treasury output</strong>. The treasury amount is reported by the patched daemon in <code>getblocktemplate</code>, so the pool copies one number rather than reimplementing the halving schedule in a second language and being wrong about it at some future halving. Handing the raw coinbase value to the reward calculator throws an exception rather than silently over-distributing by 5%.</p>
+<p>The pool operator's own fee, if any, is taken <em>after</em> the treasury output and is entirely separate from it. A miner on a 1% pool sees 5% + 1%.</p>
+<hr>
+<h2 id="8-threat-model-and-honest-limitations">8. Threat model and honest limitations</h2>
+<p><strong>A young chain is cheap to attack.</strong> WAM's security budget at launch is small in absolute terms, and no difficulty algorithm changes that. DGW v3 makes the chain <em>survivable</em> under hash rate volatility; it does not make a 51% attack expensive. Exchanges and merchants should require deep confirmations during the first months, and the project should publish a chain-work checkpoint policy rather than pretending the risk is absent.</p>
+<p><strong>RandomX resists ASICs; it does not resist botnets.</strong> CPU mining is accessible to everyone, which includes people running code on machines they do not own. This is a known and unavoidable trade-off of the CPU-friendly design, and it should be stated rather than glossed over.</p>
+<p><strong>The founder allocation is 12.50%, and how it is spent is discretionary.</strong> The amounts, the vesting schedule and the fee's expiry are enforced by code. The <em>use</em> of those funds is not, and cannot be — no consensus rule can compel a particular expenditure. Holders should evaluate the team, not only the protocol.</p>
+<p><strong>Vesting constrains selling, not everything.</strong> All five tranches are locked and cannot move before their dates, and that is enforced by script rather than promised. But the operating fee accrues unlocked from block 1, and nothing prevents borrowing against locked coins off-chain, or selling a claim on them. Vesting is a real constraint, not a complete one.</p>
+<p><strong>The treasury address is a single point of failure.</strong> If its private key is lost, the premine and all future fee income are permanently unspendable — and the time-locked tranches would be lost with it. If it is stolen, they are gone. Multi-signature custody is strongly advisable before any significant value accrues.</p>
+<p><strong>Inherited risk.</strong> WAM is a fork of Bitcoin Core v28. It inherits that codebase's security properties and any vulnerabilities discovered in it. Upstream security releases must be tracked and rebased; a fork that stops merging upstream fixes becomes dangerous over time.</p>
+<p><strong>No checkpoints ship at launch.</strong> <code>nMinimumChainWork</code> and <code>defaultAssumeValid</code> are empty because inventing values before any work exists would be theatre. They should be populated in a release once the chain has real accumulated work.</p>
+<hr>
+<h2 id="9-what-can-go-wrong-for-you">9. What can go wrong for you</h2>
+<p>Section 8 is about what can go wrong with the chain. This is about what can go wrong for a person who ends up holding WAM.</p>
+<p><strong>It may be worth nothing.</strong> The overwhelming majority of new cryptocurrencies fail. There is no guarantee that anyone will want to buy WAM, use it, or list it anywhere. Nothing in this document is a prediction, and no figure in it is a price.</p>
+<p><strong>Nobody will buy it back.</strong> The founder does not sell WAM and does not buy it. There is no buyback, no market maker, no price floor and no reserve standing behind it. If a price exists it is whatever two strangers agree on, and it can be zero.</p>
+<p><strong>A secondary market is outside anyone's control.</strong> If you buy WAM from a miner or another holder and the price then falls, the loss is yours. The project makes no representation about price, at any time, to anyone.</p>
+<p><strong>Mining costs electricity and may never repay it.</strong> A block reward is worth whatever WAM is worth, which may be nothing at all. Do not mine with power you cannot afford to spend for its own sake.</p>
+<p><strong>Lose your key and the coins are gone.</strong> There is no recovery, no reset and no support desk. This is true of every chain built this way, Bitcoin included, and it is not a defect — it is the same property that means nobody can take your coins either.</p>
+<p>These are not formalities. They are written here because the founder makes no public statements, promises no return, and will not be available to warn anyone individually. The warning has to live in the document, or it does not exist.</p>
+<hr>
+<h2 id="10-verifying-these-claims">10. Verifying these claims</h2>
+<p>Nothing in this document asks for trust. Each claim has a corresponding check:</p>
+<table><tr><th>Claim</th><th>How to verify</th></tr><tr><td>22,000,000 hard cap</td><td><code>python3 scripts/verify_supply.py</code></td></tr><tr><td>Founder total is 12.50%</td><td><code>python3 scripts/verify_supply.py</code> (section 4)</td></tr><tr><td>The reserve really is locked 5 years, with nothing liquid at launch</td><td><code>python3 scripts/verify_supply.py</code> (section 4b)</td></tr><tr><td>The fee really does expire at 400,000</td><td><code>python3 scripts/verify_supply.py</code> (section 4)</td></tr><tr><td>Vesting scripts are bare CLTV, not P2SH</td><td><code>python3 genesis/test_serialization.py</code></td></tr><tr><td>Live locked/unlocked split</td><td><code>wam-cli getsupplyinfo</code></td></tr><tr><td>Full emission schedule</td><td><code>python3 scripts/verify_supply.py --schedule</code></td></tr><tr><td>The 5% is enforced, not conventional</td><td><code>src/wam/test/wam_devfee_tests.cpp</code></td></tr><tr><td>Genesis serialization is byte-exact</td><td><code>python3 genesis/test_serialization.py</code></td></tr><tr><td>Address prefixes are stable</td><td><code>python3 scripts/gen_founder_key.py --selftest</code></td></tr><tr><td>Pool never distributes the treasury</td><td><code>node pool/test/rewards.test.js</code></td></tr><tr><td>Every upstream change is auditable</td><td><code>python3 scripts/patch_upstream.py --list</code></td></tr><tr><td>Live supply on a running node</td><td><code>wam-cli getsupplyinfo</code></td></tr><tr><td>A specific block paid the treasury</td><td><code>wam-cli getdevfeeinfo "&lt;hash&gt;"</code></td></tr></table>
+<p><code>install.sh</code> runs the first four of these <em>before</em> it compiles anything. If the arithmetic does not hold, there is no point building the binary.</p>
+<hr>
+<h2 id="11-references">11. References</h2>
+<ol><li>S. Nakamoto, <em>Bitcoin: A Peer-to-Peer Electronic Cash System</em>, 2008.</li><li>tevador, <em>RandomX: proof of work algorithm based on random code execution</em>, <code>github.com/tevador/RandomX</code>.</li><li>E. Duffield, D. Diaz, <em>Dash: A Privacy-Centric Cryptocurrency</em> — DarkGravityWave.</li><li>Bitcoin Core, <code>github.com/bitcoin/bitcoin</code>, tag v28.1.</li></ol>
+<hr>
+<h2 id="appendix-a-consensus-changes-from-bitcoin-core">Appendix A — Consensus changes from Bitcoin Core</h2>
+<p>Every departure from upstream, in the order applied. Run <code>python3 scripts/patch_upstream.py --list</code> for the live list.</p>
+<table><tr><th>ID</th><th>Change</th><th>Consensus?</th></tr><tr><td>WAM-000</td><td>Install the WAM source tree and chain parameters</td><td>yes</td></tr><tr><td>WAM-001</td><td>Add WAM fields to <code>Consensus::Params</code></td><td>no (plumbing)</td></tr><tr><td>WAM-002</td><td><code>MAX_MONEY</code> = 22,000,000 WAM</td><td><strong>yes</strong></td></tr><tr><td>WAM-003</td><td><code>GetBlockSubsidy</code> → the WAM schedule</td><td><strong>yes</strong></td></tr><tr><td>WAM-004</td><td>Enforce the 5% treasury output, heights 1–400,000 (rule WAM-1)</td><td><strong>yes</strong></td></tr><tr><td>WAM-005</td><td>Make the genesis coinbase spendable (all five tranches)</td><td><strong>yes</strong></td></tr><tr><td>WAM-006</td><td>RandomX PoW + DarkGravityWave v3</td><td><strong>yes</strong></td></tr><tr><td>WAM-007</td><td>Report the treasury amount in <code>getblocktemplate</code></td><td>no (RPC)</td></tr><tr><td>WAM-008</td><td>Rename binaries to <code>wamd</code> / <code>wam-cli</code></td><td>no (packaging)</td></tr></table>
+<hr>
+<p><em>This document describes software. It is not investment advice, not an offer, and not a promise of value. Proof-of-work mining consumes electricity and may be regulated where you live. Read the code.</em></p>
+<p class="foot">This page is generated from WHITEPAPER.md in the repository. It is the same text; nothing here is written twice.</p>
+</main>
+</body>
+</html>

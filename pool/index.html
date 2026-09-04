@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Run a mining pool — WAM Coin</title>
+<link rel="icon" href="/favicon.png" type="image/png">
+<meta name="description" content="How to run a WAM Coin stratum pool for other miners.">
+<link rel="canonical" href="https://wamcoin.org/pool/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="WAM Coin">
+<meta property="og:title" content="Run a mining pool — WAM Coin">
+<meta property="og:description" content="Everything needed to host a pool: ports, payout handling, and the failure modes that cost other pools money.">
+<meta property="og:image" content="https://wamcoin.org/og-card.png">
+<meta property="og:url" content="https://wamcoin.org/pool/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@WAMCoinCore">
+<meta name="twitter:image" content="https://wamcoin.org/og-card.png">
+<style>
+:root{--bg:#faf9f7;--fg:#1a1a1a;--dim:#5c5a57;--rule:#e3e0db;--code:#f2f0ec;--accent:#8a6d1f}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0e1211;--fg:#eceae7;--dim:#9a9691;--rule:#242a29;--code:#171d1c;--accent:#c9a94a}}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);margin:0;padding:2.2rem 1.1rem 5rem;
+ font:16px/1.72 ui-serif,Georgia,"Times New Roman",serif;-webkit-text-size-adjust:100%}
+main{max-width:44rem;margin:0 auto}
+h1{font-size:1.85rem;line-height:1.25;margin:0 0 .4rem;letter-spacing:-.01em}
+h2{font-size:1.28rem;margin:2.6rem 0 .7rem;padding-top:1.1rem;border-top:1px solid var(--rule)}
+h3{font-size:1.06rem;margin:1.8rem 0 .5rem}
+p,li{margin:.75rem 0}
+a{color:inherit;text-decoration:underline;text-underline-offset:2px;text-decoration-color:var(--accent)}
+code{background:var(--code);padding:.12em .38em;border-radius:3px;
+ font:13.5px/1.5 ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;word-break:break-word}
+pre{background:var(--code);padding:.95rem 1.05rem;border-radius:6px;overflow-x:auto;
+ border:1px solid var(--rule)}
+pre code{background:none;padding:0;white-space:pre}
+blockquote{margin:1.1rem 0;padding:.1rem 0 .1rem 1rem;border-inline-start:3px solid var(--accent);color:var(--dim)}
+table{border-collapse:collapse;width:100%;margin:1.1rem 0;font-size:.94rem;display:block;overflow-x:auto}
+th,td{border-bottom:1px solid var(--rule);padding:.5rem .6rem;text-align:start}
+th{font-weight:600}
+hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
+/* The mark, on every page. A reader who meets WAM in a search result should
+   have seen the same coin four times before they read the name. */
+.mast{display:flex;align-items:center;gap:.7rem;margin-bottom:1.4rem}
+.mast img{width:44px;height:44px;flex:none;border-radius:50%}
+.mast .wordmark{font-weight:600;letter-spacing:-.01em;font-size:1.05rem}
+.mast .wordmark span{display:block;font-size:.8rem;font-weight:400;color:var(--dim);
+ letter-spacing:0}
+.top{display:flex;gap:1rem;flex-wrap:wrap;font-size:.9rem;color:var(--dim);
+ margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid var(--rule)}
+.foot{margin-top:3.5rem;padding-top:1.2rem;border-top:1px solid var(--rule);
+ font-size:.87rem;color:var(--dim)}
+[dir=rtl]{font-family:ui-serif,"Noto Naskh Arabic","Amiri",Georgia,serif}
+[dir=rtl] pre,[dir=rtl] code{direction:ltr;text-align:left}
+</style>
+</head>
+<body>
+<main>
+<a class="mast" href="/">
+  <img src="/wam-coin.png" alt="The WAM Coin mark" width="44" height="44">
+  <span class="wordmark">WAM Coin<span>A CPU-mineable proof-of-work currency</span></span>
+</a>
+<nav class="top">
+  <a href="/">wamcoin.org</a>
+  <a href="/start/">start</a>
+  <a href="/start-ar/">بالعربية</a>
+  <a href="/whitepaper/">whitepaper</a>
+  <a href="/security/">security</a>
+  <a href="/build/">build</a>
+  <a href="/rehearsals/">rehearsals</a>
+  <a href="https://github.com/wam-coin-official/wam-coin/blob/main/docs/POOL_OPERATOR.md">source</a>
+</nav>
+<h1 id="running-a-wam-coin-mining-pool">Running a WAM Coin mining pool</h1>
+<hr>
+<h2 id="architecture">Architecture</h2>
+<pre><code>  miners ──stratum/TCP──▶ stratumServer ──▶ jobManager ──▶ daemon (wamd)
+                               │                │              getblocktemplate
+                               │                │              submitblock
+                               │                └──▶ native/ (librandomx)
+                               ▼                        share verification
+                         shareProcessor ──▶ Redis
+                               │                accounting, PPLNS window, balances
+                               └──▶ apiServer ──▶ web dashboard</code></pre>
+<p><strong>jobManager</strong> polls <code>getblocktemplate</code> every second, resolves the RandomX seed for the height, and publishes a job. <strong>stratumServer</strong> fans it out. Every submitted share is rebuilt from scratch — coinbase, merkle root, header — and hashed with RandomX on the libuv threadpool. <strong>shareProcessor</strong> does the money.</p>
+<hr>
+<h2 id="the-two-fees">The two fees</h2>
+<p>These are constantly confused, so to be explicit:</p>
+<table><tr><th></th><th>Who sets it</th><th>How it is paid</th><th>Can the pool change it?</th></tr><tr><td><strong>5% treasury</strong></td><td>consensus rule WAM-1</td><td>an output in the coinbase, created by the pool but <em>required</em> by the chain</td><td><strong>No.</strong> A block without it is rejected.</td></tr><tr><td><strong>Pool fee</strong></td><td>you, in <code>config.json</code></td><td>deducted from what the pool distributes</td><td>Yes, it is yours.</td></tr></table>
+<p>The pool distributes <code>coinbasevalue − devfee.amount</code>. The treasury amount is read from the <code>devfee</code> field that the patched daemon reports in <code>getblocktemplate</code> — the pool never recomputes 5% itself, because that would mean duplicating the halving schedule in a second language and being wrong about it at some future halving.</p>
+<p>If <code>getblocktemplate</code> does not return <code>devfee</code>, the pool <strong>refuses to build a template at all</strong>. An unpatched daemon would make it produce coinbases that consensus rejects with <code>bad-cb-devfee-amount</code>, wasting every share submitted to it. Fix the daemon; never remove this check.</p>
+<p><code>pool/test/rewards.test.js</code> includes a test that the reward calculator <em>throws</em> if handed the raw coinbase value instead of the distributable value.</p>
+<hr>
+<h2 id="setup">Setup</h2>
+<pre><code>cd pool
+cp config.example.json config.json
+$EDITOR config.json
+npm install
+npm run build:native
+npm test
+node server.js</code></pre>
+<h3 id="the-settings-that-matter">The settings that matter</h3>
+<pre><code>"poolAddress": "W...",     // MUST start with W on mainnet. Checked at startup.
+"rewardMode": "pplns",     // or "prop"
+"poolFeePercent": 1.0,     // YOUR fee. Separate from the chain's 5%.
+"pplnsMultiplier": 2,      // window = 2 x network difficulty
+"minimumPayoutWam": 1.0,
+"paymentIntervalSec": 600</code></pre>
+<p><code>poolAddress</code> is validated against the network's version byte before anything else starts. A testnet address on a mainnet pool would send every block reward into a void, so this check is deliberately fatal rather than a warning.</p>
+<hr>
+<h2 id="pplns-vs-prop">PPLNS vs PROP</h2>
+<p><strong>PROP</strong> splits each block among the shares submitted since the previous block. Simple, and easy to explain to miners — but it rewards pool hopping. A miner who mines only the early part of each round earns above their fair share, and everyone else pays for it.</p>
+<p><strong>PPLNS</strong> splits each block among the last <em>N</em> units of difficulty submitted, ignoring round boundaries. Leaving means forfeiting a share of every block found before your work ages out of the window, so hopping stops being profitable. <code>N = pplnsMultiplier × network difficulty</code>; 2 is the industry norm.</p>
+<p><strong>The ordering rule that matters:</strong> payouts are computed <strong>at the moment the block is found</strong> and frozen into the pending-block record. They are <em>not</em> recomputed at maturity. Recomputing 100 blocks later would use a share buffer that has completely turned over, paying people who were not mining when the block was won. That is both unfair and, once miners notice, fatal to a pool's reputation.</p>
+<hr>
+<h2 id="payment-lifecycle">Payment lifecycle</h2>
+<pre><code>share ──▶ round hash + PPLNS list + hashrate ZSET
+   │
+block found ──▶ payouts computed and FROZEN ──▶ blocks:pending
+   │
+every 60s ──▶ getblock(hash)
+   │              confirmations == -1  ──▶ blocks:orphaned, nobody is paid
+   │              confirmations &lt;  100 ──▶ stays pending
+   │              confirmations &gt;= 100 ──▶ balances credited, blocks:confirmed
+   │
+every 600s ──▶ balances &gt;= minimumPayoutWam ──▶ sendmany ──▶ balances cleared</code></pre>
+<p>Balances are cleared <strong>only after</strong> <code>sendmany</code> returns a txid. Clearing them first would lose every miner's money if the RPC failed.</p>
+<p>A payment run is postponed entirely if the wallet cannot cover the full amount plus the fee reserve. A partially failed batch is far harder to reconcile than a delayed one.</p>
+<hr>
+<h2 id="difficulty">Difficulty</h2>
+<p>Vardiff targets one share every 15 seconds per connection, measured over a sliding window, and only retargets when the observed rate leaves a ±30% band. Retargeting on every share would chase Poisson noise forever.</p>
+<p>RandomX hashrates span four orders of magnitude — a phone at 200 H/s and a 64-core server at 30 kH/s can be on the same pool — so three ports with different starting difficulties are provided. Miners that never submit are also rescued by an idle check every 30 seconds.</p>
+<p>Share difficulty uses the <strong>RandomX diff-1 convention</strong> (<code>2^256 / 2^32</code>), not Bitcoin's. Using Bitcoin's constant would inflate every hashrate figure by ~4.3 billion.</p>
+<hr>
+<h2 id="randomx-memory">RandomX memory</h2>
+<table><tr><th>Mode</th><th>Memory</th><th>Use</th></tr><tr><td>light (<code>randomxFullMemory: false</code>)</td><td>~256 MiB per live seed</td><td><strong>correct for a verifying pool</strong></td></tr><tr><td>full (<code>true</code>)</td><td>~2.1 GiB per live seed</td><td>only if this process also mines</td></tr></table>
+<p>Two seeds are kept alive at once. That is not a tuning knob: around an epoch boundary the pool validates shares from the new epoch while stragglers from the old one are still arriving, and holding exactly those two keeps memory bounded without thrashing.</p>
+<p>Watch for the rotation warning in the log:</p>
+<pre><code>RandomX seed rotated: height 2048 -&gt; 4096. Miners will rebuild their datasets;
+expect a brief hashrate dip.</code></pre>
+<p>This is normal, happens every ~2.8 days, and lasts as long as your miners take to rebuild 2 GiB. The dashboard shows a countdown so it is never a surprise.</p>
+<hr>
+<h2 id="security">Security</h2>
+<ul><li><strong>Never expose RPC port 9554.</strong> <code>getblocktemplate</code> requires an unlocked node; anyone who reaches that port reaches the wallet.</li><li><strong>Put the dashboard behind TLS</strong> if it is public. It is read-only and accepts no bodies, but miner addresses are still visible.</li><li>Keep the pool wallet separate from anything personal, holding only working balance.</li><li>Set <code>exposeMinerIps: false</code> (the default). Miner IPs are not yours to publish.</li><li>Back up <code>wallet.dat</code> and the Redis dump. Losing Redis means losing every unpaid balance; the chain has no record of who was owed what.</li><li>The stratum port faces the open internet: sockets are capped in buffer size (16 KiB per line), message rate (240 per 10 s), and time-to-authorize (30 s). Connections producing persistent garbage are banned for 10 minutes.</li></ul>
+<hr>
+<h2 id="monitoring">Monitoring</h2>
+<pre><code>curl -s localhost:8080/api/health | jq</code></pre>
+<pre><code>{ "ok": true, "problems": [], "templateAgeSec": 3, "connections": 42, "uptimeSec": 84210 }</code></pre>
+<p>Alert on <code>ok: false</code>. The three conditions it reports are: no block template, a template older than 120 seconds (the daemon is wedged or unreachable), and zero connected miners.</p>
+<p>Other endpoints: <code>/api/stats</code>, <code>/api/blocks</code>, <code>/api/miners</code>, <code>/api/hashrate</code>, <code>/api/payments</code>, <code>/api/miner?address=W...</code>, <code>/api/network</code>.</p>
+<hr>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p><strong><code>getblocktemplate did not return a 'devfee' field</code></strong> The daemon is not a patched <code>wamd</code>. Re-run <code>scripts/fetch-upstream.sh</code> and rebuild.</p>
+<p><strong><code>The WAM RandomX native addon is not built</code></strong> <code>npm run build:native</code>, with <code>RANDOMX_INCLUDE</code> and <code>RANDOMX_LIB</code> pointing at <code>build/randomx/src</code> and <code>build/randomx/build/librandomx.a</code>.</p>
+<p><strong>Every share is rejected as low-difficulty</strong> Almost always a seed mismatch: the pool and the miner disagree about the RandomX key. Compare <code>wam-cli getrandomxinfo</code> with the <code>mining.set_seedhash</code> value in the pool log.</p>
+<p><strong><code>payment run postponed: wallet holds ... but ... is due</code></strong> Normal while blocks are maturing. Investigate only if it persists past 100 blocks after a find.</p>
+<p><strong><code>config says network='mainnet' but wamd reports chain='test'</code></strong> Exactly what it says. The pool refuses to start rather than mine to the wrong chain.</p>
+<p class="foot">This page is generated from docs/POOL_OPERATOR.md in the repository. It is the same text; nothing here is written twice.</p>
+</main>
+</body>
+</html>
