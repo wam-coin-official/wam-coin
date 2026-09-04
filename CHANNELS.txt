@@ -14,6 +14,8 @@
    announcements  https://t.me/wam_coin_updates
    x / twitter    https://x.com/WAMCoinCore
    discord        https://discord.gg/Gxvmrjy9Qb
+   bitcointalk    https://bitcointalk.org/index.php?topic=5591218.0
+   email          wam.coin.official@proton.me
 
  And the three services the network itself runs:
 
@@ -27,9 +29,9 @@
  point anything at it.
 
  There are no others. No Reddit, no Instagram, no second Telegram group,
- no second Discord, no "support" account, no exchange listing, no presale,
- no airdrop, no token sale, no wallet app. If you have found one of those
- and it says WAM, it is not us.
+ no second Discord, no second BitcoinTalk thread, no "support" account, no
+ exchange listing, no presale, no airdrop, no token sale, no wallet app. If
+ you have found one of those and it says WAM, it is not us.
 
 
  WHAT NOBODY OFFICIAL WILL EVER DO
@@ -48,8 +50,9 @@
  HOW TO CHECK THIS FILE
  ----------------------
 
- Four accounts that link to each other prove very little: whoever takes
- one of them can point it at three impostors. So this file is signed.
+ Accounts that link to each other prove very little: whoever takes one of
+ them can point it at a row of impostors. So this file is meant to be
+ signed.
 
    curl -O https://wamcoin.org/CHANNELS.txt
    curl -O https://wamcoin.org/CHANNELS.txt.asc
@@ -59,10 +62,16 @@
  source repository, and nowhere else. Compare it character by character.
  A signature that verifies against some other key proves nothing at all.
 
- If CHANNELS.txt.asc does not exist yet, the key ceremony has not been
- held, and this file carries only the authority of the repository it sits
- in -- which is a commit history, not a signature. That is stated here
- rather than left for you to discover.
+ CHANNELS.txt.asc DOES NOT EXIST YET, and you should know exactly what that
+ means rather than find out. The signing key is real -- it exists offline,
+ its fingerprint is in SECURITY.md, and every release from v0.1.6 carries
+ its signature, which you can verify today. This file has simply not been
+ signed with it. Until it is, this list carries the authority of the
+ repository it sits in -- a commit history, not a signature.
+
+ An earlier revision said the missing signature meant the key ceremony had
+ not been held. That stopped being true when the ceremony was held, and the
+ sentence was not updated, so it told you the wrong reason for a fortnight.
 
 
  WHAT THIS FILE DOES NOT CLAIM
@@ -76,8 +85,30 @@
 
 
 ---------------------------------------------------------------------------
+ Revision 3 -- 2026-09-04
+   Added the BitcoinTalk announcement thread and the contact email. Both
+   were official the whole time. The thread has been up since 14 August,
+   three days after revision 1 was written, and it was never added -- so
+   the file that exists to say what is ours has spent three weeks implying
+   our own announcement thread was an impostor's, and could have been cited
+   against it by anybody who wanted to.
+
+   This is the second time. Revision 2 fixed exactly this for the explorer,
+   the pool and the Electrum server. The lesson did not stick, because
+   nothing in the project checks it: a new channel is added by a person
+   remembering to, and the person did not.
+
+   Also corrected: "four accounts" was written when there were four and was
+   wrong at five, before this revision made it seven. A count in prose goes
+   stale every time the list grows, so the count is gone.
+
+   Also corrected: the note explaining a missing CHANNELS.txt.asc still
+   blamed a key ceremony that has since been held.
+
  Revision 2 -- 2026-08-21
    Added the explorer, the pool and the Electrum server. They existed and
    were missing here, so this file -- whose one job is to say what is ours
    -- was calling three of our own hosts impostors.
+
+ Revision 1 -- 2026-08-11
 ---------------------------------------------------------------------------
