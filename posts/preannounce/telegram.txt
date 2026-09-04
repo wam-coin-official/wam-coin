@@ -53,7 +53,10 @@ bash wam-coin/scripts/verify_release.sh ~/Downloads
 
 It refuses to say ok unless the signature is good, made by that exact
 fingerprint, and covering the file in front of you. Check the fingerprint
-against SECURITY.md on GitHub over HTTPS - not against this message.
+over HTTPS here, not against this message - a message is exactly the thing
+an attacker gets to write:
+
+https://github.com/wam-coin-official/wam-coin/blob/main/SECURITY.md
 
 *3. The testnet has been running five weeks.*
 
@@ -143,8 +146,10 @@ bash wam-coin/scripts/verify_release.sh ~/Downloads
 ```
 
 ولا يقول «ok» إلّا إذا كان التوقيع سليماً، وصادراً عن هذه البصمة بالذات،
-ويغطّي الملفّ الذي أمامك. وافحص البصمة من SECURITY.md على GitHub عبر HTTPS
-— لا من هذه الرسالة.
+ويغطّي الملفّ الذي أمامك. وافحص البصمة من هنا عبر HTTPS، لا من هذه الرسالة
+— فالرسالة هي بالضبط ما يستطيع المهاجم أن يكتبه:
+
+https://github.com/wam-coin-official/wam-coin/blob/main/SECURITY.md
 
 *٣ — شبكة الاختبار تعمل منذ خمسة أسابيع.*
 

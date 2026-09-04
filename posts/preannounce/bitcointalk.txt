@@ -141,8 +141,12 @@ It refuses to print ok unless three things hold: the signature is good, it
 was made by [b]that[/b] fingerprint, and the file in front of you is the
 file that fingerprint signed for. It verifies in a throwaway keyring, so it
 does not touch yours, and the fingerprint - not the key file - is the trust
-anchor. Check that fingerprint against SECURITY.md on GitHub over HTTPS.
-Do not take it from this post.
+anchor. Check that fingerprint over HTTPS, here, and not in this post - a
+post is exactly the thing an attacker gets to write:
+
+[code]
+https://github.com/wam-coin-official/wam-coin/blob/main/SECURITY.md
+[/code]
 
 
 [b]4. THERE IS A TESTNET, AND IT HAS BEEN RUNNING FOR FIVE WEEKS[/b]

@@ -67,6 +67,35 @@ Fixed by resolving the script's own directory to an absolute path before the
 in-repo case still exits 0, and the keyring was confirmed empty so no key
 was quietly borrowed from a previous run.
 
+## Never write a bare filename that ends in a TLD
+
+The posts said "check the fingerprint against SECURITY.md on GitHub".
+Telegram and X do not see a filename there. They see a hostname on
+Moldova's `.md` registry, and they turn it into a link to a site nobody
+here controls.
+
+The founder found it by pressing it, in the message he had just sent to his
+own channel. `security.md` is a live Moldovan shop selling video intercoms
+and CCTV, shopping cart and all — so the sentence telling a reader where to
+go and confirm our signing fingerprint linked them to a stranger's
+storefront. That is exactly the attack the paragraph exists to prevent, and
+it was in the paragraph.
+
+A check run from the France node said `security.md` did not resolve. It was
+wrong; the phone had already loaded the page. The measurement said no, the
+man looking at it said yes, and the man looking at it was right.
+
+Every reference is a full `https://` URL now. The rule for anything written
+for a chat client, a forum or a timeline:
+
+```
+SECURITY.md          becomes a link, to somebody else
+docs/REHEARSALS.md   safe -- the path prefix stops it being read as a host
+CHANNELS.txt         safe -- .txt is not a TLD
+```
+
+The safe-looking two are safe by accident, not by design. Write the URL.
+
 ## What is still missing from the release page
 
 `SIGNING-KEY.asc` and `verify_release.sh` are not release assets — only the
