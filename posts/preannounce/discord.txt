@@ -1,0 +1,102 @@
+===========================================================================
+ Discord -- https://discord.gg/Gxvmrjy9Qb   (#announcements)
+===========================================================================
+
+ Discord caps a message at 2000 characters. This is two messages; post them
+ in order. Both are under the cap. Standard markdown.
+
+===========================================================================
+ MESSAGE 1
+===========================================================================
+
+## WAM Coin — mainnet in 11 days
+
+**15 September 2026, 00:00 UTC.** RandomX on CPU, 22,000,000 hard cap, no
+presale, nothing to buy, everyone starts at the same block.
+
+Every new chain asks you to trust it. Here is what you can check *before
+this one exists*.
+
+**The premine is locked by consensus, not by promise.**
+
+2,000,000 WAM is minted in genesis. Not one coin can move on launch day, or
+in the first year. Five outputs of 400,000, each behind a bare
+`OP_CHECKLOCKTIMEVERIFY` script carrying a date:
+
+```
+2027-09-15   2028-09-15   2029-09-15   2030-09-15   2031-09-15
+```
+
+Bare, not P2SH — the unlock date sits in the output itself rather than
+behind a hash you would have to take our word about. Read it yourself:
+
+```
+wam-cli getblock $(wam-cli getblockhash 0) 2
+```
+
+**The releases are signed.**
+
+```
+4BD4 A8D3 AFD4 3F5C BCB5  00E2 3798 462F E00A DBA4
+```
+<https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.6>
+
+Download the release, SHA256SUMS and SHA256SUMS.asc into one directory.
+The checker and the key come from the repository — deliberately a different
+place from the binary:
+```
+git clone https://github.com/wam-coin-official/wam-coin
+bash wam-coin/scripts/verify_release.sh ~/Downloads
+```
+
+It will not print ok unless the signature is good, made by that exact
+fingerprint, and covering the file in front of you. Verify the fingerprint
+from SECURITY.md on GitHub over HTTPS — not from this message.
+
+===========================================================================
+ MESSAGE 2
+===========================================================================
+
+**The testnet has been running five weeks.**
+
+```
+genesis 2026-08-01     height 5,136     independent nodes: 1
+```
+
+One. Somebody we have never met who found the network and has stayed on it
+unbroken for two days. The seed nodes are ours and we are not counting them
+as anyone else.
+
+**The launch is rehearsed every day, and every rehearsal's findings are
+published.**
+
+`docs/REHEARSALS.md` holds the schedule and a table of what each rehearsal
+found — including the days that found nothing, because the rate is the
+measurement. 4 September found four defects in two hours. That is in the
+table too.
+
+**What we are not going to pretend**
+
+• No security audit. Two independent developers reviewed the consensus
+changes and their findings were adopted; peer review is not an audit.
+• The hashrate will be small at first. True of every new PoW chain. We ask
+20 confirmations wallet-to-wallet, 60 for an exchange deposit.
+• No exchange, no price, no listing. If anyone offers you WAM before
+15 September, they are selling something that does not exist.
+• Linux x86_64 and source builds only, for now.
+
+```
+supply        22,000,000 hard cap
+reward        50 WAM, halving every 200,000 blocks (~9.1 months)
+block time    120 s, DarkGravityWave v3
+treasury      5% of the subsidy, ends at height 400,000 (750,000 total)
+SLIP-44       5718349, registered with SatoshiLabs
+```
+
+**Run a node**
+```
+git clone https://github.com/wam-coin-official/wam-coin
+cd wam-coin && ./install.sh
+```
+
+<https://wamcoin.org> • <https://github.com/wam-coin-official/wam-coin>

@@ -1,0 +1,134 @@
+===========================================================================
+ X / Twitter -- https://x.com/WAMCoinCore
+===========================================================================
+
+ A thread of 9 posts. Post 1 first, then reply to your own post each time.
+ Every one is under 280 characters as X counts them -- a link counts as 23
+ no matter how long it is. They were measured, not estimated.
+
+ Pin post 1 after the thread is up.
+
+===========================================================================
+ THE THREAD
+===========================================================================
+
+--- 1 -----------------------------------------------------------------
+
+WAM Coin — mainnet 15 September 2026, 00:00 UTC.
+
+RandomX. CPU. 22,000,000 hard cap. No presale, no ICO, nothing to buy.
+
+Every new chain asks you to trust it.
+
+Here is what you can check before this one exists. 🧵
+
+--- 2 -----------------------------------------------------------------
+
+1/ The premine is locked by consensus, not by promise.
+
+2,000,000 WAM in genesis. Not one coin moves on launch day, or in the
+first year.
+
+Five outputs of 400,000, each behind a script with a date:
+
+2027-09-15
+2028-09-15
+2029-09-15
+2030-09-15
+2031-09-15
+
+--- 3 -----------------------------------------------------------------
+
+2/ The scripts are bare, not P2SH.
+
+A P2SH output shows you a hash, and you trust a redeem script published
+somewhere else. A bare script puts the unlock date in the output itself.
+
+Read it out of block 0:
+
+wam-cli getblock $(wam-cli getblockhash 0) 2
+
+--- 4 -----------------------------------------------------------------
+
+3/ Every release is signed with an offline key.
+
+4BD4 A8D3 AFD4 3F5C BCB5 00E2 3798 462F E00A DBA4
+
+Check that fingerprint against SECURITY.md on GitHub, over HTTPS.
+
+Not against this post. A post is exactly the thing an attacker gets to
+write.
+
+--- 5 -----------------------------------------------------------------
+
+4/ And one command checks a download against it:
+
+git clone https://github.com/wam-coin-official/wam-coin
+bash wam-coin/scripts/verify_release.sh ~/Downloads
+
+It won't say ok unless the signature is good, made by that key, and covers
+the file in front of you.
+
+--- 6 -----------------------------------------------------------------
+
+5/ The testnet has run for five weeks.
+
+genesis 2026-08-01
+height 5,136
+independent nodes: 1
+
+One. Someone we have never met who found the network and has stayed on it
+unbroken for two days.
+
+The seeds are ours. We are not counting them as anyone else.
+
+--- 7 -----------------------------------------------------------------
+
+6/ One launch rehearsal a day until the 15th — and what each one finds is
+published.
+
+docs/REHEARSALS.md holds the table, including the days that found nothing.
+
+4 Sept found four defects in two hours. That is in there too.
+
+The rate is the only honest measure of ready.
+
+--- 8 -----------------------------------------------------------------
+
+7/ What we won't pretend:
+
+No security audit. Two devs read the consensus changes and their
+findings were adopted. That is not an audit.
+
+Hashrate will be small at first, like every new PoW chain.
+
+No exchange, no price. Anyone selling WAM before the 15th is selling air.
+
+--- 9 -----------------------------------------------------------------
+
+8/
+supply 22,000,000 hard cap
+reward 50 WAM, halving every 200,000 blocks
+block time 120s, DarkGravityWave v3
+treasury 5% of subsidy, ends at height 400,000
+
+git clone https://github.com/wam-coin-official/wam-coin
+cd wam-coin && ./install.sh
+
+https://wamcoin.org
+
+
+===========================================================================
+ ARABIC -- one standalone post, if you want it as well
+===========================================================================
+
+عملة WAM — الشبكة الرئيسية 15 سبتمبر 2026، 00:00 غرينتش.
+
+RandomX على المعالج. سقفٌ نهائيّ 22,000,000. بلا بيعٍ مسبق ولا شيء يُشترى.
+
+حصّة المؤسّس مقفولةٌ في كتلة التكوين حتى 2027–2031، تُقرأ من الكتلة صفر.
+والإصدار موقَّع.
+
+لا تصدّقنا — افحص.
+
+https://wamcoin.org
