@@ -159,6 +159,11 @@ run "published claims match consensus"  python3 scripts/check_published_claims.p
 # thread three weeks later -- because the fix was a person remembering.
 run "the channel list names all of us"  python3 scripts/check_channels.py
 
+# And the same question about the text we post: SECURITY.md is a filename to
+# us and a hostname to Telegram, which linked the sentence about verifying
+# our fingerprint to a shop in Moldova. Found by the founder pressing it.
+run "no filename reads as a domain"  python3 scripts/check_post_text.py
+
 # Asked before a chain is started, not after. A consensus value that changes
 # once blocks exist invalidates every block mined under the old one, and the
 # running nodes are the last to notice.
