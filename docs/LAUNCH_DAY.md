@@ -395,6 +395,42 @@ Three things were found by doing it rather than reading it:
         electrum.wamcoin.org electrum2.wamcoin.org
     ```
 
+### The pool's ports collide — found 2026-09-04, not yet resolved
+
+`pool/config.json` (testnet) and `pool/config-mainnet.json` both claim **3333,
+3334, 3335 and 3336**. They cannot both run. On the night, starting the
+mainnet pool either fails to bind or takes the testnet pool down — and 3333 is
+the port [START_HERE](START_HERE.md) tells every newcomer to point a miner at,
+so it must be mainnet's.
+
+This is the same collision found in ElectrumX on 29 August and it has the same
+answer: move testnet aside, hold the published ports empty. Testnet goes to
+**13333–13336**, following the prefix this project already uses for 9555/19555
+and 9554/19554.
+
+It was done and reverted on 4 September, because Contabo drops those four
+ports upstream. Measured rather than assumed: `tcpdump` on the server while
+Singapore knocked showed SYNs arriving on 3333 and **nothing at all** on
+13333, while `iptables -S` carried an explicit ACCEPT for it. A network fault
+does not distinguish two ports on one address; a firewall rule does.
+
+Their control panel was returning *"Your VPS/VDS could not be loaded"* at the
+time, so the rule could not be added. The testnet pool was put back on
+3333–3336 rather than leave the founder's laptop — most of the testnet
+hashrate — unable to reach a pool for hours over a change that is eleven days
+early.
+
+**To finish it, in this order:**
+
+1. Contabo panel → Firewall → allow TCP **13333, 13334, 13335, 13336**
+2. `bash scripts/move_testnet_pool.sh` — moves the config, repoints our miner,
+   opens ufw, restarts, and verifies from outside that 3333–3336 are empty and
+   13333–13336 answer
+3. Repoint the laptop miner at `pool.wamcoin.org:13333`
+
+Until step 1 is done, launch night has a step that must not be forgotten:
+stop `wam-pool` before starting the mainnet one.
+
 17. **The pool.** Its payout address is mainnet and it must be checked
     before a single share is credited:
 
