@@ -29,6 +29,13 @@
 
 set -uo pipefail
 
+# These patterns use grep -P. Where -P is unavailable it prints nothing
+# and succeeds, and an empty capture in a signing flow is a silent wrong
+# value rather than an error. Refuse instead.
+SCRIPTS_DIR="${SCRIPTS_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)}"
+. "$SCRIPTS_DIR/lib/pcre.sh"
+
+
 NETWORK="testnet"
 WALLET="founder"
 CLI="./src/wam-cli"

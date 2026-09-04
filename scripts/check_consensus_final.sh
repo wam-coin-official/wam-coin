@@ -30,6 +30,11 @@
 
 set -uo pipefail
 
+# An interpreter that is actually Python: `python3` on Windows is a
+# Microsoft Store stub that runs nothing and exits 49.
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+. "$SCRIPTS_DIR/lib/python.sh"
+
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$HERE"
 CHAINPARAMS="src/wam/chainparams.cpp"
@@ -63,7 +68,7 @@ echo "=================================================================="
 # ---------------------------------------------------------------------------
 printf '\n%sthe addresses consensus depends on%s\n' "$BLD" "$OFF"
 
-python3 - "$CHAINPARAMS" "$TARGET" <<'PY'
+"$PY" - "$CHAINPARAMS" "$TARGET" <<'PY'
 import re, sys, hashlib
 
 ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
@@ -150,7 +155,7 @@ fi
 printf '\n%sthe premine schedule%s\n' "$BLD" "$OFF"
 
 if [ -f "$PARAMS" ]; then
-    if python3 scripts/check_vesting_sync.py >/dev/null 2>&1; then
+    if "$PY" scripts/check_vesting_sync.py >/dev/null 2>&1; then
         ok "the unlock tables agree with each other"
     else
         block "the unlock tables disagree -- run scripts/check_vesting_sync.py"

@@ -21,6 +21,11 @@
 
 set -euo pipefail
 
+# An interpreter that is actually Python: `python3` on Windows is a
+# Microsoft Store stub that runs nothing and exits 49.
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+. "$SCRIPTS_DIR/lib/python.sh"
+
 TREE="${TREE:-$HOME/wam/build/wam-core}"
 REPO="${REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 RANDOMX="${RANDOMX:-$HOME/wam/build/randomx}"
@@ -67,7 +72,7 @@ fi
 if [ -f "$REPO/scripts/rebrand_qt.py" ]; then
     echo
     echo "  rebranding the GUI text..."
-    python3 "$REPO/scripts/rebrand_qt.py" --tree "$TREE" | sed 's/^/  /'
+    "$PY" "$REPO/scripts/rebrand_qt.py" --tree "$TREE" | sed 's/^/  /'
 fi
 
 echo

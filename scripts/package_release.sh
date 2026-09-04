@@ -38,6 +38,11 @@
 
 set -euo pipefail
 
+# An interpreter that is actually Python: `python3` on Windows is a
+# Microsoft Store stub that runs nothing and exits 49.
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+. "$SCRIPTS_DIR/lib/python.sh"
+
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/.." && pwd)"
 
@@ -268,9 +273,9 @@ CHECK OUR CLAIMS RATHER THAN BELIEVING THEM
   ./bin/wam-cli -testnet getdevfeeinfo     the 5% treasury and when it ends
   ./bin/wam-cli -testnet getrandomxinfo    the proof-of-work key schedule
 
-  From the source tree, python3 scripts/verify_supply.py replays all 33
+  From the source tree, "$PY" scripts/verify_supply.py replays all 33
   halvings with exact integer arithmetic and asserts the 22,000,000 cap,
-  and python3 scripts/patch_upstream.py --list prints every difference
+  and "$PY" scripts/patch_upstream.py --list prints every difference
   from Bitcoin Core with the reason for each.
 
 

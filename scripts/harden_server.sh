@@ -36,6 +36,11 @@
 
 set -euo pipefail
 
+# An interpreter that is actually Python: `python3` on Windows is a
+# Microsoft Store stub that runs nothing and exits 49.
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+. "$SCRIPTS_DIR/lib/python.sh"
+
 NETWORK="testnet"
 SKIP_SSH=0
 SERVICE_USER="${SUDO_USER:-$USER}"
@@ -121,8 +126,9 @@ ok "peer-to-peer on ${P2P_PORT} allowed -- this is how the network finds you"
 # wrong on its own, which is why nothing caught it.
 POOL_CONF="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/pool/config.json"
 STRATUM_PORTS=""
-if [ -f "$POOL_CONF" ] && command -v python3 >/dev/null 2>&1; then
-    STRATUM_PORTS="$(python3 -c '
+if [ -f "$POOL_CONF" ] && command -v "$PY" >/dev/null 2>&1; then
+    STRATUM_PORTS="$("$PY" -c '
+import sys; sys.stdout.reconfigure(newline='\n')  # no \r on Windows
 import json, sys
 try:
     c = json.load(open(sys.argv[1]))

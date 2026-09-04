@@ -47,6 +47,11 @@
 
 set -uo pipefail
 
+# An interpreter that is actually Python: `python3` on Windows is a
+# Microsoft Store stub that runs nothing and exits 49.
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+. "$SCRIPTS_DIR/lib/python.sh"
+
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO="wam-coin-official/wam-coin"
 QUIET=0
@@ -84,7 +89,8 @@ if [ -z "$JSON" ]; then
     exit 0
 fi
 
-READ="$(printf '%s' "$JSON" | python3 -c '
+READ="$(printf '%s' "$JSON" | "$PY" -c '
+import sys; sys.stdout.reconfigure(newline='\n')  # no \r on Windows
 import json, re, sys
 try:
     rels = json.load(sys.stdin)
@@ -144,7 +150,7 @@ bad "this checkout is v${MINE}. The newest release is ${NEWEST}."
 # marker is found, the question is put to the files themselves rather than
 # trusted to have been answered by somebody at the time.
 if [ -z "$MANDS" ]; then
-    DERIVED="$(python3 "$HERE/scripts/consensus_floor.py" \
+    DERIVED="$("$PY" "$HERE/scripts/consensus_floor.py" \
                  --compare-remote "v${MINE}" "$NEWEST" 2>/dev/null | head -1)"
     if [ "$DERIVED" = "differs" ]; then
         MANDS="derived"

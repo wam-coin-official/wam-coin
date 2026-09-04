@@ -36,6 +36,11 @@
 
 set -uo pipefail
 
+# An interpreter that is actually Python: `python3` on Windows is a
+# Microsoft Store stub that runs nothing and exits 49.
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+. "$SCRIPTS_DIR/lib/python.sh"
+
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$HERE"
 
@@ -186,7 +191,7 @@ bisq|haveno)
     NS="$VENUE"; [ "$VENUE" = "bisq" ] && NS="bisq" || NS="haveno"
     SVC="assets/src/main/resources/META-INF/services/$NS.asset.Asset"
     [ -f "$SVC" ] || die "no $SVC"
-    python3 - "$SVC" "$NS.asset.coins.WAMCoin" <<'PY'
+    "$PY" - "$SVC" "$NS.asset.coins.WAMCoin" <<'PY'
 import sys, pathlib
 p, entry = pathlib.Path(sys.argv[1]), sys.argv[2]
 raw = p.read_text(encoding="utf-8")
@@ -219,7 +224,7 @@ basicswap)
     # out of their file rather than on line numbers, and every one of them must
     # match or this stops: a Python file edited on a guess is how a patch that
     # does not import reaches a reviewer.
-    python3 - basicswap/chainparams.py <<'PY'
+    "$PY" - basicswap/chainparams.py <<'PY'
 import sys, pathlib
 p = pathlib.Path(sys.argv[1])
 t = p.read_text(encoding="utf-8")
@@ -262,7 +267,7 @@ blockdx)
 # The two conf files are only two thirds of it: manifest-latest.json is
 # what makes Block DX read them at all, and the first run pushed a branch
 # without it -- two files that nothing points to.
-python3 - manifest-latest.json "$SRCDIR/manifest-entry.json" <<'PY'
+"$PY" - manifest-latest.json "$SRCDIR/manifest-entry.json" <<'PY'
 import json, sys, pathlib
 man, entry = pathlib.Path(sys.argv[1]), json.loads(pathlib.Path(sys.argv[2]).read_text())
 raw = man.read_text(encoding="utf-8")
@@ -295,7 +300,7 @@ slips)
     COIN_TYPE="$(grep -oE 'WAM_BIP44_COIN_TYPE[[:space:]]*=[[:space:]]*(0x[0-9A-Fa-f]+|[0-9]+)' \
         "$HERE/src/wam/wam-params.h" | grep -oE '(0x[0-9A-Fa-f]+|[0-9]+)$' | tail -1)"
     [ -n "$COIN_TYPE" ] || die "cannot read WAM_BIP44_COIN_TYPE from the source"
-    python3 - "$COIN_TYPE" <<'PY'
+    "$PY" - "$COIN_TYPE" <<'PY'
 import pathlib, re, sys
 
 coin = int(sys.argv[1], 0)
