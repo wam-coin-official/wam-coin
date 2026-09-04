@@ -146,6 +146,14 @@ run "units report their own failure"  bash scripts/test/test_onfailure.sh
 # did anything else here. This one reads what we publish.
 run "published claims match consensus"  python3 scripts/check_published_claims.py
 
+# The same failure, one layer out: not "is what we publish true" but "does
+# the list of who we are name everybody who is us". CHANNELS.txt says "There
+# are no others", so a channel missing from it is branded an impostor's by
+# our own file. That happened to the explorer, the pool and the Electrum
+# server in August, was fixed by hand, and happened again to the BitcoinTalk
+# thread three weeks later -- because the fix was a person remembering.
+run "the channel list names all of us"  python3 scripts/check_channels.py
+
 # Asked before a chain is started, not after. A consensus value that changes
 # once blocks exist invalidates every block mined under the old one, and the
 # running nodes are the last to notice.
