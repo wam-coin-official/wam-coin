@@ -16,6 +16,19 @@
 //  way, because the failure it guards against is silent in both directions:
 //  a stall published by accident is embarrassing, and a stall marked private
 //  that quietly stops being sent at all is worse.
+//
+//  IT TESTS tick() AND applyBanner() TOGETHER, AND THAT IS THE POINT
+//
+//  The first version called tick() alone and passed six times. Meanwhile the
+//  real bot published stalls at 07:51, 08:51, 09:51 and 09:52 on 4 September,
+//  hours after the routing was deployed -- because between tick() and the send
+//  loop, applyBanner() rewrites every message to carry the chain banner. That
+//  makes NEW strings, and opsOnly was a Set of the old ones, so every lookup
+//  failed and every private message went to the channel.
+//
+//  A test that stops one layer above the bug proves the bug is absent in the
+//  layer that does not have it. Every case below runs the messages through
+//  the banner first, as the bot does.
 // ===========================================================================
 
 const assert = require('assert');
@@ -45,7 +58,9 @@ const cfg = {
     opsChatId: 'OPS', telegram: { token: 'x', chatId: 'PUBLIC' }
 };
 
-const head = (m) => String(m).split('\n')[0].replace(/<[^>]*>/g, '');
+// The banner is now the first line of every message, so a heading is looked
+// for anywhere in the text rather than at the top.
+const has = (m, t) => String(m).replace(/<[^>]*>/g, '').includes(t);
 
 (async () => {
     const now = Date.now();
@@ -54,13 +69,13 @@ const head = (m) => String(m).split('\n')[0].replace(/<[^>]*>/g, '');
     const stalled = { lastHeight: 5000, lastHeightAt: now - 120 * 60000,
                       lastHeartbeatAt: now, stallAnnounced: false,
                       milestonesSeen: [] };
-    const r = await A.tick(cfg, rpc(5000), stalled, () => {});
+    const r = A.applyBanner(await A.tick(cfg, rpc(5000), stalled, () => {}));
     test('the stall alert is produced', () => {
-        assert.ok(r.messages.some((m) => head(m).includes('No new block')),
+        assert.ok(r.messages.some((m) => has(m, 'No new block')),
                   'no stall message at all -- the alert has been lost');
     });
     test('and it is marked for the operator, not the channel', () => {
-        const s = r.messages.find((m) => head(m).includes('No new block'));
+        const s = r.messages.find((m) => has(m, 'No new block'));
         assert.ok(r.opsOnly && r.opsOnly.has(s),
                   'the stall would have been published');
     });
@@ -69,12 +84,12 @@ const head = (m) => String(m).split('\n')[0].replace(/<[^>]*>/g, '');
     const recovering = { lastHeight: 5000, lastHeightAt: now - 120 * 60000,
                          lastHeartbeatAt: now, stallAnnounced: true,
                          milestonesSeen: [] };
-    const r2 = await A.tick(cfg, rpc(5001), recovering, () => {});
+    const r2 = A.applyBanner(await A.tick(cfg, rpc(5001), recovering, () => {}));
     test('the recovery is produced', () => {
-        assert.ok(r2.messages.some((m) => head(m).includes('arriving again')));
+        assert.ok(r2.messages.some((m) => has(m, 'arriving again')));
     });
     test('and it is the operator\'s too -- a recovery for a stall nobody heard', () => {
-        const rec = r2.messages.find((m) => head(m).includes('arriving again'));
+        const rec = r2.messages.find((m) => has(m, 'arriving again'));
         assert.ok(r2.opsOnly && r2.opsOnly.has(rec));
     });
 
@@ -93,13 +108,13 @@ const head = (m) => String(m).split('\n')[0].replace(/<[^>]*>/g, '');
     const due = { lastHeight: 5001, lastHeightAt: now,
                   lastHeartbeatAt: dueAt - 3600000,   // before today's slot
                   stallAnnounced: false, milestonesSeen: [] };
-    const r3 = await A.tick(cfgHb, rpc(5002), due, () => {});
+    const r3 = A.applyBanner(await A.tick(cfgHb, rpc(5002), due, () => {}));
     test('the heartbeat is produced', () => {
-        assert.ok(r3.messages.some((m) => head(m).includes('WAM Network')),
+        assert.ok(r3.messages.some((m) => has(m, 'WAM Network')),
                   'the daily post has stopped being produced');
     });
     test('and it is NOT operator-only', () => {
-        const hb = r3.messages.find((m) => head(m).includes('WAM Network'));
+        const hb = r3.messages.find((m) => has(m, 'WAM Network'));
         assert.ok(!(r3.opsOnly && r3.opsOnly.has(hb)),
                   'the daily post stopped being public');
     });
