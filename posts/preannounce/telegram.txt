@@ -69,8 +69,14 @@ count them as anybody else.
 published.*
 
 `docs/REHEARSALS.md` - the schedule, and a table of what every rehearsal
-found, including the days that found nothing. 4 September found four
-defects in two hours. That is in there too.
+found, including the days that found nothing.
+
+Today found five. The fifth was the verify command above: it told a
+first-time reader that a correctly signed release was FORGED. It looked for
+our public key after changing directory, so it never found it, and fell
+back to a keyring that is empty for anyone reading us for the first time.
+It passed every time it was run from inside the repository. It failed for
+everybody else. Fixed and re-proved before this message.
 
 *What we will not pretend:* no audit, no exchange, no price, and the
 hashrate will be small at first, which is true of every new PoW chain.
@@ -152,8 +158,13 @@ bash wam-coin/scripts/verify_release.sh ~/Downloads
 *٤ — الإطلاق يُتمرَّن عليه كلّ يوم، وما تجده كلّ بروفةٍ يُنشر.*
 
 `docs/REHEARSALS.md` — الجدول، وجدولٌ بما وجدته كلّ بروفة، بما فيها الأيّام
-التي لم تجد شيئاً. الرابع من سبتمبر وجد أربعة أعطالٍ في ساعتين. وهذا مكتوبٌ
-فيه أيضاً.
+التي لم تجد شيئاً.
+
+واليوم وجد خمسة. والخامس هو أمر الفحص أعلاه نفسه: كان يقول لمن يقرأنا لأوّل
+مرّة إنّ إصداراً موقَّعاً صحيحاً **مُزوَّر**. كان يبحث عن مفتاحنا العامّ بعد
+أن يُغيّر المجلّد، فلا يجده، فيرتدّ إلى حلقة مفاتيحَ فارغةٍ عند كلّ قارئٍ
+جديد. كان ينجح في كلّ مرّةٍ يُشغَّل فيها من داخل المستودع، ويفشل عند كلّ من
+سواه. أُصلح وأُعيد إثباته قبل هذه الرسالة.
 
 *وما لن ندّعيه:* لا تدقيق أمنيّ، ولا منصّة تداول، ولا سعر، وقوّة التعدين
 ستكون صغيرة في البداية — وهذا صحيحٌ في كلّ شبكة إثبات عملٍ جديدة.

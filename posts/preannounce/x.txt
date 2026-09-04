@@ -2,7 +2,7 @@
  X / Twitter -- https://x.com/WAMCoinCore
 ===========================================================================
 
- A thread of 9 posts. Post 1 first, then reply to your own post each time.
+ A thread of 10 posts. Post 1 first, then reply to your own post each time.
  Every one is under 280 characters as X counts them -- a link counts as 23
  no matter how long it is. They were measured, not estimated.
 
@@ -89,13 +89,23 @@ published.
 
 docs/REHEARSALS.md holds the table, including the days that found nothing.
 
-4 Sept found four defects in two hours. That is in there too.
-
-The rate is the only honest measure of ready.
+Today found five. The rate is the only honest measure of ready.
 
 --- 8 -----------------------------------------------------------------
 
-7/ What we won't pretend:
+7/ The fifth one, today:
+
+The command in 4/ told a first-time reader that a correctly signed release
+was FORGED.
+
+It looked for our public key after changing directory, so it never found
+it.
+
+Passed every time from inside the repo. Failed for everyone else.
+
+--- 9 -----------------------------------------------------------------
+
+8/ What we won't pretend:
 
 No security audit. Two devs read the consensus changes and their
 findings were adopted. That is not an audit.
@@ -104,9 +114,9 @@ Hashrate will be small at first, like every new PoW chain.
 
 No exchange, no price. Anyone selling WAM before the 15th is selling air.
 
---- 9 -----------------------------------------------------------------
+--- 10 ----------------------------------------------------------------
 
-8/
+9/
 supply 22,000,000 hard cap
 reward 50 WAM, halving every 200,000 blocks
 block time 120s, DarkGravityWave v3
