@@ -1,0 +1,226 @@
+===========================================================================
+ BitcoinTalk -- Alternate cryptocurrencies > Announcements (Altcoins)
+ https://bitcointalk.org/index.php?board=159.0
+===========================================================================
+
+ SUBJECT LINE (copy this into the subject field):
+
+ [ANN][WAM] WAM Coin - RandomX CPU mining, 22M cap, premine locked on chain
+
+ Post the body below as-is. It is BBCode; BitcoinTalk renders it.
+
+===========================================================================
+
+
+[size=14pt][b]WAM Coin - mainnet 15 September 2026, 00:00 UTC[/b][/size]
+
+A new RandomX chain. Before the usual list of features, the part that is
+unusual: [b]almost everything below can be checked before the chain
+exists.[/b] Where it cannot, that is said plainly rather than left out.
+
+
+[b]WHAT IT IS[/b]
+
+[code]
+algorithm       RandomX - CPU, ASIC-hostile, key rotates every 2048 blocks
+supply          22,000,000 WAM, hard cap
+block reward    50 WAM, halving every 200,000 blocks (~9.1 months)
+block time      120 seconds, DarkGravityWave v3 retarget every block
+premine         2,000,000 WAM in the genesis block, all of it time-locked
+treasury        5% of the block subsidy, ends at height 400,000
+ports           9555 p2p / 9554 rpc
+SLIP-44         5718349, registered with SatoshiLabs (slips PR #2051)
+codebase        Bitcoin Core v28.1
+licence         MIT
+[/code]
+
+No presale. No ICO. No airdrop. No exchange listing. No token sale. The
+chain opens at 00:00 UTC on 15 September and everyone starts from the
+same block.
+
+
+[b]1. THE PREMINE IS LOCKED BY CONSENSUS, NOT BY PROMISE[/b]
+
+2,000,000 WAM is minted in the genesis block. That is a premine and calling
+it anything else would be dishonest. What is different is that [b]not one
+coin of it can move on launch day, or in the first year.[/b]
+
+It is five outputs of 400,000 WAM each, every one behind a bare
+OP_CHECKLOCKTIMEVERIFY script with a calendar date in it:
+
+[code]
+tranche 1    400,000 WAM    unlocks 2027-09-15
+tranche 2    400,000 WAM    unlocks 2028-09-15
+tranche 3    400,000 WAM    unlocks 2029-09-15
+tranche 4    400,000 WAM    unlocks 2030-09-15
+tranche 5    400,000 WAM    unlocks 2031-09-15
+[/code]
+
+The scripts are [b]bare, not P2SH[/b]. A P2SH output would show you a hash
+and you would have to trust a redeem script published somewhere else. A bare
+script puts the unlock date in the scriptPubKey where anyone reads it
+directly out of block 0:
+
+[code]
+wam-cli getblock $(wam-cli getblockhash 0) 2
+[/code]
+
+The locks are timestamps, not block heights. A height-based lock of
+"262,980 blocks" only equals one year if the chain holds 120 s per block
+forever; if hashrate falls, a four-year promise silently becomes five. The
+public will hold this schedule to calendar dates, so calendar dates are what
+consensus enforces.
+
+An earlier design had the first tranche liquid at genesis, described as
+working capital. It was removed. The 5% treasury already covers operating
+cost, so the only thing an unlocked tranche bought was 400,000 WAM the
+founder could sell on day one into a market with no liquidity - the exact
+shape of the objection every premine attracts, granted for no benefit.
+
+
+[b]2. THE TREASURY ENDS, AND IT COMES OUT OF THE SUBSIDY[/b]
+
+5% of the block subsidy goes to a development treasury. It is carved [b]out
+of[/b] the reward, not added on top of it, so emission and the hard cap are
+untouched:
+
+[code]
+epoch 0    miner 47.5 WAM + all fees      treasury 2.5 WAM    total 50
+[/code]
+
+Transaction fees are never touched. They are the miner's entirely.
+
+And it stops:
+
+[code]
+heights       1 .. 200,000    2.50 WAM/block     500,000 WAM
+heights 200,001 .. 400,000    1.25 WAM/block     250,000 WAM
+heights 400,001 ..            0
+                                             --------------
+lifetime treasury                              750,000 WAM
+[/code]
+
+Roughly eighteen months of funding, then miners take 100% of the subsidy
+forever. A permanent 5% tax reads to a miner as a tax for twenty-five years.
+The same money over a fixed published window is launch funding. RandomX's
+audience is precisely the audience that cares about the difference.
+
+
+[b]3. THE RELEASES ARE SIGNED, AND THERE IS ONE COMMAND TO CHECK IT[/b]
+
+Until 3 September the releases carried SHA256SUMS and nothing else. A
+checksum file hosted beside the file it describes proves only that both came
+from the same place: whoever can replace the binary can replace the list,
+and the two agree perfectly. It protects against a corrupted download. It
+protects against nobody.
+
+Every release from v0.1.6 is signed with an offline key:
+
+[code]
+4BD4 A8D3 AFD4 3F5C BCB5  00E2 3798 462F E00A DBA4
+[/code]
+
+[code]
+https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.6
+[/code]
+
+Download the release, SHA256SUMS and SHA256SUMS.asc into one directory.
+Then get the checker and the public key from the repository - deliberately
+a different place from the binary - and run it:
+
+[code]
+git clone https://github.com/wam-coin-official/wam-coin
+bash wam-coin/scripts/verify_release.sh ~/Downloads
+[/code]
+
+It refuses to print ok unless three things hold: the signature is good, it
+was made by [b]that[/b] fingerprint, and the file in front of you is the
+file that fingerprint signed for. It verifies in a throwaway keyring, so it
+does not touch yours, and the fingerprint - not the key file - is the trust
+anchor. Check that fingerprint against SECURITY.md on GitHub over HTTPS.
+Do not take it from this post.
+
+
+[b]4. THERE IS A TESTNET, AND IT HAS BEEN RUNNING FOR FIVE WEEKS[/b]
+
+[code]
+testnet genesis    2026-08-01
+height now         5,136
+independent nodes  1, connected without a break for two days
+[/code]
+
+One. Not a number worth inflating: it is one person we have never met who
+found the network, ran it, and has stayed on it. The seeds are ours, and
+saying otherwise would be the first checkable lie in this post.
+
+
+[b]5. THE LAUNCH IS BEING REHEARSED, AND WHAT EACH REHEARSAL FINDS IS
+PUBLISHED[/b]
+
+One rehearsal a day until launch. Not because something is expected to be
+wrong, but because every rehearsal so far has found something no amount of
+reading found, and [b]how much a rehearsal still finds[/b] is the only
+honest measure of whether this is ready.
+
+docs/REHEARSALS.md carries the schedule and a table of what each one found,
+including the days that found nothing. Some of what is in there:
+
+[code]
+28 Aug   a pre-launch mainnet node cannot survive a restart
+29 Aug   ElectrumX ports 50001-50004 collided between networks
+30 Aug   wallets are not created under wallets/ unless it already exists
+ 4 Sep   four defects in two hours, in the pool, explorer and announcer
+[/code]
+
+A project that publishes its defect list before launch is doing something
+unusual, and it is deliberate. Read it and judge for yourself whether the
+rate is falling fast enough.
+
+
+[b]WHAT WE ARE NOT GOING TO PRETEND[/b]
+
+[list]
+[li][b]No security audit.[/b] Two independent developers read the consensus
+changes and their findings were adopted. Peer review is not an audit and we
+will not call it one.[/li]
+[li][b]The hashrate will be small.[/b] True of every new proof-of-work
+chain, and not made less true by omitting it. A chain with little hashrate
+can be reorganised by somebody renting enough CPU. That costs money to those
+who accept payment on few confirmations - exchanges mostly, not people
+holding coins. We ask 20 confirmations wallet-to-wallet, 60 for an exchange
+deposit, and we will publish a review of those numbers against measured
+hashrate rather than quietly leaving them.[/li]
+[li][b]No exchange, no price, no listing.[/b] There is nothing to buy. If
+someone offers you WAM before 15 September, they are selling something that
+does not exist.[/li]
+[li][b]No pre-built Windows or macOS binary yet.[/b] Linux x86_64, and
+building from source.[/li]
+[/list]
+
+
+[b]LINKS[/b]
+
+[code]
+website     https://wamcoin.org
+source      https://github.com/wam-coin-official/wam-coin
+telegram    https://t.me/wam_coin_updates
+x           https://x.com/WAMCoinCore
+discord     https://discord.gg/Gxvmrjy9Qb
+[/code]
+
+There are no others. No Reddit, no second Telegram, no "support" account.
+Nobody official will ever message you first, ask for a seed phrase, or offer
+you an allocation.
+
+
+[b]RUN A NODE[/b]
+
+[code]
+git clone https://github.com/wam-coin-official/wam-coin
+cd wam-coin && ./install.sh
+[/code]
+
+Builds from source, checks its own checksums, and requires no trust in a
+binary anybody handed you.
+
+Eleven days. Questions here get answered.

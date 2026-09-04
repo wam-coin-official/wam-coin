@@ -39,6 +39,33 @@ EXPECT="4BD4A8D3AFD43F5CBCB500E23798462FE00ADBA4"
 
 GRN=$'\033[32m'; RED=$'\033[31m'; YLW=$'\033[33m'; BLD=$'\033[1m'; OFF=$'\033[0m'
 
+# Where this script itself lives, resolved to an absolute path BEFORE the cd
+# below. The order is the whole point.
+#
+# $0 is whatever the caller typed, and the caller is not standing in the repo:
+# the command published in the announcement is
+#
+#     git clone https://github.com/wam-coin-official/wam-coin
+#     bash wam-coin/scripts/verify_release.sh ~/Downloads
+#
+# so $0 is the relative path `wam-coin/scripts/verify_release.sh`. Resolving it
+# after `cd "$DIR"` resolves it against ~/Downloads, where no such path exists,
+# so SIGNING-KEY.asc beside it is never found, the fallback to the reader's own
+# keyring is taken, and a reader who has imported nothing is told
+#
+#     FAIL  the signature over SHA256SUMS is NOT valid
+#
+# about a release that is perfectly good. That is the worst failure this script
+# has: it accuses an honest release, at the exact moment someone is deciding
+# whether to trust us, and it does it to every first-time reader.
+#
+# It was invisible because it only happens when the caller is OUTSIDE the repo.
+# Every test run was `bash scripts/verify_release.sh <dir>` from the repo root,
+# where dirname $0 is `scripts` and the fallback path happens to resolve. Found
+# on 4 September 2026 by running the published command as a stranger would, on
+# a clean directory, with an empty keyring.
+SELF_DIR="$(cd -- "$(dirname -- "$0")" 2>/dev/null && pwd)"
+
 DIR="${1:-.}"
 cd "$DIR" 2>/dev/null || { echo "no such directory: $DIR" >&2; exit 2; }
 
@@ -76,7 +103,9 @@ command -v gpg >/dev/null 2>&1 || {
 # and the comparison is what catches it. Meanwhile nothing is added to the
 # reader's keyring, which is not ours to modify.
 KEYFILE=""
-for c in SIGNING-KEY.asc ./SIGNING-KEY.asc "$(dirname "$0")/../SIGNING-KEY.asc"; do
+for c in SIGNING-KEY.asc \
+         "${SELF_DIR:-.}/../SIGNING-KEY.asc" \
+         "${SELF_DIR:-.}/SIGNING-KEY.asc"; do
     [ -f "$c" ] && { KEYFILE="$c"; break; }
 done
 

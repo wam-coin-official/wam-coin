@@ -1,0 +1,176 @@
+===========================================================================
+ Telegram -- https://t.me/wam_coin_updates
+===========================================================================
+
+ Telegram markdown: *bold*, `code`, ```block```
+ Post the English first. Post the Arabic as a second message, or pin both.
+
+===========================================================================
+ ENGLISH
+===========================================================================
+
+*WAM Coin - mainnet in 11 days.*
+
+15 September 2026, 00:00 UTC. RandomX, CPU, 22,000,000 hard cap, no
+presale and nothing to buy.
+
+Every new chain asks you to trust it. *Here is what you can check before
+this one exists.*
+
+*1. The premine is locked by consensus, not by promise.*
+
+2,000,000 WAM is minted in the genesis block. Not one coin of it can move
+on launch day, or in the first year. Five outputs of 400,000, each behind a
+script with a date in it:
+
+```
+2027-09-15   2028-09-15   2029-09-15   2030-09-15   2031-09-15
+```
+
+The scripts are bare, not P2SH - the unlock date is in the output itself,
+not behind a hash you would have to trust us about. Read it out of block 0:
+
+```
+wam-cli getblock $(wam-cli getblockhash 0) 2
+```
+
+*2. The releases are signed, and one command checks it.*
+
+```
+4BD4 A8D3 AFD4 3F5C BCB5  00E2 3798 462F E00A DBA4
+```
+
+https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.6
+
+Download the release, SHA256SUMS and SHA256SUMS.asc into one directory.
+The checker and the key come from the repository, deliberately a different
+place from the binary:
+
+```
+git clone https://github.com/wam-coin-official/wam-coin
+bash wam-coin/scripts/verify_release.sh ~/Downloads
+```
+
+It refuses to say ok unless the signature is good, made by that exact
+fingerprint, and covering the file in front of you. Check the fingerprint
+against SECURITY.md on GitHub over HTTPS - not against this message.
+
+*3. The testnet has been running five weeks.*
+
+```
+genesis 2026-08-01     height 5,136     independent nodes: 1
+```
+
+One. Somebody we have never met who found the network and has stayed on it
+without a break for two days. The seeds are ours and we are not going to
+count them as anybody else.
+
+*4. The launch is rehearsed daily, and what each rehearsal finds is
+published.*
+
+`docs/REHEARSALS.md` - the schedule, and a table of what every rehearsal
+found, including the days that found nothing. 4 September found four
+defects in two hours. That is in there too.
+
+*What we will not pretend:* no audit, no exchange, no price, and the
+hashrate will be small at first, which is true of every new PoW chain.
+
+```
+supply        22,000,000 hard cap
+reward        50 WAM, halving every 200,000 blocks
+block time    120 s, DarkGravityWave v3
+treasury      5% of the subsidy, ends at height 400,000
+```
+
+Run a node:
+
+```
+git clone https://github.com/wam-coin-official/wam-coin
+cd wam-coin && ./install.sh
+```
+
+https://wamcoin.org
+https://github.com/wam-coin-official/wam-coin
+
+
+===========================================================================
+ ARABIC
+===========================================================================
+
+*عملة WAM — الشبكة الرئيسية بعد 11 يوماً.*
+
+15 سبتمبر 2026، الساعة 00:00 بتوقيت غرينتش. خوارزمية RandomX على المعالج،
+سقفٌ نهائيّ 22,000,000، بلا بيعٍ مسبق ولا شيء يُشترى.
+
+كلّ عملةٍ جديدة تطلب منك أن تثق بها. *وهذا ما تستطيع فحصه قبل أن توجد هذه.*
+
+*١ — حصّة المؤسّس مقفولةٌ بالإجماع، لا بالوعد.*
+
+2,000,000 WAM تُسكّ في كتلة التكوين. ولا يتحرّك منها قرشٌ واحد يوم الإطلاق،
+ولا في السنة الأولى. خمسة مخرجات، كلٌّ منها 400,000، وكلٌّ خلف نصٍّ فيه تاريخ:
+
+```
+2027-09-15   2028-09-15   2029-09-15   2030-09-15   2031-09-15
+```
+
+والنصوص مكشوفة لا مغلّفة بـ P2SH — تاريخ الفتح في المخرَج نفسه، لا خلف بصمةٍ
+تضطرّ أن تصدّقنا فيها. اقرأها من الكتلة صفر:
+
+```
+wam-cli getblock $(wam-cli getblockhash 0) 2
+```
+
+*٢ — الإصدارات موقَّعة، وأمرٌ واحد يفحص التوقيع.*
+
+```
+4BD4 A8D3 AFD4 3F5C BCB5  00E2 3798 462F E00A DBA4
+```
+
+https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.6
+
+نزّل الإصدار وSHA256SUMS وSHA256SUMS.asc في مجلّدٍ واحد. والفاحصُ والمفتاح
+يأتيان من المستودع — من مكانٍ غير مكان الملفّ التنفيذيّ، وهذا مقصود:
+
+```
+git clone https://github.com/wam-coin-official/wam-coin
+bash wam-coin/scripts/verify_release.sh ~/Downloads
+```
+
+ولا يقول «ok» إلّا إذا كان التوقيع سليماً، وصادراً عن هذه البصمة بالذات،
+ويغطّي الملفّ الذي أمامك. وافحص البصمة من SECURITY.md على GitHub عبر HTTPS
+— لا من هذه الرسالة.
+
+*٣ — شبكة الاختبار تعمل منذ خمسة أسابيع.*
+
+```
+البداية 2026-08-01     الارتفاع 5,136     عقدة مستقلّة: 1
+```
+
+واحدة. شخصٌ لم نلتقِ به وجد الشبكة وبقي عليها يومين بلا انقطاع. والبذور
+خوادمُنا نحن، ولن نعدّها على أنّها أحدٌ غيرنا.
+
+*٤ — الإطلاق يُتمرَّن عليه كلّ يوم، وما تجده كلّ بروفةٍ يُنشر.*
+
+`docs/REHEARSALS.md` — الجدول، وجدولٌ بما وجدته كلّ بروفة، بما فيها الأيّام
+التي لم تجد شيئاً. الرابع من سبتمبر وجد أربعة أعطالٍ في ساعتين. وهذا مكتوبٌ
+فيه أيضاً.
+
+*وما لن ندّعيه:* لا تدقيق أمنيّ، ولا منصّة تداول، ولا سعر، وقوّة التعدين
+ستكون صغيرة في البداية — وهذا صحيحٌ في كلّ شبكة إثبات عملٍ جديدة.
+
+```
+السقف        22,000,000 نهائيّ
+المكافأة     50 WAM، تنصيفٌ كلّ 200,000 كتلة
+زمن الكتلة   120 ثانية، DarkGravityWave v3
+الخزينة      5% من المكافأة، تنتهي عند الارتفاع 400,000
+```
+
+شغّل عقدة:
+
+```
+git clone https://github.com/wam-coin-official/wam-coin
+cd wam-coin && ./install.sh
+```
+
+https://wamcoin.org
+https://github.com/wam-coin-official/wam-coin

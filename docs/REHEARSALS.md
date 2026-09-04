@@ -60,8 +60,20 @@ is the day it is needed.
 | 30 Aug | Phase D, the pool wallet | wallets are not under `wallets/` unless it already exists | wallet created and proved to survive the wipe |
 | 4 Sep | **Phase E against a real mainnet node** | **six checks asked about mainnet and answered about testnet**; the pool's testnet and mainnet configs claim the same four ports; the gate printed an override that does nothing; `check_explorer` called a height-0 chain a fault | `scripts/wamcli.py`, `move_testnet_pool.sh`, gate message, treasury check |
 
-Four in one evening, in a phase that had been rehearsed once already. That is
+| 4 Sep | **The announcement, written against the running system** | **`verify_release.sh` told a first-time reader a good release was forged**; the release page ships no key and no checker; `v0.1.6` is a pre-release, so `/releases/latest` skips it | `SELF_DIR` resolved before the `cd`; the drafts link the tag and clone the checker |
+
+Five in one evening, in a phase that had been rehearsed once already. That is
 the number to watch.
+
+The last one was not found by a rehearsal on the schedule. It was found by
+writing the announcement and refusing to publish a command without running it
+first — from a clean directory with an empty keyring, which is the only place
+the bug exists. Every previous run was from inside the repo, where it cannot
+happen.
+
+That is worth a rule of its own: **a check is only tested from where its
+audience stands.** `verify_release.sh` exists for somebody who has no reason
+to trust us, and it had never once been run by anybody in that position.
 
 ---
 
