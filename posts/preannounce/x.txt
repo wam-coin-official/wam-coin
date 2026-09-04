@@ -54,7 +54,9 @@ wam-cli getblock $(wam-cli getblockhash 0) 2
 
 4BD4 A8D3 AFD4 3F5C BCB5 00E2 3798 462F E00A DBA4
 
-Check that fingerprint against SECURITY.md on GitHub, over HTTPS.
+Check that fingerprint over HTTPS, here:
+
+https://github.com/wam-coin-official/wam-coin/blob/main/SECURITY.md
 
 Not against this post. A post is exactly the thing an attacker gets to
 write.
