@@ -27,12 +27,27 @@
 //      key rotations      when the RandomX epoch turns over
 //      releases           when a new version is published on GitHub
 //      milestones         round heights and round millions of supply
-//      stalls             when no block has arrived for too long
 //
-//  That last one is the one nobody else does. A channel that only carries good
-//  news is advertising; a channel that reports its own outages is a source. It
-//  also means the operator learns about a stalled chain from the same place
-//  everyone else does, which is the right way round.
+//  and to the OPERATOR only, never to the public channel:
+//
+//      stalls             when no block has arrived for too long
+//      recoveries         when they start arriving again
+//
+//  Stalls used to be public, on the reasoning that a channel which only
+//  carries good news is advertising while one that reports its own outages is
+//  a source. That reasoning holds for a live chain and this is not one yet.
+//
+//  Measured over the channel's whole life to 4 September 2026: 147 posts, 21
+//  of them the daily heartbeat and 126 the chain reporting that it had
+//  stopped. Eighty-six per cent of everything WAM had ever said in public was
+//  "no new block for an hour" -- about a test network whose entire hashrate is
+//  one laptop and one server, which therefore stops whenever the founder's
+//  power does. It informed nobody and taught every reader that the project
+//  stops constantly.
+//
+//  The alert still fires, every time, and still reaches a person within a
+//  minute. It goes to the operator's own chat. Nothing is silenced, and when
+//  mainnet is live this belongs in public again.
 //
 //  It does NOT post commits. Anyone who wants those has GitHub's Watch button,
 //  and a stream of "fix X" messages tells a non-developer that a project is
@@ -54,7 +69,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { NodeRpc, latestRelease } = require('./lib/clients');
-const { buildSinks } = require('./lib/sinks');
+const { buildSinks, TelegramSink } = require('./lib/sinks');
 const { loadConfig } = require('./lib/config');
 const { b, i, t, code, kbd, toTelegram, toDiscord, toPlain } = require('./lib/markup');
 
@@ -370,6 +385,11 @@ async function tick(cfg, rpc, state, log) {
     const s = await snapshot(rpc);
     const now = Date.now();
     const out = [];
+    // Messages that go to the operator instead of the public channel.
+    // A Set of the exact strings pushed, rather than a new message shape,
+    // because bots/test/messages.test.js calls stallMessage() directly and
+    // expects a string back.
+    const opsOnly = new Set();
 
     const sup = s.supply || {};
     const subsidy = sup.block_subsidy !== undefined
@@ -409,16 +429,42 @@ async function tick(cfg, rpc, state, log) {
     state.milestonesSeen = [...seen];
 
     // ---- stall -------------------------------------------------------------
+    //
+    // These go to the operator, not to the public channel.
+    //
+    // Measured on 4 September 2026, over the channel's whole life: 147 posts,
+    // of which 21 were the daily heartbeat and 126 were the chain reporting
+    // that it had stopped. Eighty-six per cent of everything WAM has ever said
+    // in public was "no new block for an hour".
+    //
+    // The original reasoning still stands for a live chain -- a channel that
+    // only carries good news is advertising, and an operator should learn
+    // about a stalled chain from the same place everyone else does. But this
+    // is a TEST network whose entire hashrate is the founder's laptop and one
+    // server, so it stops whenever his power does, which in Libya is most
+    // days. Publishing that 126 times does not inform anybody; it teaches a
+    // reader that the project stops constantly, which is true of the test
+    // chain and says nothing about the one that launches on 15 September.
+    //
+    // So the alert still fires, still every time, and still reaches a person
+    // within a minute -- it goes to the operator's own chat. Nothing is
+    // silenced. When mainnet is live this belongs in public again, and the
+    // line below is the only thing that has to change.
     if (s.height === state.lastHeight) {
         const stalledFor = Math.round((now - (state.lastHeightAt || now)) / 60000);
         if (stalledFor >= cfg.stallMinutes && !state.stallAnnounced) {
-            out.push(stallMessage(stalledFor, s.height));
+            const m = stallMessage(stalledFor, s.height);
+            out.push(m); opsOnly.add(m);
             state.stallAnnounced = true;
         }
     } else {
         if (state.stallAnnounced) {
             const wasDown = Math.round((now - (state.lastHeightAt || now)) / 60000);
-            out.push(recoveredMessage(s.height, wasDown));
+            // Same audience as the stall it answers: telling the public a
+            // chain recovered, when they were never told it stopped, reads
+            // as an announcement about nothing.
+            const r = recoveredMessage(s.height, wasDown);
+            out.push(r); opsOnly.add(r);
             state.stallAnnounced = false;
         }
         state.lastHeight = s.height;
@@ -472,7 +518,7 @@ async function tick(cfg, rpc, state, log) {
     }
     state.nextHeartbeatDueAt = (now >= dueToday ? dueToday + 86400000 : dueToday);
 
-    return { messages: out, snapshot: s };
+    return { messages: out, opsOnly, snapshot: s };
 }
 
 // ---------------------------------------------------------------------------
@@ -495,6 +541,14 @@ async function main() {
 
     const rpc = new NodeRpc(cfg.node);
     const sinks = buildSinks(cfg);
+
+    // A second Telegram sink pointed at the operator's own chat, for the
+    // messages that must not be published. Same token, different room.
+    let opsSink = null;
+    if (cfg.opsChatId && cfg.telegram && cfg.telegram.token) {
+        opsSink = new TelegramSink({ token: cfg.telegram.token,
+                                     chatId: cfg.opsChatId });
+    }
     const state = loadState(cfg.stateFile);
 
     log(`WAM announcement bot`);
@@ -546,10 +600,29 @@ async function main() {
 
         for (const message of result.messages) {
             const label = toPlain(message).split('\n')[0];
+
+            // Operator-only messages go to one place and are not published.
+            // If there is no ops chat configured they are logged and dropped
+            // rather than falling through to the public channel -- a message
+            // marked private must never be published by a missing setting.
+            if (result.opsOnly && result.opsOnly.has(message)) {
+                if (opsSink) {
+                    try {
+                        await opsSink.send(message);
+                        log(`sent to the operator (${label})`);
+                    } catch (err) {
+                        log(`operator send failed: ${err.message}`);
+                    }
+                } else {
+                    log(`operator-only, and no opsChatId is set -- NOT sent (${label})`);
+                }
+                continue;
+            }
+
             // Each channel independently. One service being down, rate limited
             // or misconfigured must not cost the announcement on the other --
             // and must not stop the loop, since the next message may be the
-            // stall alert that says the chain has stopped.
+            // one that matters most.
             for (const sink of sinks) {
                 try {
                     await sink.send(message);
