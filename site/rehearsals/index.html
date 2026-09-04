@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Launch rehearsals — WAM Coin</title>
+<link rel="icon" href="/favicon.png" type="image/png">
+<meta name="description" content="One rehearsal a day until launch, and a published record of what each one found.">
+<link rel="canonical" href="https://wamcoin.org/rehearsals/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="WAM Coin">
+<meta property="og:title" content="Launch rehearsals — WAM Coin">
+<meta property="og:description" content="What every launch rehearsal found, including the days that found nothing. The rate is the only honest measure of ready.">
+<meta property="og:image" content="https://wamcoin.org/og-card.png">
+<meta property="og:url" content="https://wamcoin.org/rehearsals/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@WAMCoinCore">
+<meta name="twitter:image" content="https://wamcoin.org/og-card.png">
+<style>
+:root{--bg:#faf9f7;--fg:#1a1a1a;--dim:#5c5a57;--rule:#e3e0db;--code:#f2f0ec;--accent:#8a6d1f}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0e1211;--fg:#eceae7;--dim:#9a9691;--rule:#242a29;--code:#171d1c;--accent:#c9a94a}}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);margin:0;padding:2.2rem 1.1rem 5rem;
+ font:16px/1.72 ui-serif,Georgia,"Times New Roman",serif;-webkit-text-size-adjust:100%}
+main{max-width:44rem;margin:0 auto}
+h1{font-size:1.85rem;line-height:1.25;margin:0 0 .4rem;letter-spacing:-.01em}
+h2{font-size:1.28rem;margin:2.6rem 0 .7rem;padding-top:1.1rem;border-top:1px solid var(--rule)}
+h3{font-size:1.06rem;margin:1.8rem 0 .5rem}
+p,li{margin:.75rem 0}
+a{color:inherit;text-decoration:underline;text-underline-offset:2px;text-decoration-color:var(--accent)}
+code{background:var(--code);padding:.12em .38em;border-radius:3px;
+ font:13.5px/1.5 ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;word-break:break-word}
+pre{background:var(--code);padding:.95rem 1.05rem;border-radius:6px;overflow-x:auto;
+ border:1px solid var(--rule)}
+pre code{background:none;padding:0;white-space:pre}
+blockquote{margin:1.1rem 0;padding:.1rem 0 .1rem 1rem;border-inline-start:3px solid var(--accent);color:var(--dim)}
+table{border-collapse:collapse;width:100%;margin:1.1rem 0;font-size:.94rem;display:block;overflow-x:auto}
+th,td{border-bottom:1px solid var(--rule);padding:.5rem .6rem;text-align:start}
+th{font-weight:600}
+hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
+/* The mark, on every page. A reader who meets WAM in a search result should
+   have seen the same coin four times before they read the name. */
+.mast{display:flex;align-items:center;gap:.7rem;margin-bottom:1.4rem}
+.mast img{width:44px;height:44px;flex:none;border-radius:50%}
+.mast .wordmark{font-weight:600;letter-spacing:-.01em;font-size:1.05rem}
+.mast .wordmark span{display:block;font-size:.8rem;font-weight:400;color:var(--dim);
+ letter-spacing:0}
+.top{display:flex;gap:1rem;flex-wrap:wrap;font-size:.9rem;color:var(--dim);
+ margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid var(--rule)}
+.foot{margin-top:3.5rem;padding-top:1.2rem;border-top:1px solid var(--rule);
+ font-size:.87rem;color:var(--dim)}
+[dir=rtl]{font-family:ui-serif,"Noto Naskh Arabic","Amiri",Georgia,serif}
+[dir=rtl] pre,[dir=rtl] code{direction:ltr;text-align:left}
+</style>
+</head>
+<body>
+<main>
+<a class="mast" href="/">
+  <img src="/wam-coin.png" alt="The WAM Coin mark" width="44" height="44">
+  <span class="wordmark">WAM Coin<span>A CPU-mineable proof-of-work currency</span></span>
+</a>
+<nav class="top">
+  <a href="/">wamcoin.org</a>
+  <a href="/start/">start</a>
+  <a href="/start-ar/">بالعربية</a>
+  <a href="/whitepaper/">whitepaper</a>
+  <a href="/security/">security</a>
+  <a href="/build/">build</a>
+  <a href="/pool/">pool</a>
+  <a href="https://github.com/wam-coin-official/wam-coin/blob/main/docs/REHEARSALS.md">source</a>
+</nav>
+<h1 id="rehearsals">Rehearsals</h1>
+<p>One rehearsal a day until launch, decided on 4 September 2026.</p>
+<p>The reasoning is not that something is expected to be wrong. It is that every rehearsal so far has found something no amount of reading found, and the only honest measure of whether this is ready is <strong>how much a rehearsal still finds</strong>. A day that finds nothing is the first real evidence of solidity. Four findings in two hours, which is what Phase E gave on 4 September, is not.</p>
+<p>Three rules, or this becomes a ritual:</p>
+<ol><li><strong>Rotate the ground.</strong> Rehearsing the same phase twice finds the same thing twice. Each day covers something the last did not.</li><li><strong>Write down what it found, every time, including nothing.</strong> The rate is the measurement. Without a number per day, "it feels solid" is all anyone has, and this project has been wrong about that repeatedly.</li><li><strong>The heavy rehearsals go first.</strong> One on 14 September that finds a defect is a defect that launches with us. Front-load.</li></ol>
+<hr>
+<h2 id="the-schedule">The schedule</h2>
+<table><tr><th>Day</th><th>Rehearsal</th><th>Needs</th></tr><tr><td>4 Sep</td><td><strong>Phase E</strong> — Electrum, pool and explorer against a real mainnet node</td><td>done</td></tr><tr><td>5 Sep</td><td><strong>Restore a backup</strong> end to end, onto a clean machine</td><td>nothing</td></tr><tr><td>6 Sep</td><td><strong>A stranger follows START_HERE</strong> from nothing: download, verify, sync, mine</td><td>nothing</td></tr><tr><td>7 Sep</td><td><strong>Phases A→D</strong> in full on v0.1.6, from an empty directory</td><td>nothing</td></tr><tr><td>8 Sep</td><td><strong>Phase F</strong> — the announcer posting to mainnet</td><td>nothing</td></tr><tr><td>9 Sep</td><td><strong>France dies.</strong> Does Singapore carry the network alone?</td><td>nothing</td></tr><tr><td>10 Sep</td><td>The <strong>third seed</strong>, if the server has arrived</td><td>Vultr</td></tr><tr><td>11–12 Sep</td><td>Repeat whatever found a defect; publish the BitcoinTalk announcement</td><td>signed release ✓</td></tr><tr><td>13 Sep</td><td><strong>Freeze.</strong> No change but a critical fix</td><td></td></tr><tr><td>14 Sep</td><td>Full sweep, and read LAUNCH_DAY.md line by line</td><td></td></tr><tr><td>15 Sep</td><td>Launch</td><td></td></tr></table>
+<p>Only 10 September depends on anybody else. Contabo's panel and Vultr's approval block one line each; the rest proceeds whatever they do.</p>
+<h3 id="why-5-september-is-first">Why 5 September is first</h3>
+<p><code>there is something to restore from</code> checks that a file exists. It has never checked that the file <strong>opens</strong>. There are nineteen GPG-encrypted archives on the two servers and not one has ever been decrypted and restored.</p>
+<p>An untested backup is not a backup. It is a belief, and the day it is tested is the day it is needed.</p>
+<hr>
+<h2 id="what-each-rehearsal-found">What each rehearsal found</h2>
+<table><tr><th>Date</th><th>Rehearsal</th><th>Found</th><th>Fixed</th></tr><tr><td>27 Aug</td><td>Genesis values, v0.1.5</td><td>consensus values verified</td><td>—</td></tr><tr><td>28 Aug</td><td>Phase A/B from an empty directory</td><td>a pre-launch mainnet node cannot survive a restart</td><td><code>genesis_gate.sh</code></td></tr><tr><td>29 Aug</td><td>Phase E, ElectrumX</td><td>mainnet node had no fixed RPC credentials; ElectrumX does not index genesis; <strong>ports 50001–50004 collided</strong></td><td>per-network instances, testnet moved to 51xxx</td></tr><tr><td>30 Aug</td><td>Phase D, the pool wallet</td><td>wallets are not under <code>wallets/</code> unless it already exists</td><td>wallet created and proved to survive the wipe</td></tr><tr><td>4 Sep</td><td><strong>Phase E against a real mainnet node</strong></td><td><strong>six checks asked about mainnet and answered about testnet</strong>; the pool's testnet and mainnet configs claim the same four ports; the gate printed an override that does nothing; <code>check_explorer</code> called a height-0 chain a fault</td><td><code>scripts/wamcli.py</code>, <code>move_testnet_pool.sh</code>, gate message, treasury check</td></tr></table>
+<p>| 4 Sep | <strong>The announcement, written against the running system</strong> | <strong><code>verify_release.sh</code> told a first-time reader a good release was forged</strong>; the release page ships no key and no checker; <code>v0.1.6</code> is a pre-release, so <code>/releases/latest</code> skips it | <code>SELF_DIR</code> resolved before the <code>cd</code>; the drafts link the tag and clone the checker |</p>
+<p>Five in one evening, in a phase that had been rehearsed once already. That is the number to watch.</p>
+<p>The last one was not found by a rehearsal on the schedule. It was found by writing the announcement and refusing to publish a command without running it first — from a clean directory with an empty keyring, which is the only place the bug exists. Every previous run was from inside the repo, where it cannot happen.</p>
+<p>That is worth a rule of its own: <strong>a check is only tested from where its audience stands.</strong> <code>verify_release.sh</code> exists for somebody who has no reason to trust us, and it had never once been run by anybody in that position.</p>
+<hr>
+<h2 id="still-open">Still open</h2>
+<table><tr><th></th><th>Blocked on</th></tr><tr><td>TCP 13333–13336 in the Contabo panel, then <code>scripts/move_testnet_pool.sh</code></td><td>their panel, which was down on 4 Sep</td></tr><tr><td>The third server, so <code>seed3.wamcoin.org</code> stops being a name with no machine</td><td>Vultr's review</td></tr></table>
+<p>Until the first is done, launch night carries a step that must not be forgotten: <strong>stop <code>wam-pool</code> before starting the mainnet one</strong>, because both claim 3333–3336.</p>
+<p class="foot">This page is generated from docs/REHEARSALS.md in the repository. It is the same text; nothing here is written twice.</p>
+</main>
+</body>
+</html>

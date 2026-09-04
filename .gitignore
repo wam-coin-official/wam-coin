@@ -43,7 +43,19 @@ review/
 # ---------------------------------------------------------------------------
 # Build output
 # ---------------------------------------------------------------------------
-build/
+#
+# Anchored to the repository root, and the leading slash is the whole point.
+# Unanchored, `build/` matches a directory of that name at ANY depth -- which
+# silently swallowed site/build/, the page generated from docs/BUILD.md. The
+# file existed on disk, the generator reported success, /start/ linked to it
+# and the sitemap advertised it, and it would have gone live as a 404 because
+# git never tracked it. Found by checking `git ls-files` against what was on
+# disk rather than trusting that a written file is a published file.
+#
+# Anchoring loses nothing: /build/ still hides the 5,050-file tree at the root
+# and build/randomx/build inside it, and the two other build directories have
+# their own patterns below.
+/build/
 depends/
 *.o
 *.a

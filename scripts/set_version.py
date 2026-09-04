@@ -122,10 +122,10 @@ def main():
 
     # 3. the pages built from those documents
     if not args.dry_run and any(d.startswith("docs/START_HERE") for d in touched):
-        r = subprocess.run([sys.executable, str(REPO / "scripts" / "build_start_page.py")],
+        r = subprocess.run([sys.executable, str(REPO / "scripts" / "build_pages.py")],
                            capture_output=True, text=True)
         if r.returncode != 0:
-            print(f"  {RED}build_start_page.py failed{OFF}\n{r.stdout}{r.stderr}")
+            print(f"  {RED}build_pages.py failed{OFF}\n{r.stdout}{r.stderr}")
             return 1
         print(f"  {GRN}site/start, site/start-ar{OFF}  regenerated")
         touched += ["site/start/index.html", "site/start-ar/index.html"]

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security — WAM Coin</title>
+<link rel="icon" href="/favicon.png" type="image/png">
+<meta name="description" content="How to verify a WAM release, the signing key fingerprint, and how to report a vulnerability.">
+<link rel="canonical" href="https://wamcoin.org/security/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="WAM Coin">
+<meta property="og:title" content="Security — WAM Coin">
+<meta property="og:description" content="Every release is signed with an offline key. One command checks it, and refuses to say ok for the wrong reasons.">
+<meta property="og:image" content="https://wamcoin.org/og-card.png">
+<meta property="og:url" content="https://wamcoin.org/security/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@WAMCoinCore">
+<meta name="twitter:image" content="https://wamcoin.org/og-card.png">
+<style>
+:root{--bg:#faf9f7;--fg:#1a1a1a;--dim:#5c5a57;--rule:#e3e0db;--code:#f2f0ec;--accent:#8a6d1f}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0e1211;--fg:#eceae7;--dim:#9a9691;--rule:#242a29;--code:#171d1c;--accent:#c9a94a}}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);margin:0;padding:2.2rem 1.1rem 5rem;
+ font:16px/1.72 ui-serif,Georgia,"Times New Roman",serif;-webkit-text-size-adjust:100%}
+main{max-width:44rem;margin:0 auto}
+h1{font-size:1.85rem;line-height:1.25;margin:0 0 .4rem;letter-spacing:-.01em}
+h2{font-size:1.28rem;margin:2.6rem 0 .7rem;padding-top:1.1rem;border-top:1px solid var(--rule)}
+h3{font-size:1.06rem;margin:1.8rem 0 .5rem}
+p,li{margin:.75rem 0}
+a{color:inherit;text-decoration:underline;text-underline-offset:2px;text-decoration-color:var(--accent)}
+code{background:var(--code);padding:.12em .38em;border-radius:3px;
+ font:13.5px/1.5 ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;word-break:break-word}
+pre{background:var(--code);padding:.95rem 1.05rem;border-radius:6px;overflow-x:auto;
+ border:1px solid var(--rule)}
+pre code{background:none;padding:0;white-space:pre}
+blockquote{margin:1.1rem 0;padding:.1rem 0 .1rem 1rem;border-inline-start:3px solid var(--accent);color:var(--dim)}
+table{border-collapse:collapse;width:100%;margin:1.1rem 0;font-size:.94rem;display:block;overflow-x:auto}
+th,td{border-bottom:1px solid var(--rule);padding:.5rem .6rem;text-align:start}
+th{font-weight:600}
+hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
+/* The mark, on every page. A reader who meets WAM in a search result should
+   have seen the same coin four times before they read the name. */
+.mast{display:flex;align-items:center;gap:.7rem;margin-bottom:1.4rem}
+.mast img{width:44px;height:44px;flex:none;border-radius:50%}
+.mast .wordmark{font-weight:600;letter-spacing:-.01em;font-size:1.05rem}
+.mast .wordmark span{display:block;font-size:.8rem;font-weight:400;color:var(--dim);
+ letter-spacing:0}
+.top{display:flex;gap:1rem;flex-wrap:wrap;font-size:.9rem;color:var(--dim);
+ margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid var(--rule)}
+.foot{margin-top:3.5rem;padding-top:1.2rem;border-top:1px solid var(--rule);
+ font-size:.87rem;color:var(--dim)}
+[dir=rtl]{font-family:ui-serif,"Noto Naskh Arabic","Amiri",Georgia,serif}
+[dir=rtl] pre,[dir=rtl] code{direction:ltr;text-align:left}
+</style>
+</head>
+<body>
+<main>
+<a class="mast" href="/">
+  <img src="/wam-coin.png" alt="The WAM Coin mark" width="44" height="44">
+  <span class="wordmark">WAM Coin<span>A CPU-mineable proof-of-work currency</span></span>
+</a>
+<nav class="top">
+  <a href="/">wamcoin.org</a>
+  <a href="/start/">start</a>
+  <a href="/start-ar/">بالعربية</a>
+  <a href="/whitepaper/">whitepaper</a>
+  <a href="/build/">build</a>
+  <a href="/pool/">pool</a>
+  <a href="/rehearsals/">rehearsals</a>
+  <a href="https://github.com/wam-coin-official/wam-coin/blob/main/SECURITY.md">source</a>
+</nav>
+<h1 id="reporting-a-security-issue">Reporting a security issue</h1>
+<p><strong>Email: wam.coin.official@proton.me</strong></p>
+<p>Please do not open a public issue for a security problem. Do not post it in the Discord, and do not describe it on a forum. A consensus bug that is public before it is fixed is a bug every node on the network is exposed to at once.</p>
+<p>You will get an acknowledgement. If you do not hear anything within 72 hours, send the mail again — assume it was lost, not ignored.</p>
+<hr>
+<h2 id="what-counts">What counts</h2>
+<p>Anything that would let someone:</p>
+<ul><li>create WAM outside the emission schedule, or spend coins they do not own</li><li>make honest nodes disagree about which chain is valid</li><li>crash or stall a node from the network, or from a crafted block or transaction</li><li>take a block reward that the treasury rule reserves, or bypass the time locks on the founder reserve</li><li>steal from a mining pool built on <code>pool/</code>, or from a miner running <code>miner/</code></li></ul>
+<p>Also worth reporting, though less urgent: a way to make the node leak information about its wallet or its peers, and anything in <code>scripts/</code> that could expose a private key.</p>
+<p>Denial of service that requires more resources than it costs the attacker is interesting. A report that amounts to "I sent 10 Gbit/s at it" is not.</p>
+<h2 id="what-to-send">What to send</h2>
+<p>Enough to reproduce it. A patch is welcome but not required — a clear description of the mechanism is worth more than a proof of concept we cannot follow. If you have exploit code, send it; it will not be published.</p>
+<p>State whether you want to be credited, and how.</p>
+<h2 id="what-happens-next">What happens next</h2>
+<p>There is no bug bounty. This project has no revenue and does not pretend otherwise; a promise of payment we could not keep would be worse than saying so plainly. What you will get is: a real answer from someone who read your report, credit in the release notes if you want it, and a fix.</p>
+<p>For anything that affects consensus or funds, the fix is written and tested before it is described publicly. Once it is released, the report is published in full, including the timeline and the name of whoever found it.</p>
+<h2 id="scope">Scope</h2>
+<p>This repository: the node (<code>src/</code>), the reference miner (<code>miner/</code>), the mining pool (<code>pool/</code>), the explorer (<code>explorer/</code>), and the tooling in <code>scripts/</code>.</p>
+<p>WAM is a fork of Bitcoin Core v28.1. A vulnerability in unmodified upstream code should go to <a href="https://bitcoincore.org/en/contact/">Bitcoin Core's security process</a> first — they maintain it, and every fork including this one benefits from disclosure to them. Send it here too if you believe WAM's changes make it worse.</p>
+<h2 id="the-signing-key">The signing key</h2>
+<p>Its fingerprint goes here — on this line, in this file, in this repository, and in no other place:</p>
+<pre><code>4BD4 A8D3 AFD4 3F5C BCB5  00E2 3798 462F E00A DBA4</code></pre>
+<pre><code>WAM Coin (release signing) &lt;wam.coin.official@proton.me&gt;
+RSA 4096 · created 2026-09-03 · expires 2031-09-02</code></pre>
+<p>The public key is <a href="https://github.com/wam-coin-official/wam-coin/blob/main/SIGNING-KEY.asc">SIGNING-KEY.asc</a> in this repository.</p>
+<p><strong>Anyone quoting a WAM fingerprint from anywhere other than this file is quoting an invention.</strong> Not from an email, not from a chat message, not from a forum post, and not from a copy of this repository hosted somewhere else. Check it here, on GitHub, over HTTPS.</p>
+<h3 id="what-it-signs-and-what-that-is-worth">What it signs, and what that is worth</h3>
+<p>Every release carries <code>SHA256SUMS</code> and <code>SHA256SUMS.asc</code>. The first lists the hash of each file; the second is a signature over that list.</p>
+<p>A checksum file on its own protects against a corrupted download and nothing else: whoever can replace the binary can replace the list beside it, and both will agree. The signature is what a stranger cannot forge without this key.</p>
+<p>To check a download:</p>
+<pre><code>gpg --import SIGNING-KEY.asc
+gpg --verify SHA256SUMS.asc SHA256SUMS
+sha256sum --ignore-missing -c SHA256SUMS</code></pre>
+<p>or run <a href="https://github.com/wam-coin-official/wam-coin/blob/main/scripts/verify_release.sh">scripts/verify_release.sh</a>, which does the three and refuses to say "ok" unless all three pass.</p>
+<p><code>gpg --verify</code> printing <code>Good signature</code> with a <code>WARNING: This key is not certified with a trusted signature</code> is the normal and expected result. It means the signature is genuine and that you have not personally vouched for the key — which nobody should, on first contact. The fingerprint above is what you check instead.</p>
+<h3 id="the-key-is-not-on-any-server-this-project-runs">The key is not on any server this project runs</h3>
+<p>It was generated on the founder's own machine and exists in two places: that machine, and an offline backup. No node, no seed, no pool and no build server has ever held it. A server that is compromised cannot be used to sign a release, which is the entire point of keeping it off them.</p>
+<p>A revocation certificate was created in the same session and is stored apart from the key. If this fingerprint ever changes, or a revocation is published, treat every release signed after that moment as untrusted until this file says otherwise.</p>
+<h3 id="channels-txt">CHANNELS.txt</h3>
+<p><a href="/CHANNELS.txt">CHANNELS.txt</a> lists the project's official channels, and a list of accounts that vouch for each other is only as strong as the weakest of them: take one, repoint it at three impostors, and the mutual linking now argues <em>for</em> the attacker. A detached signature over CHANNELS.txt removes that. The reader stops needing to trust any account and only needs the one fingerprint above.</p>
+<h2 id="pgp-mail">PGP mail</h2>
+<p>Mail is accepted in plain text. The key above is for signing releases; if you need to encrypt a report before sending it, say so in a first message with no details.</p>
+<hr>
+<p><em>Last reviewed: 2026-08-11</em></p>
+<p class="foot">This page is generated from SECURITY.md in the repository. It is the same text; nothing here is written twice.</p>
+</main>
+</body>
+</html>
