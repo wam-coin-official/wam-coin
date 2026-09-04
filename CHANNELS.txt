@@ -62,16 +62,20 @@
  source repository, and nowhere else. Compare it character by character.
  A signature that verifies against some other key proves nothing at all.
 
- CHANNELS.txt.asc DOES NOT EXIST YET, and you should know exactly what that
- means rather than find out. The signing key is real -- it exists offline,
- its fingerprint is in SECURITY.md, and every release from v0.1.6 carries
- its signature, which you can verify today. This file has simply not been
- signed with it. Until it is, this list carries the authority of the
- repository it sits in -- a commit history, not a signature.
+ The key that signs this is kept offline and is not on any machine that
+ faces the internet. The same key signs every release from v0.1.6, so the
+ signature on your download and the signature on this list are the same
+ claim, made once and checkable twice.
 
- An earlier revision said the missing signature meant the key ceremony had
- not been held. That stopped being true when the ceremony was held, and the
- sentence was not updated, so it told you the wrong reason for a fortnight.
+ A signature covers exact bytes. This file is revised whenever a channel is
+ added, and every revision needs a new signature -- so if the verification
+ fails, the likely reason is that you hold the signature of a different
+ revision. Fetch both again from the same place, together.
+
+ Revisions 1 and 2 were never signed at all, and said so, but gave a reason
+ that had stopped being true: that the key ceremony had not been held. It
+ had. The file simply had not been signed with it, and nobody noticed the
+ sentence had gone stale for a fortnight.
 
 
  WHAT THIS FILE DOES NOT CLAIM
@@ -104,6 +108,14 @@
 
    Also corrected: the note explaining a missing CHANNELS.txt.asc still
    blamed a key ceremony that has since been held.
+
+   And this is the first revision that is actually signed. Revisions 1 and 2
+   told the reader to run gpg --verify against a file that did not exist,
+   for three and a half weeks, which is a worse failure than not offering
+   the check at all: it reads as though verification is available, and the
+   reader who tries it and gets nothing has no way to tell our negligence
+   from an attack. scripts/sign_channels.sh now signs and verifies its own
+   signature, so a revision cannot be published unsigned by forgetting.
 
  Revision 2 -- 2026-08-21
    Added the explorer, the pool and the Electrum server. They existed and
