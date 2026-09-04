@@ -381,6 +381,44 @@ function recoveredMessage(height, minutes) {
 // One pass
 // ---------------------------------------------------------------------------
 
+/**
+ * Put the chain banner on every message, and carry the operator-only marking
+ * across as it goes.
+ *
+ * Every event message carries the banner, not just the heartbeat. A halving
+ * announcement is the message most likely to be screenshotted and forwarded,
+ * and it is the one where "which chain?" matters most.
+ *
+ * THE SECOND HALF OF THIS IS WHY IT IS A FUNCTION
+ *
+ * This rewrites each message, which makes a NEW string. result.opsOnly is a
+ * Set of the OLD ones, so after this ran every operator-only message failed
+ * its lookup in the send loop and was published to the channel anyway.
+ *
+ * That is exactly what happened on 4 September 2026: stalls went out publicly
+ * at 07:51, 08:51, 09:51 and 09:52, hours after the routing was deployed and
+ * while bots/test/routing.test.js reported six passes. The test called tick()
+ * and checked the marking there -- it never reached this line. A test that
+ * stops one layer above the bug proves the bug is absent, in the layer that
+ * does not have it.
+ *
+ * It is exported so the test can exercise the composition rather than the
+ * half of it that was already right.
+ */
+function applyBanner(result) {
+    const banner = networkLabel(result.snapshot && result.snapshot.chainName);
+    if (!banner) return result;
+    const remarked = new Set();
+    result.messages = result.messages.map((m) => {
+        const out = m.includes(banner) ? m : `${banner}\n\n${m}`;
+        if (result.opsOnly && result.opsOnly.has(m)) remarked.add(out);
+        return out;
+    });
+    result.opsOnly = remarked;
+    return result;
+}
+
+
 async function tick(cfg, rpc, state, log) {
     const s = await snapshot(rpc);
     const now = Date.now();
@@ -570,13 +608,7 @@ async function main() {
         // heartbeat. A halving announcement is the message most likely to be
         // screenshotted and forwarded, and it is the one where "which chain?"
         // matters most. The heartbeat adds its own, so it is skipped here.
-        {
-            const banner = networkLabel(result.snapshot.chainName);
-            if (banner) {
-                result.messages = result.messages.map(
-                    (m) => (m.includes(banner) ? m : `${banner}\n\n${m}`));
-            }
-        }
+        applyBanner(result);
 
         // A dry run must not touch the state file. It did once, and the effect
         // was exactly the wrong shape: the operator tested the bot, saw the
@@ -657,7 +689,7 @@ async function main() {
 
 module.exports = {
     heartbeat, halvingMessage, rotationMessage, releaseMessage,
-    milestoneMessage, stallMessage, recoveredMessage, networkLabel,
+    milestoneMessage, stallMessage, recoveredMessage, networkLabel, applyBanner,
     loadConfig, tick, num, wam, hashrate, duration
 };
 
