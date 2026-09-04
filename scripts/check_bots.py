@@ -39,6 +39,7 @@
 #  appear in this output.
 # ===========================================================================
 
+import os
 import argparse
 import json
 import subprocess
@@ -67,6 +68,13 @@ def rsh(host, cmd, timeout=90):
 REMOTE_SINKS = r'''
 python3 - <<'PY'
 import json, urllib.request, urllib.error
+
+# Addressing a chain with wam-cli lives in one place. Each of these files
+# had its own copy, and every copy mapped mainnet to an EMPTY flag -- which
+# means the default datadir, which on both servers is the TESTNET node. Asked
+# to check mainnet, they all quietly checked testnet.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from wamcli import flags as _wamcli_flags   # noqa: E402
 
 # Discord answers 403 to a request with no User-Agent, and urllib sends
 # "Python-urllib/3.x" by default. The first version of this check reported the
@@ -136,8 +144,7 @@ def main():
                          "(default: the bot's heartbeatHours plus 2)")
     args = ap.parse_args()
 
-    flag = {"mainnet": "", "testnet": "-testnet", "regtest": "-regtest"}[args.network]
-
+    flag = _wamcli_flags(args.network)
     # --- the unit ---------------------------------------------------------
     head("the announcer is running")
     rc, active, _ = rsh(args.host, "systemctl is-active wam-announce")

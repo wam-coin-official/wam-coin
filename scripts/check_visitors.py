@@ -46,11 +46,19 @@
 #  rule does not bend because the output is convenient.
 # ===========================================================================
 
+import os
 import argparse
 import re
 import subprocess
 import sys
 from collections import defaultdict
+
+# Addressing a chain with wam-cli lives in one place. Each of these files
+# had its own copy, and every copy mapped mainnet to an EMPTY flag -- which
+# means the default datadir, which on both servers is the TESTNET node. Asked
+# to check mainnet, they all quietly checked testnet.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from wamcli import flags as _wamcli_flags   # noqa: E402
 
 RED = "\033[31m"; GRN = "\033[32m"; YEL = "\033[33m"; BLD = "\033[1m"; OFF = "\033[0m"
 
@@ -119,8 +127,7 @@ def main():
     ap.add_argument("--unit", default="wamd")
     args = ap.parse_args()
 
-    flag = {"mainnet": "", "testnet": "-testnet", "regtest": "-regtest"}[args.network]
-
+    flag = _wamcli_flags(args.network)
     print(f"\n{BLD}who came, and why they did not stay{OFF}")
 
     rc, log = rsh(args.host, f"journalctl -u {args.unit} --since '{args.hours} hours ago' "
