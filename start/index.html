@@ -12,7 +12,9 @@
 <meta property="og:title" content="Start here — WAM Coin">
 <meta property="og:description" content="Run a node in four commands, with the checksum step that most guides skip.">
 <meta property="og:image" content="https://wamcoin.org/og-card.png">
+<meta property="og:url" content="https://wamcoin.org/start/">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@WAMCoinCore">
 <meta name="twitter:image" content="https://wamcoin.org/og-card.png">
 <style>
 :root{--bg:#faf9f7;--fg:#1a1a1a;--dim:#5c5a57;--rule:#e3e0db;--code:#f2f0ec;--accent:#8a6d1f}
@@ -36,6 +38,13 @@ table{border-collapse:collapse;width:100%;margin:1.1rem 0;font-size:.94rem;displ
 th,td{border-bottom:1px solid var(--rule);padding:.5rem .6rem;text-align:start}
 th{font-weight:600}
 hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
+/* The mark, on every page. A reader who meets WAM in a search result should
+   have seen the same coin four times before they read the name. */
+.mast{display:flex;align-items:center;gap:.7rem;margin-bottom:1.4rem}
+.mast img{width:44px;height:44px;flex:none;border-radius:50%}
+.mast .wordmark{font-weight:600;letter-spacing:-.01em;font-size:1.05rem}
+.mast .wordmark span{display:block;font-size:.8rem;font-weight:400;color:var(--dim);
+ letter-spacing:0}
 .top{display:flex;gap:1rem;flex-wrap:wrap;font-size:.9rem;color:var(--dim);
  margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid var(--rule)}
 .foot{margin-top:3.5rem;padding-top:1.2rem;border-top:1px solid var(--rule);
@@ -46,9 +55,18 @@ hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
 </head>
 <body>
 <main>
+<a class="mast" href="/">
+  <img src="/wam-coin.png" alt="The WAM Coin mark" width="44" height="44">
+  <span class="wordmark">WAM Coin<span>A CPU-mineable proof-of-work currency</span></span>
+</a>
 <nav class="top">
   <a href="/">wamcoin.org</a>
   <a href="/start-ar/">بالعربية</a>
+  <a href="/whitepaper/">whitepaper</a>
+  <a href="/security/">security</a>
+  <a href="/build/">build</a>
+  <a href="/pool/">pool</a>
+  <a href="/rehearsals/">rehearsals</a>
   <a href="https://github.com/wam-coin-official/wam-coin/blob/main/docs/START_HERE.md">source</a>
 </nav>
 <h1 id="start-here">Start here</h1>
@@ -104,12 +122,7 @@ cd wam-coin-v0.1.6/bin
 <p>If you are not sure, use 3333. The pool adjusts to your speed by itself.</p>
 <h3 id="what-you-will-see">What you will see</h3>
 <pre><code>stats    3.41 kH/s   accepted 20  rejected 0  blocks 1</code></pre>
-<ul><li><strong>kH/s</strong> — thousands of guesses per second. Your speed.</li><li><strong>accepted</strong> — proofs of work the pool took. This number going up means it</li></ul>
-<p>  is working.</p>
-<ul><li><strong>rejected</strong> — should stay near zero. If it climbs, your clock may be wrong:</li></ul>
-<p>  <code>sudo timedatectl set-ntp true</code>.</p>
-<ul><li><strong>blocks</strong> — blocks your machine found. This will be zero for a long while</li></ul>
-<p>  and that is normal.</p>
+<ul><li><strong>kH/s</strong> — thousands of guesses per second. Your speed.</li><li><strong>accepted</strong> — proofs of work the pool took. This number going up means it is working.</li><li><strong>rejected</strong> — should stay near zero. If it climbs, your clock may be wrong: <code>sudo timedatectl set-ntp true</code>.</li><li><strong>blocks</strong> — blocks your machine found. This will be zero for a long while and that is normal.</li></ul>
 <hr>
 <h2 id="6-what-to-expect">6. What to expect</h2>
 <table><tr><th></th><th></th></tr><tr><td>A new block every</td><td>about 2 minutes</td></tr><tr><td>Paid per block</td><td>50 WAM (47.5 to miners)</td></tr><tr><td>Halves every</td><td>200,000 blocks — roughly 15 months</td></tr><tr><td>Ever created, at most</td><td>22,000,000 WAM</td></tr><tr><td>Rewards become spendable after</td><td>100 blocks — about 3 hours</td></tr></table>
@@ -142,10 +155,7 @@ You may need to upgrade, or other nodes may need to upgrade.</code></pre>
 <pre><code>wam-cli -testnet getnetworkinfo | grep -A3 warnings</code></pre>
 <hr>
 <h2 id="where-to-go-next">Where to go next</h2>
-<ul><li><strong><a href="../WHITEPAPER.md">The whitepaper</a></strong> — why the money works the way it does</li><li><strong><a href="BUILD.md">Build it yourself</a></strong> — compile from source rather than trusting</li></ul>
-<p>  a download</p>
-<ul><li><strong><a href="POOL_OPERATOR.md">Run a pool</a></strong> — if you want to host one for others</li><li><strong><a href="https://explorer.wamcoin.org">explorer.wamcoin.org</a></strong> — look at the chain</li></ul>
-<p>  without running anything</p>
+<ul><li><strong><a href="/whitepaper/">The whitepaper</a></strong> — why the money works the way it does</li><li><strong><a href="/build/">Build it yourself</a></strong> — compile from source rather than trusting a download</li><li><strong><a href="/pool/">Run a pool</a></strong> — if you want to host one for others</li><li><strong><a href="https://explorer.wamcoin.org">explorer.wamcoin.org</a></strong> — look at the chain without running anything</li></ul>
 <p>Questions: <code>wam.coin.official@proton.me</code></p>
 <p class="foot">This page is generated from docs/START_HERE.md in the repository. It is the same text; nothing here is written twice.</p>
 </main>
