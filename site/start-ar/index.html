@@ -12,7 +12,9 @@
 <meta property="og:title" content="ابدأ من هنا — WAM Coin">
 <meta property="og:description" content="شغّل عقدةً بأربعة أوامر، مع خطوة التحقّق التي تتخطّاها أغلب الأدلّة.">
 <meta property="og:image" content="https://wamcoin.org/og-card.png">
+<meta property="og:url" content="https://wamcoin.org/start-ar/">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@WAMCoinCore">
 <meta name="twitter:image" content="https://wamcoin.org/og-card.png">
 <style>
 :root{--bg:#faf9f7;--fg:#1a1a1a;--dim:#5c5a57;--rule:#e3e0db;--code:#f2f0ec;--accent:#8a6d1f}
@@ -36,6 +38,13 @@ table{border-collapse:collapse;width:100%;margin:1.1rem 0;font-size:.94rem;displ
 th,td{border-bottom:1px solid var(--rule);padding:.5rem .6rem;text-align:start}
 th{font-weight:600}
 hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
+/* The mark, on every page. A reader who meets WAM in a search result should
+   have seen the same coin four times before they read the name. */
+.mast{display:flex;align-items:center;gap:.7rem;margin-bottom:1.4rem}
+.mast img{width:44px;height:44px;flex:none;border-radius:50%}
+.mast .wordmark{font-weight:600;letter-spacing:-.01em;font-size:1.05rem}
+.mast .wordmark span{display:block;font-size:.8rem;font-weight:400;color:var(--dim);
+ letter-spacing:0}
 .top{display:flex;gap:1rem;flex-wrap:wrap;font-size:.9rem;color:var(--dim);
  margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid var(--rule)}
 .foot{margin-top:3.5rem;padding-top:1.2rem;border-top:1px solid var(--rule);
@@ -46,8 +55,12 @@ hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
 </head>
 <body>
 <main>
+<a class="mast" href="/">
+  <img src="/wam-coin.png" alt="The WAM Coin mark" width="44" height="44">
+  <span class="wordmark">WAM Coin<span>عملة إثبات عملٍ تُعدَّن بالمعالج</span></span>
+</a>
 <nav class="top">
-  <a href="/">الصفحة الرئيسية</a>
+  <a href="/">الرئيسية</a>
   <a href="/start/">English</a>
   <a href="https://github.com/wam-coin-official/wam-coin/blob/main/docs/START_HERE_AR.md">المصدر</a>
 </nav>
@@ -104,9 +117,7 @@ cd wam-coin-v0.1.6/bin
 <p>وإن لم تكن متأكّداً فاستعمل 3333. المجمّع يضبط نفسه على سرعتك تلقائياً.</p>
 <h3 id="">ماذا سترى</h3>
 <pre><code>stats    3.41 kH/s   accepted 20  rejected 0  blocks 1</code></pre>
-<ul><li><strong>kH/s</strong> — آلاف المحاولات في الثانية. هذه سرعتك.</li><li><strong>accepted</strong> — إثباتات عمل قبلها المجمّع. صعود هذا الرقم يعني أن الأمر يعمل.</li><li><strong>rejected</strong> — يجب أن يبقى قرب الصفر. فإن صعد فقد تكون ساعة جهازك خاطئة:</li></ul>
-<p>  <code>sudo timedatectl set-ntp true</code></p>
-<ul><li><strong>blocks</strong> — الكتل التي وجدها جهازك. سيبقى صفراً وقتاً طويلاً، وهذا طبيعي.</li></ul>
+<ul><li><strong>kH/s</strong> — آلاف المحاولات في الثانية. هذه سرعتك.</li><li><strong>accepted</strong> — إثباتات عمل قبلها المجمّع. صعود هذا الرقم يعني أن الأمر يعمل.</li><li><strong>rejected</strong> — يجب أن يبقى قرب الصفر. فإن صعد فقد تكون ساعة جهازك خاطئة: <code>sudo timedatectl set-ntp true</code></li><li><strong>blocks</strong> — الكتل التي وجدها جهازك. سيبقى صفراً وقتاً طويلاً، وهذا طبيعي.</li></ul>
 <hr>
 <h2 id="">٦. ماذا تتوقّع</h2>
 <table><tr><th></th><th></th></tr><tr><td>كتلة جديدة كل</td><td>دقيقتين تقريباً</td></tr><tr><td>العائد لكل كتلة</td><td>50 WAM (منها 47.5 للمعدّنين)</td></tr><tr><td>يُنصَّف كل</td><td>200,000 كتلة — نحو خمسة عشر شهراً</td></tr><tr><td>أقصى ما سيوجد</td><td>22,000,000 WAM</td></tr><tr><td>العائد يصير قابلاً للإنفاق بعد</td><td>100 كتلة — نحو ثلاث ساعات</td></tr></table>
@@ -139,8 +150,7 @@ You may need to upgrade, or other nodes may need to upgrade.</code></pre>
 <pre><code>wam-cli -testnet getnetworkinfo | grep -A3 warnings</code></pre>
 <hr>
 <h2 id="">إلى أين بعد هذا</h2>
-<ul><li><strong><a href="../WHITEPAPER.md">الورقة البيضاء</a></strong> — لماذا تعمل النقود بهذه الطريقة</li><li><strong><a href="BUILD.md">ابنِها بنفسك</a></strong> — ترجمها من المصدر بدل الوثوق بتنزيل</li><li><strong><a href="POOL_OPERATOR.md">شغّل مجمّعاً</a></strong> — إن أردت أن تستضيف واحداً للآخرين</li><li><strong><a href="https://explorer.wamcoin.org">explorer.wamcoin.org</a></strong> — انظر إلى السلسلة</li></ul>
-<p>  بلا أن تُشغّل شيئاً</p>
+<ul><li><strong><a href="/whitepaper/">الورقة البيضاء</a></strong> — لماذا تعمل النقود بهذه الطريقة</li><li><strong><a href="/build/">ابنِها بنفسك</a></strong> — ترجمها من المصدر بدل الوثوق بتنزيل</li><li><strong><a href="/pool/">شغّل مجمّعاً</a></strong> — إن أردت أن تستضيف واحداً للآخرين</li><li><strong><a href="https://explorer.wamcoin.org">explorer.wamcoin.org</a></strong> — انظر إلى السلسلة بلا أن تُشغّل شيئاً</li></ul>
 <p>للأسئلة: <code>wam.coin.official@proton.me</code></p>
 <p class="foot">هذه الصفحة مولَّدة من docs/START_HERE_AR.md في المستودع. هي النصّ نفسه — لا شيء مكتوبٌ مرّتين.</p>
 </main>
