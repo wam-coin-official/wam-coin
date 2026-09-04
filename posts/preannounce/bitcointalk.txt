@@ -12,11 +12,15 @@
 ===========================================================================
 
 
-[size=14pt][b]WAM Coin - mainnet 15 September 2026, 00:00 UTC[/b][/size]
+[size=14pt][b]Eleven days out. Everything that can be checked before the chain exists.[/b][/size]
 
-A new RandomX chain. Before the usual list of features, the part that is
-unusual: [b]almost everything below can be checked before the chain
-exists.[/b] Where it cannot, that is said plainly rather than left out.
+Mainnet opens 15 September 2026 at 00:00 UTC. This is the whole state of the
+project in one post, eleven days from genesis, so nobody has to read the
+thread backwards to find it.
+
+The part worth your time is not the feature list. It is that [b]almost
+everything below can be verified before the chain exists[/b] - and where
+something cannot be, that is said plainly rather than left out.
 
 
 [b]WHAT IT IS[/b]
@@ -170,6 +174,13 @@ including the days that found nothing. Some of what is in there:
 29 Aug   ElectrumX ports 50001-50004 collided between networks
 30 Aug   wallets are not created under wallets/ unless it already exists
  4 Sep   four defects in two hours, in the pool, explorer and announcer
+ 4 Sep   the verify command in section 3 told a first-time reader that a
+         correctly signed release was FORGED. It resolved its own location
+         after changing directory, so it never found the public key and
+         fell back to a keyring that, for a first-time reader, is empty.
+         Found by running it the way a stranger runs it -- clean machine,
+         nothing imported -- rather than from inside the repository, where
+         it had always passed. Fixed and re-proved before this post
 [/code]
 
 A project that publishes its defect list before launch is doing something

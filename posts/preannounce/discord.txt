@@ -72,8 +72,13 @@ published.**
 
 `docs/REHEARSALS.md` holds the schedule and a table of what each rehearsal
 found — including the days that found nothing, because the rate is the
-measurement. 4 September found four defects in two hours. That is in the
-table too.
+measurement.
+
+Today found five. The fifth: the verify command above told a first-time
+reader that a correctly signed release was **forged**. It looked for our
+public key after changing directory and never found it. It passed every
+time from inside the repository, and failed for everybody else. Fixed and
+re-proved before this message.
 
 **What we are not going to pretend**
 
