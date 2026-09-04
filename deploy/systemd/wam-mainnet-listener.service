@@ -1,0 +1,72 @@
+# ===========================================================================
+#  Count who is already waiting on the mainnet port
+# ===========================================================================
+#
+#      systemctl start wam-mainnet-listener      # NOT enable
+#
+#  NOT ENABLED, EVER. It must not come back after a reboot, and it must not be
+#  running on 15 September, because it holds port 9555 -- the port the real
+#  mainnet node needs. RuntimeMaxSec stops it after a day whatever happens,
+#  and the script itself refuses to start inside 36 hours of genesis.
+#
+#  WHY
+#
+#  During the Phase E rehearsal on 4 September a mainnet node was up for
+#  twenty-one minutes. Two seconds after the port opened, a node connected,
+#  said /WAM:0.1.6/, and stayed until it was disconnected. Its address appears
+#  nowhere in the testnet journal -- somebody had configured for mainnet only
+#  and left it retrying. Nothing counts those, and how many exist is the
+#  number that decides whether the launch announcement is early or late.
+#
+#  WHY NOT A NODE
+#
+#  A mainnet node started before its genesis date works once and fails at every
+#  restart afterwards. Leaving that trap armed for a day, to collect a number,
+#  is a bad trade -- and it is the failure scripts/genesis_gate.sh exists to
+#  prevent. This holds the port and nothing else: no chain, no datadir, no
+#  wallet, nothing to wipe.
+#
+#  It never completes a handshake, so no operator's node believes it found a
+#  peer and stops looking for a real one.
+# ===========================================================================
+
+[Unit]
+Description=Count nodes waiting on the mainnet port, without being one
+Documentation=https://github.com/wam-coin-official/wam-coin/blob/main/scripts/mainnet_listener.py
+After=network-online.target
+
+# If this unit fails, say so. A timer stays active however often the service
+# under it fails, and every panel here was reading the timer.
+OnFailure=wam-alert@%n.service
+
+[Service]
+Type=simple
+Environment=HOME=/root
+WorkingDirectory=/opt/wam
+ExecStart=/usr/bin/python3 /opt/wam/scripts/mainnet_listener.py --hours 24 --quiet
+
+# A day, and then it lets the port go whatever else happens.
+RuntimeMaxSec=25h
+Restart=no
+
+StateDirectory=wam-mainnet-listener
+StateDirectoryMode=0750
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/wam-mainnet-listener
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryMax=128M
+TasksMax=32
+
+# Deliberately no [Install] section. There is nothing to enable, and a unit
+# with no [Install] cannot be enabled by accident.
