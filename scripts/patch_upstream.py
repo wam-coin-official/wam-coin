@@ -51,7 +51,7 @@ from dataclasses import dataclass, field
 # inside reported /WAM:0.1.0/ to every peer it met.
 #
 # Raise it in the same commit that gets tagged, never separately.
-WAM_CLIENT_VERSION = "0.1.6"
+WAM_CLIENT_VERSION = "0.1.7"
 
 # ===========================================================================
 # Framework

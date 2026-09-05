@@ -49,7 +49,32 @@ CLIENT_VERSION = REPO / "scripts" / "patch_upstream.py"
 CLIENT_RE = re.compile(r'(WAM_CLIENT_VERSION\s*=\s*")(\d+\.\d+\.\d+)(")')
 
 # Documents that tell a reader to download something.
-DOCS = ["docs/START_HERE.md", "docs/START_HERE_AR.md", "README.md"]
+#
+# Discovered, not listed. The list used to be three names, and on 5 September
+# docs/MINE.md was added -- nine commands, four of them naming v0.1.6 -- and
+# this script could not see it. The next release would have moved every other
+# page and left that one sending strangers at a version that no longer
+# existed, which is the exact failure this script was written for after v0.1.5
+# did it to the two guides.
+#
+# A hand-kept list of files goes stale the moment somebody adds a page, in the
+# same way "four accounts" in CHANNELS.txt went stale when there were five.
+# So: any tracked markdown that carries a download instruction is a document
+# that tells a reader to download something.
+def _discover_docs():
+    import subprocess
+    out = subprocess.run(["git", "ls-files", "*.md"], cwd=REPO,
+                         capture_output=True, text=True).stdout.split()
+    found = []
+    for rel in out:
+        p = REPO / rel
+        try:
+            t = p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if any(rx.search(t) for rx in INSTRUCTIONS):
+            found.append(rel)
+    return sorted(found)
 
 # Each pattern keeps its surroundings and replaces only the number. Written
 # as (prefix)(version)(suffix) so the substitution cannot damage the line.
@@ -58,6 +83,8 @@ INSTRUCTIONS = [
     re.compile(r"(wam-(?:coin|miner)-v)(\d+\.\d+\.\d+)()"),
     re.compile(r"(\[v)(\d+\.\d+\.\d+)(\]\()"),
 ]
+
+DOCS = _discover_docs()
 
 GRN = "\033[32m"; YEL = "\033[33m"; RED = "\033[31m"; BLD = "\033[1m"; OFF = "\033[0m"
 
@@ -121,14 +148,29 @@ def main():
         touched.append(rel)
 
     # 3. the pages built from those documents
-    if not args.dry_run and any(d.startswith("docs/START_HERE") for d in touched):
+    #
+    # Rebuilt whenever ANY document moved, not only when a START_HERE did.
+    #
+    # The condition here used to be `any(d.startswith("docs/START_HERE"))`,
+    # written when those two were the only documents with a version in them.
+    # On 5 September docs/MINE.md arrived carrying eight of them, and if a
+    # release had only touched that file the site would have kept serving the
+    # previous version's download commands while every markdown file said
+    # otherwise. It happened to work this time because START_HERE moved as
+    # well, and "happens to work" is the thing this repository keeps finding
+    # at the bottom of its faults.
+    #
+    # Which pages exist is build_pages.py's business, so it is asked rather
+    # than told: the names below come from its output.
+    if not args.dry_run and touched:
         r = subprocess.run([sys.executable, str(REPO / "scripts" / "build_pages.py")],
                            capture_output=True, text=True)
         if r.returncode != 0:
             print(f"  {RED}build_pages.py failed{OFF}\n{r.stdout}{r.stderr}")
             return 1
-        print(f"  {GRN}site/start, site/start-ar{OFF}  regenerated")
-        touched += ["site/start/index.html", "site/start-ar/index.html"]
+        built = re.findall(r"^\s*(/[a-z-]+/)\s", r.stdout, flags=re.M)
+        print(f"  {GRN}{len(built)} page(s){OFF}  regenerated: {' '.join(built)}")
+        touched += [f"site{p}index.html" for p in built]
 
     if not touched:
         print(f"\n  {GRN}nothing to do -- everything already says v{v}{OFF}\n")

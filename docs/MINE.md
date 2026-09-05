@@ -13,12 +13,12 @@ Linux x86_64, about 2 GB of free memory. Nothing else.
 ## The test network — live now
 
 ```
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.6/wam-coin-v0.1.6-x86_64-linux-gnu.tar.gz
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.6/wam-miner-v0.1.6-x86_64-linux-gnu.tar.gz
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.6/SHA256SUMS
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/wam-coin-v0.1.7-x86_64-linux-gnu.tar.gz
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/wam-miner-v0.1.7-x86_64-linux-gnu.tar.gz
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS
 sha256sum --ignore-missing -c SHA256SUMS
-tar -xzf wam-coin-v0.1.6-x86_64-linux-gnu.tar.gz && tar -xzf wam-miner-v0.1.6-x86_64-linux-gnu.tar.gz
-cd wam-coin-v0.1.6/bin
+tar -xzf wam-coin-v0.1.7-x86_64-linux-gnu.tar.gz && tar -xzf wam-miner-v0.1.7-x86_64-linux-gnu.tar.gz
+cd wam-coin-v0.1.7/bin
 ./wamd -testnet -daemon
 ./wam-cli -testnet createwallet "mine"
 ./wam-cli -testnet -rpcwallet=mine getnewaddress
