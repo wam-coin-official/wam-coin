@@ -61,6 +61,8 @@ is the day it is needed.
 | 4 Sep | **Phase E against a real mainnet node** | **six checks asked about mainnet and answered about testnet**; the pool's testnet and mainnet configs claim the same four ports; the gate printed an override that does nothing; `check_explorer` called a height-0 chain a fault | `scripts/wamcli.py`, `move_testnet_pool.sh`, gate message, treasury check |
 
 | 4 Sep | **The announcement, written against the running system** | **`verify_release.sh` told a first-time reader a good release was forged**; the release page ships no key and no checker; `v0.1.6` is a pre-release, so `/releases/latest` skips it | `SELF_DIR` resolved before the `cd`; the drafts link the tag and clone the checker |
+| 5 Sep | **Cutting v0.1.7 and installing it** | **the release notes were the commit message, not the tag** — a wrapped `MANDATORY:` in prose made the announcer post UPDATE REQUIRED for a release that changes nothing; the four commands in `RELEASING.md` needed `gh`, which is not on the machine holding the key, and signed `SHA256SUMS` unread; **`install_release.sh` checked the checksums and never the signature**; `check_docs_version.py` audited `site/index.html`, the one page with no download instruction, and skipped the three that have eleven; the release page told readers to run `sha256sum -c` alone | `git cat-file tag`, MANDATORY only as the first line, and the mirror of the consensus check; `sign_release.sh`; the installer now calls `verify_release.sh`; `scripts/lib/docversion.py` |
+| 5 Sep | **Restore a backup, end to end** | nothing in the backup; **the node restart lost block 5783** — the pool read "Loading wallet…" as a rejection and threw a valid block away | `jobManager` retries only where no daemon answered |
 
 Five in one evening, in a phase that had been rehearsed once already. That is
 the number to watch.
@@ -74,6 +76,25 @@ happen.
 That is worth a rule of its own: **a check is only tested from where its
 audience stands.** `verify_release.sh` exists for somebody who has no reason
 to trust us, and it had never once been run by anybody in that position.
+
+### 5 September: the backup was fine, and the rehearsal still found something
+
+The archive decrypts, the pool wallet opens as sqlite, the redis ledger is
+valid, all 65 config files are there, every one of the fourteen retained
+archives at least opens, and the newest is now on a machine the server cannot
+address. That is the first rehearsal on the schedule that found **nothing in
+the thing it was rehearsing**.
+
+It found something anyway, in the step taken to reach it. Upgrading the node
+to v0.1.7 restarted it while a miner was working, block 5783 was solved inside
+that window, and the pool discarded it because `submitblock` came back
+`Loading wallet…`. One second later the daemon was fine.
+
+Both halves are worth recording. A day that finds nothing in its own subject
+is the evidence of solidity this page was made to measure; and the defect that
+did turn up came from *doing an ordinary operation*, not from testing one.
+Restarting the node is not rare — it is how every upgrade works, and there is
+one ten days before launch, when a discarded block is a miner's reward.
 
 ---
 
