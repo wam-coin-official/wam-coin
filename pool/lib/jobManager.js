@@ -328,7 +328,42 @@ class JobManager extends EventEmitter {
         this.log.info(`*** BLOCK CANDIDATE at height ${job.height} by ${share.worker} ***`);
         this.log.info(`    hash ${blockHash}`);
 
-        const result = await this.daemon.submitBlock(blockHex);
+        let result = await this.daemon.submitBlock(blockHex);
+
+        // A daemon that could not answer has not rejected the block.
+        //
+        // submitblock reports two very different things down one channel. An
+        // RPC-level failure -- r.ok === false -- means the node never looked
+        // at the block: it was starting, loading its wallet, or not
+        // listening. A string result means it looked and refused. The first
+        // is transient and the block is still worth a full reward. The second
+        // is final and retrying it is pointless.
+        //
+        // On 5 September 2026 the node here was restarted to install v0.1.7
+        // while a miner was working. Block 5783 was solved inside that
+        // window, came back "REJECTED: Loading wallet...", and was thrown
+        // away. One second later the daemon logged "recovered". On testnet
+        // that cost nothing. On mainnet it is a miner's block reward, and it
+        // would have been discarded by us, during a restart we chose, with
+        // nothing but a line in a log to say it had happened.
+        //
+        // Retried inline, before the share is credited, so blockAccepted is
+        // final by the time the record is written and nothing downstream has
+        // to learn about a late arrival. Five seconds at the very worst, on a
+        // path that is only taken when no daemon is answering at all.
+        const RETRIES = 5;
+        const GAP_MS = 1000;
+        for (let attempt = 1; attempt <= RETRIES; attempt++) {
+            if (result.accepted) break;
+            const noDaemonAnswered = result.results.length > 0
+                                  && result.results.every((r) => !r.ok);
+            if (!noDaemonAnswered) break;   // it was looked at and refused
+            this.log.warn(`block ${job.height}: no daemon could answer ` +
+                          `(${result.reasons.join(' | ')}) -- ` +
+                          `retrying ${attempt}/${RETRIES}`);
+            await new Promise((r) => setTimeout(r, GAP_MS));
+            result = await this.daemon.submitBlock(blockHex);
+        }
 
         if (result.accepted) {
             this.stats.blocksFound++;
