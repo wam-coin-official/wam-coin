@@ -96,8 +96,16 @@ function renderStats(s) {
   // the estimate has stopped meaning anything.
   const stale = net.secondsSinceBlock != null && net.secondsSinceBlock > 600;
   text($('netHashrate'), hashrate(net.networkHashPerSecond));
-  const diffText = `difficulty ${(net.difficulty || 0).toLocaleString(undefined,
-    { maximumFractionDigits: 2 })}`;
+  // Two decimal places round WAM's difficulty to "0". At the floor it is
+  // 0.00024414, and the floor is exactly when somebody is reading this tile
+  // to find out what happened -- the page said "difficulty 0" on the evening
+  // a tester watched the chain fall to minimum. Significant digits instead of
+  // decimal places, so a small number stays a number and a large one does not
+  // grow a tail.
+  const d = net.difficulty || 0;
+  const diffText = `difficulty ${d > 0 && d < 1
+    ? d.toLocaleString(undefined, { maximumSignificantDigits: 3 })
+    : d.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
   text($('netDifficulty'), net.secondsSinceBlock == null
     ? diffText
     : stale
