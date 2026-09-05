@@ -68,7 +68,8 @@ cd "$WORK"
 
 for f in "wam-coin-v${V}-x86_64-linux-gnu.tar.gz" \
          "wam-miner-v${V}-x86_64-linux-gnu.tar.gz" \
-         "SHA256SUMS"; do
+         "SHA256SUMS" \
+         "SHA256SUMS.asc"; do
     if [ -f "$f" ]; then
         printf '  have      %s\n' "$f"
     else
@@ -77,12 +78,46 @@ for f in "wam-coin-v${V}-x86_64-linux-gnu.tar.gz" \
     fi
 done
 
-# Before anything is unpacked, let alone run. --ignore-missing so that a
-# SHA256SUMS covering more artifacts than we fetched is not an error, while
-# a file we did fetch and that does not match still is.
-printf '\n  %schecksums%s\n' "$BLD" "$OFF"
-if ! sha256sum -c --ignore-missing SHA256SUMS 2>&1 | sed 's/^/    /'; then
-    printf '  %sa checksum did not match -- nothing was installed%s\n\n' "$RED" "$OFF"
+# ---------------------------------------------------------------------------
+#  The signature, not just the checksums -- and by the same script a stranger
+#  runs, not a second implementation of it.
+#
+#  Until 5 September 2026 this installer checked SHA256SUMS and stopped there.
+#  A checksum file fetched from the same host as the binaries proves only that
+#  both came from that host: whoever can replace the tarball replaces the list
+#  beside it, and the two agree perfectly. It catches a truncated download. It
+#  catches nobody.
+#
+#  This is the script that puts software on the seed nodes and on the pool
+#  that will hold miners' money after 15 September. It was performing the
+#  weaker check, on the machines where the consequence is largest, while
+#  every page this project publishes told strangers to run the stronger one.
+#
+#  verify_release.sh is called rather than reimplemented. Two verifiers drift:
+#  one gets a fix and the other keeps the bug, and the one that keeps it is
+#  whichever is read less -- which would be this one. It also carries the
+#  fingerprint from SECURITY.md and compares it explicitly, so a substituted
+#  SIGNING-KEY.asc changes the fingerprint and the comparison catches it.
+# ---------------------------------------------------------------------------
+SELF_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
+VERIFY="$SELF_DIR/verify_release.sh"
+if [ ! -x "$VERIFY" ] && [ ! -f "$VERIFY" ]; then
+    printf '  %sverify_release.sh is not beside this script%s\n' "$RED" "$OFF"
+    printf '  Nothing was installed. An unverified release is not installable\n'
+    printf '  by this path, deliberately.\n\n'
+    exit 1
+fi
+
+printf '\n  %ssignature and checksums%s\n' "$BLD" "$OFF"
+
+# The status is taken from the verifier, not from the pipeline that indents
+# its output. `set -o pipefail` is on above and would carry it, but a check
+# whose correctness depends on a line forty lines away is a check waiting to
+# be broken by someone tidying up. Captured, then reported, then decided.
+vout="$(bash "$VERIFY" "$WORK" 2>&1)"; vrc=$?
+printf '%s\n' "$vout" | sed 's/^/    /'
+if [ "$vrc" -ne 0 ]; then
+    printf '\n  %sthe release did not verify -- nothing was installed%s\n\n' "$RED" "$OFF"
     exit 1
 fi
 
