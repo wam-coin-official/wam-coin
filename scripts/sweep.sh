@@ -178,11 +178,14 @@ run "mainnet consensus is final"  bash scripts/check_consensus_final.sh mainnet
 # ---------------------------------------------------------------------------
 printf '\n%sthe network as strangers meet it%s\n' "$BLD" "$OFF"
 
-if command -v dig >/dev/null 2>&1; then
-    run "DNS seeds answer x9."    bash scripts/check_dns_seeds.sh
-else
-    skip "DNS seeds answer x9." "dig is not installed (apt install dnsutils)"
-fi
+# No `command -v dig` guard here any more. The check knows whether it can run
+# and says so with exit 3, and since 5 September it does better than that: with
+# no dig locally it asks one of our own hosts, which has one, running that
+# host's checkout at the same commit. The guard here skipped it before it ever
+# got the chance -- so the seeding check, the one that decides whether a
+# stranger can find the network at all, was permanently "not run" on the only
+# machine the sweep is run from.
+run "DNS seeds answer x9."    bash scripts/check_dns_seeds.sh
 
 if command -v curl >/dev/null 2>&1; then
     run "published download is this network" bash scripts/check_release_matches.sh

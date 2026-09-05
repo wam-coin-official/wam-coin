@@ -184,6 +184,36 @@ bash "$HERE/scripts/check_isa_baseline.sh" "$(dirname "$BIN")"/* >"$TMP/isa.log"
 ISA_RC=$?
 if [ "$ISA_RC" -eq 0 ]; then
     ok "no instruction above the x86-64 baseline"
+elif [ "$ISA_RC" -eq 3 ] && [ "${WAM_ALREADY_REMOTE:-0}" != "1" ] \
+     && [ -f "$HERE/scripts/lib/elsewhere.sh" ]; then
+    # objdump is not here. This check reads FILES, so it cannot be shipped the
+    # way check_dns_seeds.sh is -- but the question can be asked again where
+    # the tool lives, by fetching the same published URL there and running
+    # that host's own checker against it. Same artifact, same question.
+    # shellcheck source=lib/elsewhere.sh
+    . "$HERE/scripts/lib/elsewhere.sh"
+    ISA_REMOTE=""
+    for _h in $WAM_TOOL_HOSTS; do
+        ISA_REMOTE="$(ssh -o BatchMode=yes -o ConnectTimeout=20 "root@$_h" "
+            set -u
+            command -v objdump >/dev/null 2>&1 || exit 3
+            [ -x $WAM_REMOTE_REPO/scripts/check_isa_baseline.sh ] || exit 3
+            D=\$(mktemp -d); trap 'rm -rf \"\$D\"' EXIT; cd \"\$D\"
+            curl -sSL --max-time 180 -O '$URL' || exit 3
+            tar -xzf *.tar.gz || exit 3
+            bash $WAM_REMOTE_REPO/scripts/check_isa_baseline.sh \"\$D\"/*/bin/* >/dev/null 2>&1
+        " 2>/dev/null; echo "rc=$?")"
+        case "$ISA_REMOTE" in
+            *rc=0) ok "no instruction above the x86-64 baseline (checked on $_h)"; break ;;
+            *rc=1) bad "the published binaries carry instructions many CPUs do not have"
+                   break ;;
+            *) ISA_REMOTE="" ;;
+        esac
+    done
+    if [ -z "$ISA_REMOTE" ]; then
+        warn "the CPU baseline was NOT checked: no objdump here or on any host"
+        COULD_NOT_CHECK=1
+    fi
 elif [ "$ISA_RC" -eq 2 ] || [ "$ISA_RC" -eq 3 ]; then
     # 3 is check_isa_baseline.sh saying objdump is not installed; 2 is its
     # usage error. Neither is a finding about the binaries.
