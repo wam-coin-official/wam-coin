@@ -117,6 +117,31 @@ if [ -f SHA256SUMS.asc ]; then
     say "${YLW}SHA256SUMS.asc already exists here; it will be replaced.${OFF}"
 fi
 
+# A browser does not overwrite; it renames. Downloading SHA256SUMS into a
+# directory that already holds one produces `SHA256SUMS (1)`, and every tool
+# after that -- this script included -- goes on reading the old file. On the
+# day v0.1.7 was signed there was a v0.1.0 SHA256SUMS sitting in Downloads
+# from months earlier, so the person about to sign would have been shown the
+# wrong list with no hint that a newer one had arrived beside it.
+#
+# The version check below would have refused, which is the safe outcome and
+# not a clear one: it would have said "this is v0.1.0" about a v0.1.7
+# download. Naming the actual cause is the difference between a stop and an
+# explanation.
+shopt -s nullglob
+DUPES=(SHA256SUMS\ \(*\) SHA256SUMS.[0-9]* SHA256SUMS-[0-9]*)
+shopt -u nullglob
+if [ "${#DUPES[@]}" -gt 0 ]; then
+    bad "there is more than one SHA256SUMS in this directory"
+    for d in "${DUPES[@]}"; do say "    $d"; done
+    say ""
+    say "Your browser renamed the new download because an older SHA256SUMS was"
+    say "already here, so this script would sign the OLD one. Use an empty"
+    say "directory:"
+    say "    mkdir ~/Downloads/wam-$(date +%Y%m%d) && move the three files there"
+    echo; exit 1
+fi
+
 # ---- 2. is every promised file here, and does it keep its promise? -------
 #
 # Two separators exist and both are legal. coreutils writes `hash  name` for a
