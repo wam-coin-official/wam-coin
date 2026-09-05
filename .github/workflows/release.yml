@@ -258,12 +258,53 @@ jobs:
           # gh is preinstalled on GitHub runners. Using it rather than a
           # third-party publishing action keeps the number of people who can
           # change what gets attached to a release at zero.
+          #
+          # --draft, and it is the whole point of this block.
+          #
+          # This runner cannot sign anything. The signing key is offline, on a
+          # USB stick, and package_release.sh signs only when that key is on
+          # the machine -- which on a GitHub runner it never is. So without
+          # --draft every release went public unsigned and stayed that way
+          # until a person noticed, downloaded SHA256SUMS, signed it and
+          # uploaded SHA256SUMS.asc by hand.
+          #
+          # For the length of that window, anyone following our own
+          # instructions got:
+          #
+          #     FAIL  SHA256SUMS.asc is not here -- that file IS the proof.
+          #           A release without it cannot be checked.
+          #           Do not run the binaries.
+          #
+          # which is exactly right, and exactly the thing we spent 5 September
+          # making sure a stranger would never see about a good release. How
+          # long that window lasted for v0.1.6 is not known, because nothing
+          # measured it.
+          #
+          # A draft is not downloadable and does not appear on the releases
+          # page. It becomes visible only when a human publishes it, which is
+          # the same person who has just uploaded the signature. So an
+          # unsigned public release stops being possible rather than stopping
+          # being likely.
+          #
+          # After the workflow finishes:
+          #
+          #     gh release download v0.1.7 -p SHA256SUMS
+          #     gpg --detach-sign --armor SHA256SUMS      # the offline key
+          #     gh release upload v0.1.7 SHA256SUMS.asc
+          #     gh release edit v0.1.7 --draft=false
+          #
+          # docs/RELEASING.md carries this with the reasoning.
           gh release create "$VERSION" \
             --title "WAM Coin $VERSION" \
             --notes-file "$notes" \
+            --draft \
             $prerelease \
             out/release/*.tar.gz \
             out/release/SHA256SUMS
+
+          echo
+          echo "::notice::$VERSION is a DRAFT. It is not downloadable by anyone"
+          echo "::notice::until it is signed and published. See docs/RELEASING.md"
 
       - name: Keep the artifact even when this was only a test build
         if: steps.v.outputs.publish != 'yes'
