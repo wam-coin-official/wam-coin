@@ -56,8 +56,20 @@ CHECKED=0
 
 # Exit 3, not 1: a missing dig means this could not answer the question, which
 # a caller must be able to tell apart from having answered it badly.
+#
+# But "could not run" on the machine the sweep is always run from is a check
+# the project does not have, and this is the one that decides whether a
+# stranger can find the network at all. There is no dig on Windows and the
+# ports are worse than the problem, so before giving up, ask a machine that
+# has one -- our own two, which this sweep already talks to.
 command -v dig >/dev/null 2>&1 || {
-    printf 'dig is not installed:  sudo apt-get install -y dnsutils\n' >&2
+    SCRIPTS_DIR="${SCRIPTS_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)}"
+    if [ -f "$SCRIPTS_DIR/lib/elsewhere.sh" ]; then
+        . "$SCRIPTS_DIR/lib/elsewhere.sh"
+        run_elsewhere scripts/check_dns_seeds.sh "$@"
+    fi
+    printf 'dig is not installed here and no host with one could be reached.\n' >&2
+    printf 'Locally:  sudo apt-get install -y dnsutils\n' >&2
     exit 3
 }
 
