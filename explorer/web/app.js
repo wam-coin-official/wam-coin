@@ -54,7 +54,17 @@ function duration(sec) {
   if (sec < 3600) return `${Math.floor(sec / 60)}m`;
   if (sec < 86400) return `${Math.floor(sec / 3600)}h ${Math.floor((sec % 3600) / 60)}m`;
   const d = Math.floor(sec / 86400);
-  if (d < 60) return `${d}d`;
+  // Days AND hours, not days alone.
+  //
+  // Everything below a day is printed to the minute and then, at exactly the
+  // point where the number starts to mean "is that node gone or not", the
+  // resolution drops to 24 hours and rounds DOWN. A /WAM:0.1.5/ machine last
+  // seen 44.8 hours ago was shown as "seen 1d ago" -- nearly two days
+  // reported as one, in a field whose only job is to say how stale the
+  // sighting is. An indicator of staleness that understates staleness is
+  // pointing the wrong way; it makes an old observation look fresher than it
+  // is, which is the direction that misleads.
+  if (d < 60) return `${d}d ${Math.floor((sec % 86400) / 3600)}h`;
   const mo = d / 30.44;
   return mo < 24 ? `${mo.toFixed(1)} months` : `${(d / 365.25).toFixed(1)} years`;
 }
