@@ -64,17 +64,29 @@ def rsh(host, cmd, timeout=90):
     return p.returncode, p.stdout.strip(), p.stderr.strip()
 
 
+# Addressing a chain with wam-cli lives in one place. Each of these files had
+# its own copy, and every copy mapped mainnet to an EMPTY flag -- which means
+# the default datadir, which on both servers is the TESTNET node. Asked to
+# check mainnet, they all quietly checked testnet.
+#
+# This import belongs HERE, at module level, and in this one file it was
+# inserted five lines lower -- inside REMOTE_SINKS, a raw string shipped to
+# the server. So it was never executed locally, and main() died with
+#
+#     NameError: name '_wamcli_flags' is not defined
+#
+# every single time, since the refactor that added it. The sweep reported "the
+# announcer is alive and can be heard: FAIL" -- about an announcer that was
+# fine. It also broke the remote snippet, which imports json and urllib and
+# has no sys or os to call.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from wamcli import flags as _wamcli_flags   # noqa: E402
+
+
 # Runs on the host. Prints verdicts only -- never a token, a chat id or a URL.
 REMOTE_SINKS = r'''
 python3 - <<'PY'
 import json, urllib.request, urllib.error
-
-# Addressing a chain with wam-cli lives in one place. Each of these files
-# had its own copy, and every copy mapped mainnet to an EMPTY flag -- which
-# means the default datadir, which on both servers is the TESTNET node. Asked
-# to check mainnet, they all quietly checked testnet.
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from wamcli import flags as _wamcli_flags   # noqa: E402
 
 # Discord answers 403 to a request with no User-Agent, and urllib sends
 # "Python-urllib/3.x" by default. The first version of this check reported the
