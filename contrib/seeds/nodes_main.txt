@@ -1,0 +1,19 @@
+# Fixed seed nodes for WAM Coin mainnet.
+#
+# These are compiled into every binary and are what a node falls back to when
+# DNS seeding fails or is answered by somebody else. Until 5 September 2026
+# this list did not exist, so DNS was the ONLY way a new node could find the
+# network: whoever could forge an answer for seed1.wamcoin.org decided who
+# every newcomer met, without touching our chain at all.
+#
+# Only machines this project runs. An independent operator's address is not
+# added here without their explicit consent -- a fixed seed is baked into
+# every copy of the software, permanently, and cannot be withdrawn from the
+# binaries already downloaded.
+#
+# Port 9555 is WAM's mainnet p2p port (wam-params.h). It is closed on both
+# hosts today because wamd-mainnet is held until 15 September by design; it
+# opens at launch, which is the first moment any node reads this list.
+
+169.58.159.165:9555
+5.223.52.200:9555

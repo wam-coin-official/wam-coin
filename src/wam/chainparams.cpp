@@ -420,17 +420,25 @@ public:
         vSeeds.emplace_back("seed2.wamcoin.org.");
         vSeeds.emplace_back("seed3.wamcoin.org.");
 
-        // No fixed seeds until mainnet has stable, well-connected peers.
+        // Fixed seeds: what a node tries when DNS gives it nothing, or gives
+        // it a lie.
         //
-        // Upstream writes
-        //     vFixedSeeds = std::vector<uint8_t>(std::begin(chainparams_seed_main),
-        //                                        std::end(chainparams_seed_main));
-        // but a zero-length array is not valid ISO C++ and std::begin/std::end
-        // do not apply to one, so that form cannot compile against an empty
-        // seed list. Restore those two lines verbatim once
-        // contrib/seeds/generate-seeds.py has produced a real
-        // chainparamsseeds.h -- see that file's header comment.
-        vFixedSeeds.clear();
+        // These were absent until 5 September 2026, which meant the three
+        // names above were the ONLY way a new node could find this network.
+        // Whoever could forge an answer for seed1.wamcoin.org decided who
+        // every newcomer met -- without touching a block, a key or a rule.
+        // The domain's transfer and delete locks were on; the zone was not
+        // signed. That is one forged UDP packet away from a partitioned
+        // network, and it is the cheapest attack this project had.
+        //
+        // Generated from contrib/seeds/nodes_main.txt by
+        // contrib/seeds/generate-seeds.py. Only machines this project runs:
+        // a fixed seed is compiled into every copy of the software and cannot
+        // be withdrawn from the binaries already downloaded, so an
+        // independent operator's address does not go here without their
+        // explicit consent.
+        vFixedSeeds = std::vector<uint8_t>(std::begin(chainparams_seed_main),
+                                           std::end(chainparams_seed_main));
 
         // -------------------------------------------------------------------
         // Address encoding -- version bytes verified by brute force, not guessed.
@@ -563,7 +571,10 @@ public:
         assert(consensus.hashGenesisBlock == uint256S("0xce81c20a59a9586946d46177317658575b9d1c1fc07912b5488ab76202f59bcb"));
         assert(genesis.hashMerkleRoot     == uint256S("0x1b04b1bd7be04b777c1a2371d7990a66592790ed78c02c6f5716e31f0ce147bd"));
 
-        vFixedSeeds.clear();
+        // Same reasoning as mainnet, and the test network is where a stranger
+        // meets us first. Generated from contrib/seeds/nodes_test.txt.
+        vFixedSeeds = std::vector<uint8_t>(std::begin(chainparams_seed_test),
+                                           std::end(chainparams_seed_test));
         vSeeds.clear();
         vSeeds.emplace_back("testnet-seed.wamcoin.org.");
 
