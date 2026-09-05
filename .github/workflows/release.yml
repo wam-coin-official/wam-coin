@@ -178,8 +178,47 @@ jobs:
           # finds it and announces the release as UPDATE REQUIRED instead of
           # as news. Leaving it to somebody to remember to post a warning by
           # hand means the day they forget is the day it matters.
-          mandatory="$(git tag -l --format='%(contents)' "$VERSION" \
-                       | grep -iE '^[[:space:]]*MANDATORY:' | head -1 || true)"
+          # ---- the notes come from the annotated tag, and from nowhere else
+          #
+          # `git tag -l --format='%(contents)'` returns the COMMIT message when
+          # refs/tags/<v> is a lightweight ref rather than a tag object, and it
+          # returns it silently. Nothing in the output says which one you got,
+          # and a runner is exactly where that ref ends up lightweight.
+          #
+          # On 5 September v0.1.7 was published carrying commit 702d540's
+          # message as its release notes. The tag said "This release is NOT
+          # mandatory. No consensus rule changed." The commit carried a
+          # paragraph explaining this very convention, word-wrapped so that
+          # `MANDATORY:` happened to start a line. The hoist below found it,
+          # the announcer quoted the notes, and every channel was told that a
+          # release which changes nothing was UPDATE REQUIRED -- spending, on a
+          # release that needed no action, the one warning that has to be
+          # believed on launch day.
+          #
+          # git cat-file refuses on anything that is not a tag object, so the
+          # substitution cannot happen quietly a second time.
+          git fetch --force --tags --quiet origin 2>/dev/null || true
+          if [ "$(git cat-file -t "$VERSION" 2>/dev/null || echo none)" != "tag" ]; then
+            echo "::error::refs/tags/$VERSION is not an annotated tag object on this runner."
+            echo "The release notes would be taken from the commit message instead of"
+            echo "the tag, silently. Re-push the tag:"
+            echo
+            echo "    git push --force origin $VERSION"
+            exit 1
+          fi
+          tagmsg="$(git cat-file tag "$VERSION" | sed '1,/^$/d' \
+                    | sed '/^-----BEGIN PGP SIGNATURE-----/,$d')"
+
+          # A MANDATORY line counts only where the convention puts it: the
+          # first non-empty line under the title. Anywhere else it is prose
+          # that mentions the convention -- which is what fired it in v0.1.7 --
+          # and prose about a rule must not be able to invoke the rule.
+          first="$(printf '%s\n' "$tagmsg" | tail -n +2 \
+                   | grep -m1 -v '^[[:space:]]*$' || true)"
+          mandatory=""
+          if printf '%s' "$first" | grep -qiE '^[[:space:]]*MANDATORY:'; then
+            mandatory="$first"
+          fi
 
           # A release that changes a consensus rule has to say so, and the
           # only thing that ever checked was somebody's memory.
@@ -206,6 +245,33 @@ jobs:
             exit 1
           fi
 
+          # And the other direction, which is the one that went wrong.
+          #
+          # A MANDATORY line on a release that changes no consensus value is
+          # how the warning stops being believed. The channels are told UPDATE
+          # REQUIRED for something needing no update, operators upgrade in a
+          # hurry for nothing, and the next notice -- the real one -- reads
+          # like the last false one. A warning that cries wolf is worse than
+          # no warning, because it was the thing standing between an operator
+          # and a silent fork.
+          #
+          # Two independent sources have to agree before either voice is used:
+          # the tag, written by hand, and consensus_floor.py, derived from the
+          # tags themselves. When they disagree one of them is wrong and a
+          # person has to look.
+          if [ "$floor" != "$VERSION" ] && [ -n "$mandatory" ]; then
+            echo "::error::$VERSION declares MANDATORY but changes no consensus value."
+            echo
+            echo "  the tag declares         : $mandatory"
+            echo "  last consensus change was: ${floor:-none since genesis}"
+            echo
+            echo "Either the line does not belong in this tag, or consensus_floor.py"
+            echo "cannot see a change that is really there. One of the two has to be"
+            echo "corrected before this release is announced to anybody."
+            python3 scripts/consensus_floor.py --explain || true
+            exit 1
+          fi
+
           # The rest of the tag message is the release note.
           #
           # It was thrown away until v0.1.6, which was tagged with a full
@@ -221,10 +287,19 @@ jobs:
           # afterwards. Line 1 is the title, which gh already shows, and the
           # MANDATORY line is hoisted above -- both are dropped here so
           # nothing is printed twice.
-          body="$(git tag -l --format='%(contents)' "$VERSION" \
-                  | tail -n +2 \
-                  | grep -ivE '^[[:space:]]*MANDATORY:' \
-                  | sed '/^-----BEGIN PGP SIGNATURE-----/,$d')"
+          #
+          # Only the hoisted line is dropped, and only its first occurrence.
+          # The old form filtered EVERY line matching MANDATORY:, so a tag
+          # that quoted the convention lost that sentence out of the middle of
+          # its own explanation -- which is how v0.1.7's notes came to read
+          # "whether the tag message needs a" followed by "on v0.1.4 forks
+          # itself off at height 1". A release note is the last thing that
+          # should be edited by a regular expression it never asked for.
+          body="$(printf '%s\n' "$tagmsg" | tail -n +2)"
+          if [ -n "$mandatory" ]; then
+            body="$(printf '%s\n' "$body" \
+                    | awk -v m="$mandatory" '!d && $0 == m { d = 1; next } { print }')"
+          fi
 
           notes="$(mktemp)"
           {
