@@ -44,6 +44,9 @@ import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 
+sys.path.insert(0, str(REPO / "scripts" / "lib"))
+import docversion  # noqa: E402  -- needs the path above
+
 # The build's own idea of what it is.
 CLIENT_VERSION = REPO / "scripts" / "patch_upstream.py"
 CLIENT_RE = re.compile(r'(WAM_CLIENT_VERSION\s*=\s*")(\d+\.\d+\.\d+)(")')
@@ -61,30 +64,18 @@ CLIENT_RE = re.compile(r'(WAM_CLIENT_VERSION\s*=\s*")(\d+\.\d+\.\d+)(")')
 # same way "four accounts" in CHANNELS.txt went stale when there were five.
 # So: any tracked markdown that carries a download instruction is a document
 # that tells a reader to download something.
-def _discover_docs():
-    import subprocess
-    out = subprocess.run(["git", "ls-files", "*.md"], cwd=REPO,
-                         capture_output=True, text=True).stdout.split()
-    found = []
-    for rel in out:
-        p = REPO / rel
-        try:
-            t = p.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            continue
-        if any(rx.search(t) for rx in INSTRUCTIONS):
-            found.append(rel)
-    return sorted(found)
-
-# Each pattern keeps its surroundings and replaces only the number. Written
-# as (prefix)(version)(suffix) so the substitution cannot damage the line.
-INSTRUCTIONS = [
-    re.compile(r"(releases/download/v)(\d+\.\d+\.\d+)(/)"),
-    re.compile(r"(wam-(?:coin|miner)-v)(\d+\.\d+\.\d+)()"),
-    re.compile(r"(\[v)(\d+\.\d+\.\d+)(\]\()"),
-]
-
-DOCS = _discover_docs()
+# What counts as an instruction, and which files carry one, are defined once
+# in scripts/lib/docversion.py and imported by both this script and
+# check_docs_version.py. Keeping two copies in agreement is not agreement.
+#
+# When the list here was hand-kept it went stale immediately: docs/MINE.md
+# arrived with nine download commands and this script could not see it. When
+# the discovery was added here and not there, the auditor was left reading
+# site/index.html -- which carries no download instruction at all -- while
+# site/start/, site/start-ar/ and site/mine/, which carry eleven between
+# them, were in neither list.
+INSTRUCTIONS = docversion.REWRITE
+DOCS = docversion.documents(REPO)
 
 GRN = "\033[32m"; YEL = "\033[33m"; RED = "\033[31m"; BLD = "\033[1m"; OFF = "\033[0m"
 

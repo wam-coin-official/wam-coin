@@ -315,10 +315,22 @@ jobs:
             fi
             echo "Built by GitHub Actions from \`${GITHUB_SHA}\` on ubuntu-22.04."
             echo
+            # Not `sha256sum -c SHA256SUMS`, which was here until v0.1.7.
+            #
+            # A checksum file hosted beside the file it describes proves only
+            # that both came from the same place: whoever can replace the
+            # binary replaces the list too, and the two agree perfectly. It
+            # catches a corrupted download. It does not catch anybody.
+            #
+            # Every other page in this project says so -- it is the first
+            # paragraph of verify_release.sh -- while the release page itself,
+            # the one place a stranger definitely reads, told them to run the
+            # check that proves nothing.
             echo "Verify before running:"
             echo
             echo '```'
-            echo "sha256sum --ignore-missing -c SHA256SUMS"
+            echo "git clone https://github.com/wam-coin-official/wam-coin"
+            echo "bash wam-coin/scripts/verify_release.sh ~/Downloads"
             echo '```'
             echo
             echo "WAM has no market value and may never have one. This is testnet"
