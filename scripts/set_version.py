@@ -81,7 +81,17 @@ GRN = "\033[32m"; YEL = "\033[33m"; RED = "\033[31m"; BLD = "\033[1m"; OFF = "\0
 
 
 def rewrite(text, version, patterns):
-    """Apply every pattern, returning the new text and what actually moved."""
+    """Apply every pattern, returning the new text and what actually moved.
+
+    `patterns` is honoured for the one caller that passes something other
+    than the document rules -- patch_upstream.py's WAM_CLIENT_VERSION, which
+    is a single line of Python and has no prose to protect. Documents go
+    through docversion.rewrite, which is line-aware and honours the
+    keep-version marks.
+    """
+    if patterns is INSTRUCTIONS:
+        return docversion.rewrite(text, version)
+
     moved = []
 
     def sub(m):

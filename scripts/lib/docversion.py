@@ -82,9 +82,95 @@ DOC_GLOBS = ["*.md"]
 PAGE_GLOBS = ["site/*.html", "site/*/*.html"]
 
 
+# Prose that quotes an old version ON PURPOSE, and must survive every release.
+#
+# The contexts above are narrow but they cannot read intent. On 5 September
+# set_version.py rewrote this line in deploy/systemd/laptop/README.md:
+#
+#     ExecStart=/home/grgo/wam-v0.1.4/wam-coin-v0.1.4/bin/wamd
+#
+# into `.../wam-v0.1.4/wam-coin-v0.1.7/bin/wamd` -- a path that has never
+# existed and never can. The paragraph above it says "The first version of
+# wam-node.service named the release directly", so the whole point of the
+# quote is that it names v0.1.4. Worse, it half-rewrote: the outer directory
+# does not match `wam-(?:coin|miner)-v` and stayed, so the example became
+# incoherent rather than merely wrong, and the next reader has to work out
+# which half is a typo.
+#
+# set_version.py's own header promises exactly this will not happen: "Prose
+# that names an old version on purpose ... must survive every release
+# unchanged." A regular expression cannot tell an instruction from a
+# quotation, so the author says which, in the file, where it can be seen:
+#
+#     <!-- keep-version -->
+#         ExecStart=/home/grgo/wam-v0.1.4/wam-coin-v0.1.4/bin/wamd
+#     <!-- /keep-version -->
+#
+# The auditor honours the same marks, from this same module, or it would
+# report a frozen v0.1.4 as a dead download link -- a check objecting to
+# correct text, which is how people learn to ignore checks.
+#
+# It is the same shape as today's other fix: prose about a rule must not be
+# able to invoke the rule.
+FREEZE_OPEN = re.compile(r"<!--\s*keep-version\s*-->")
+FREEZE_CLOSE = re.compile(r"<!--\s*/\s*keep-version\s*-->")
+
+
+def frozen_lines(text):
+    """Indices of lines the author has marked as deliberate history."""
+    frozen = set()
+    on = False
+    for i, line in enumerate(text.splitlines()):
+        if FREEZE_OPEN.search(line):
+            on = True
+            frozen.add(i)
+            continue
+        if FREEZE_CLOSE.search(line):
+            on = False
+            frozen.add(i)
+            continue
+        if on:
+            frozen.add(i)
+    return frozen
+
+
 def instructed_versions(text):
     """Every version this text actually tells someone to obtain."""
-    return {v for m in FIND.finditer(text) for v in m.groups() if v}
+    skip = frozen_lines(text)
+    out = set()
+    for i, line in enumerate(text.splitlines()):
+        if i in skip:
+            continue
+        for m in FIND.finditer(line):
+            out.update(v for v in m.groups() if v)
+    return out
+
+
+def rewrite(text, version):
+    """Move every download instruction to `version`. Returns (text, moved).
+
+    Line by line, because freezing is a property of a line. The substitution
+    keeps each match's surroundings and replaces only the number, so it cannot
+    damage the line it is editing.
+    """
+    skip = frozen_lines(text)
+    moved = []
+
+    def sub(m):
+        old = m.group(2)
+        if old == version:
+            return m.group(0)
+        moved.append(old)
+        return m.group(1) + version + m.group(3)
+
+    lines = text.splitlines(keepends=True)
+    for i, line in enumerate(lines):
+        if i in skip:
+            continue
+        for p in REWRITE:
+            line = p.sub(sub, line)
+        lines[i] = line
+    return "".join(lines), moved
 
 
 def discover(repo, globs):

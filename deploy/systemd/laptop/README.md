@@ -17,7 +17,9 @@ hours after it had been updated and verified.
 
 The first version of `wam-node.service` named the release directly:
 
-    ExecStart=/home/grgo/wam-v0.1.4/wam-coin-v0.1.7/bin/wamd
+<!-- keep-version -->
+    ExecStart=/home/grgo/wam-v0.1.4/wam-coin-v0.1.4/bin/wamd
+<!-- /keep-version -->
 
 which means every upgrade edits a systemd unit, and forgetting to edit it
 means running the old binary while believing otherwise -- the same failure
