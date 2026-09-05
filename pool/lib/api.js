@@ -301,6 +301,24 @@ class ApiServer {
             headers: chain.headers,
             difficulty: chain.difficulty,
             networkHashPerSecond: mining.networkhashps || 0,
+
+            // The tip's own timestamp, and how long ago that was.
+            //
+            // networkhashps above is an ESTIMATE derived from how fast recent
+            // blocks arrived. When blocks stop arriving it keeps reporting the
+            // rate of the blocks before the stall, so it is least truthful at
+            // the exact moment it matters most. On 5 September 2026 a tester
+            // shut down every miner he had; this page read 24.3 kH/s while
+            // showing 0 active workers, and the chain had not moved in half an
+            // hour. Both numbers were on screen together.
+            //
+            // This one cannot be estimated: it is the clock minus the block
+            // header. The page shows it beside the hashrate so a reader can
+            // see when the estimate has gone stale.
+            tipTime: chain.time || null,
+            secondsSinceBlock: chain.time
+                ? Math.max(0, Math.floor(Date.now() / 1000) - chain.time)
+                : null,
             connections: mining.connections !== undefined ? mining.connections : null,
             blockSubsidy: subsidy,
             minerSubsidy: subsidy - treasurySubsidy,

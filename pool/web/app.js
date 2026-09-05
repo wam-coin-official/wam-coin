@@ -88,9 +88,22 @@ function renderStats(s) {
   text($('minerCount'), String(pool.miners ?? 0));
   text($('workerCount'), `${pool.workers ?? 0} active worker${pool.workers === 1 ? '' : 's'}`);
 
+  // The hashrate is an estimate from recent block times, so it lags badly the
+  // moment blocks stop. A tester shut every miner down on 5 September and this
+  // tile read 24.3 kH/s beside "0 active workers", with the chain frozen for
+  // half an hour. The age of the tip cannot lag -- it is the clock minus the
+  // block header -- so it is shown next to the estimate, and says plainly when
+  // the estimate has stopped meaning anything.
+  const stale = net.secondsSinceBlock != null && net.secondsSinceBlock > 600;
   text($('netHashrate'), hashrate(net.networkHashPerSecond));
-  text($('netDifficulty'), `difficulty ${(net.difficulty || 0).toLocaleString(undefined,
-    { maximumFractionDigits: 2 })}`);
+  const diffText = `difficulty ${(net.difficulty || 0).toLocaleString(undefined,
+    { maximumFractionDigits: 2 })}`;
+  text($('netDifficulty'), net.secondsSinceBlock == null
+    ? diffText
+    : stale
+      ? `${diffText} · no block for ${duration(net.secondsSinceBlock)} — rate above is stale`
+      : `${diffText} · last block ${duration(net.secondsSinceBlock)} ago`);
+  $('netDifficulty').classList.toggle('warn', stale);
 
   text($('blockHeight'), (net.blocks || 0).toLocaleString());
   text($('halvingNote'), net.blocksUntilHalving !== undefined

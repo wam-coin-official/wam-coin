@@ -125,6 +125,11 @@ main {
   letter-spacing: -0.02em;
 }
 .tile .note { font-size: 12px; color: var(--muted); margin-top: 3px; }
+/* A note that is contradicting the big number above it. The network hashrate
+   is an estimate from past block times; when no block has arrived in ten
+   minutes the estimate is describing a network that has stopped, and the note
+   says so in a colour that is not the same grey as everything else. */
+.tile .note.warn { color: var(--danger); }
 
 /* ------------------------------------------------------------ reward bar */
 
