@@ -50,48 +50,30 @@ RED = "\033[31m"; GRN = "\033[32m"; YEL = "\033[33m"; BLD = "\033[1m"; OFF = "\0
 REPO = pathlib.Path(__file__).resolve().parent.parent
 API = "https://api.github.com/repos/wam-coin-official/wam-coin/releases?per_page=20"
 
-# Where a stale version actually costs someone something. Commit messages,
-# changelogs and design notes name old versions on purpose -- that is history,
-# not instruction.
-DOCS = [
-    "docs/START_HERE.md",
-    "docs/START_HERE_AR.md",
-    "README.md",
-    "docs/BUILD.md",
-    "docs/POOL_OPERATOR.md",
-    "docs/SERVER_SETUP.md",
-    "site/index.html",
-]
+sys.path.insert(0, str(REPO / "scripts" / "lib"))
+import docversion  # noqa: E402  -- needs the path above
 
-# A version number is only an instruction when the reader is being told to
-# fetch that exact thing. Every other mention is prose, and prose about old
-# versions is usually the most important prose in the file:
+# Discovered, not listed -- and by the same rule set_version.py uses to decide
+# what to rewrite, from the same module, so the writer and the auditor cannot
+# drift apart.
 #
-#     "a node left on v0.1.4 will reject every valid block on launch day
-#      and fork itself off the network"
+# The list that used to be here named seven files. Two that set_version.py
+# rewrites were missing from it (docs/MINE.md, deploy/systemd/laptop/README.md,
+# both added on 5 September), and of the site it named only site/index.html --
+# which contains no download instruction at all, while site/start/,
+# site/mine/ and site/start-ar/ contain eleven between them and were absent.
 #
-# The first version of this matched every `vX.Y.Z` in the document and so it
-# failed on that sentence -- reporting the warning we most want operators to
-# read as a dead download link. A check that objects to correct text is worse
-# than no check: it teaches its reader to skip the output. On 2026-08-19
-# three faults were live at once behind exactly that habit.
-#
-# So the contexts are named one by one. Each alternative captures the version.
-INSTRUCTION = re.compile(
-    r"releases/download/v(\d+\.\d+\.\d+)/"      # the URL people curl
-    r"|wam-(?:coin|miner)-v(\d+\.\d+\.\d+)"     # the tarball, and the directory
-    r"|\[v(\d+\.\d+\.\d+)\]\("                  # "the release is [v0.1.5](...)"
-)
+# So this printed "every documented version is one that exists" after reading
+# a page that could not fail and skipping every page that could. A check that
+# cannot fail is not a check; it is a sentence that makes people stop looking.
+def _targets():
+    return docversion.documents(REPO) + docversion.pages(REPO)
 
+# Which contexts count, and why prose about old versions must not: see
+# scripts/lib/docversion.py. Defined there because set_version.py rewrites
+# exactly what this audits, and the two must not be able to disagree.
+instructed_versions = docversion.instructed_versions
 
-def instructed_versions(text):
-    """Every version the document actually tells someone to obtain."""
-    out = set()
-    for m in INSTRUCTION.finditer(text):
-        v = next((g for g in m.groups() if g), None)
-        if v:
-            out.add(v)
-    return out
 _fails = []
 
 
@@ -131,7 +113,7 @@ def main():
     ok(f"newest release: v{newest}")
 
     checked = 0
-    for rel_path in DOCS:
+    for rel_path in _targets():
         p = REPO / rel_path
         if not p.exists():
             continue
