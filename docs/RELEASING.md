@@ -68,7 +68,31 @@ A draft is not downloadable and does not appear on the releases page.
 
 ## 4. Sign it, then publish it
 
-On the machine with the USB stick:
+On the machine with the USB stick. **Git Bash, not PowerShell** — PowerShell
+has no `gpg` on PATH; the one that works is
+`C:\Program Files\Git\usr\bin\gpg.exe`, which is what Git Bash runs.
+
+From the draft release page, download **all three** files — `SHA256SUMS` and
+both packages, about 11 MB — into one empty directory. Then:
+
+```
+bash scripts/sign_release.sh ~/Downloads/wam-v0.1.7
+```
+
+It refuses to sign until every file named in `SHA256SUMS` is present and
+hashes to the value written beside it, checks that the version in the names
+is the version this checkout builds, imports the key into a keyring created
+on the USB and destroyed on exit, and verifies its own signature in a
+throwaway keyring against the published fingerprint before it says it is
+done.
+
+Upload the `SHA256SUMS.asc` it writes, and take the release out of draft, from
+the release page in a browser: **Edit release** → drag the file into the
+attachments → **Publish release**.
+
+### Why not `gh`
+
+This document used to say:
 
 ```
 gh release download v0.1.7 -p SHA256SUMS
@@ -76,6 +100,20 @@ gpg --detach-sign --armor SHA256SUMS
 gh release upload v0.1.7 SHA256SUMS.asc
 gh release edit v0.1.7 --draft=false
 ```
+
+`gh` is not installed on the machine that holds the key, so the procedure
+stopped at its first line — discovered while cutting v0.1.7, with the draft
+already built and waiting.
+
+The second line is the worse one. `SHA256SUMS` is not the release; it is a
+list of promises about the release, arriving over the network from a service
+this project does not own. Signing it unread converts *GitHub handed me this
+list* into *the founder personally vouches for these bytes*, which is the
+exact sentence every reader of `verify_release.sh` is trusting. The key's
+whole value is that it says something the network cannot say.
+
+Installing `gh` would have fixed the first line and left the second one
+standing.
 
 Then check it as a stranger would — clean directory, empty keyring, nothing
 but what the announcement says to fetch:
@@ -86,8 +124,8 @@ bash wam-coin/scripts/verify_release.sh ~/Downloads
 ```
 
 It must print `ok` twice and exit 0. If it does not, the release is public and
-broken, and `gh release edit v0.1.7 --draft=true` puts it back out of reach
-while you find out why.
+broken: **Edit release → Save as draft** puts it back out of reach while you
+find out why.
 
 ## 5. Afterwards
 
