@@ -118,6 +118,80 @@ def rename_qt_include(text):
     return re.sub(r'^qt_bitcoin_qt_', 'qt_wam_qt_', text, flags=re.MULTILINE)
 
 
+# Files whose C++ string literals are read by a person: usage text, error
+# messages, RPC help. Found by asking which files contain a quoted literal
+# mentioning bitcoind or bitcoin-cli, not by guessing.
+MESSAGE_FILES = [
+    'src/bitcoin-cli.cpp',
+    'src/bitcoind.cpp',
+    'src/txdb.cpp',
+    'src/rpc/blockchain.cpp',
+    'src/rpc/external_signer.cpp',
+    'src/rpc/node.cpp',
+    'src/rpc/util.cpp',
+    'src/wallet/wallet.cpp',
+    'src/wallet/rpc/backup.cpp',
+    'src/wallet/rpc/wallet.cpp',
+    'src/wallet/external_signer_scriptpubkeyman.cpp',
+]
+
+# A quoted C++ string literal, escapes included.
+_LITERAL = re.compile(r'"(?:[^"\\\n]|\\.)*"')
+
+# Inside a literal, these are still code or paths and must not be touched:
+# an include or a source name, and the automake variable prefixes.
+_LEAVE_ALONE = re.compile(r'\.(h|cpp|py|am)\b|_SOURCES|_LDADD|_CPPFLAGS')
+
+
+def rename_message_strings(text):
+    """Rename the binaries where a person reads them, and nowhere else.
+
+    A user who ran the release on 5 September and mistyped a flag was told
+
+        Make sure the bitcoind server is running ...
+        Use "bitcoin-cli -help" for more info.
+
+    by a program called wam-cli, about a daemon called wamd. The first thing
+    a stranger sees when something goes wrong is the name of a different coin.
+
+    PROGRAMS above renames build targets and automake variables; EXACT covers
+    a handful of individual lines. Neither touches message text, because a
+    blind search and replace over these files renames #include "bitcoind.h"
+    and the build stops -- the reason the header of this script gives for not
+    doing it that way.
+
+    So this rewrites only inside double-quoted literals, and skips any literal
+    that is a filename or a makefile variable.
+    """
+    def fix(m):
+        s = m.group(0)
+        if _LEAVE_ALONE.search(s):
+            return s
+        s = s.replace('bitcoin-cli', 'wam-cli')
+        s = re.sub(r'\bbitcoind\b', 'wamd', s)
+        return s
+
+    return _LITERAL.sub(fix, text)
+
+
+def apply_message_strings(tree, report):
+    touched = 0
+    for rel in MESSAGE_FILES:
+        path = tree / rel
+        if not path.is_file():
+            report(f'  skip    {rel} (not present)')
+            continue
+        text = path.read_text(encoding='utf-8')
+        new = rename_message_strings(text)
+        if new != text:
+            path.write_text(new, encoding='utf-8')
+            n = len(_LITERAL.findall(text)) and sum(
+                1 for a, b in zip(_LITERAL.findall(text), _LITERAL.findall(new)) if a != b)
+            report(f'  strings {rel}  ({n} literal(s))')
+            touched += 1
+    return touched
+
+
 def apply_exact(tree, report):
     touched = 0
     for rel, old, new in EXACT:
@@ -224,6 +298,7 @@ def main():
         touched += 1
 
     touched += apply_exact(tree, report)
+    touched += apply_message_strings(tree, report)
 
     report(f'\n{touched} files rewritten' if touched else '\nnothing to do; already renamed')
     return 0
