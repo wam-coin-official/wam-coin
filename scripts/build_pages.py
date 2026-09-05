@@ -74,6 +74,14 @@ PAGES = [
      "كيف تُشغّل عقدة WAM، لمن لم يُشغّل عقدةً من قبل.",
      "شغّل عقدةً بأربعة أوامر، مع خطوة التحقّق التي تتخطّاها أغلب الأدلّة."),
 
+    ("docs/MINE.md", "site/mine", "en", "ltr",
+     "Mine WAM — nine lines",
+     "The shortest correct way to start mining WAM Coin: nine commands, no "
+     "explanation.",
+     "Nine commands and nothing to read. Written because a tester said his "
+     "friends wanted the shortest way to start, and the guide is the wrong "
+     "shape for that."),
+
     ("WHITEPAPER.md", "site/whitepaper", "en", "ltr",
      "Whitepaper — WAM Coin",
      "Why WAM's money works the way it does: a 22,000,000 cap, RandomX proof "
@@ -328,6 +336,7 @@ def nav_links(current, lang):
         label = {
             "/start/": "start" if lang == "en" else "English",
             "/start-ar/": "بالعربية",
+            "/mine/": "mine",
             "/whitepaper/": "whitepaper",
             "/security/": "security",
             "/build/": "build",
