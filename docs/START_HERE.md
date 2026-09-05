@@ -57,8 +57,8 @@ else's answer.
 ### Download it
 
 ```bash
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.6/wam-coin-v0.1.6-x86_64-linux-gnu.tar.gz
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.6/SHA256SUMS
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/wam-coin-v0.1.7-x86_64-linux-gnu.tar.gz
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS
 ```
 
 ### Check that it is really our file
@@ -74,8 +74,8 @@ it is the only thing standing between you and a file somebody else swapped in.
 ### Unpack and run
 
 ```bash
-tar -xzf wam-coin-v0.1.6-x86_64-linux-gnu.tar.gz
-cd wam-coin-v0.1.6/bin
+tar -xzf wam-coin-v0.1.7-x86_64-linux-gnu.tar.gz
+cd wam-coin-v0.1.7/bin
 ./wamd -testnet -printtoconsole
 ```
 
