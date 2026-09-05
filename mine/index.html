@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mine WAM — nine lines</title>
+<link rel="icon" href="/favicon.png" type="image/png">
+<meta name="description" content="The shortest correct way to start mining WAM Coin: nine commands, no explanation.">
+<link rel="canonical" href="https://wamcoin.org/mine/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="WAM Coin">
+<meta property="og:title" content="Mine WAM — nine lines">
+<meta property="og:description" content="Nine commands and nothing to read. Written because a tester said his friends wanted the shortest way to start, and the guide is the wrong shape for that.">
+<meta property="og:image" content="https://wamcoin.org/og-card.png">
+<meta property="og:url" content="https://wamcoin.org/mine/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@WAMCoinCore">
+<meta name="twitter:image" content="https://wamcoin.org/og-card.png">
+<style>
+:root{--bg:#faf9f7;--fg:#1a1a1a;--dim:#5c5a57;--rule:#e3e0db;--code:#f2f0ec;--accent:#8a6d1f}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0e1211;--fg:#eceae7;--dim:#9a9691;--rule:#242a29;--code:#171d1c;--accent:#c9a94a}}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);margin:0;padding:2.2rem 1.1rem 5rem;
+ font:16px/1.72 ui-serif,Georgia,"Times New Roman",serif;-webkit-text-size-adjust:100%}
+main{max-width:44rem;margin:0 auto}
+h1{font-size:1.85rem;line-height:1.25;margin:0 0 .4rem;letter-spacing:-.01em}
+h2{font-size:1.28rem;margin:2.6rem 0 .7rem;padding-top:1.1rem;border-top:1px solid var(--rule)}
+h3{font-size:1.06rem;margin:1.8rem 0 .5rem}
+p,li{margin:.75rem 0}
+a{color:inherit;text-decoration:underline;text-underline-offset:2px;text-decoration-color:var(--accent)}
+code{background:var(--code);padding:.12em .38em;border-radius:3px;
+ font:13.5px/1.5 ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;word-break:break-word}
+pre{background:var(--code);padding:.95rem 1.05rem;border-radius:6px;overflow-x:auto;
+ border:1px solid var(--rule)}
+pre code{background:none;padding:0;white-space:pre}
+blockquote{margin:1.1rem 0;padding:.1rem 0 .1rem 1rem;border-inline-start:3px solid var(--accent);color:var(--dim)}
+table{border-collapse:collapse;width:100%;margin:1.1rem 0;font-size:.94rem;display:block;overflow-x:auto}
+th,td{border-bottom:1px solid var(--rule);padding:.5rem .6rem;text-align:start}
+th{font-weight:600}
+hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
+/* The mark, on every page. A reader who meets WAM in a search result should
+   have seen the same coin four times before they read the name. */
+.mast{display:flex;align-items:center;gap:.7rem;margin-bottom:1.4rem}
+.mast img{width:44px;height:44px;flex:none;border-radius:50%}
+.mast .wordmark{font-weight:600;letter-spacing:-.01em;font-size:1.05rem}
+.mast .wordmark span{display:block;font-size:.8rem;font-weight:400;color:var(--dim);
+ letter-spacing:0}
+.top{display:flex;gap:1rem;flex-wrap:wrap;font-size:.9rem;color:var(--dim);
+ margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid var(--rule)}
+.foot{margin-top:3.5rem;padding-top:1.2rem;border-top:1px solid var(--rule);
+ font-size:.87rem;color:var(--dim)}
+[dir=rtl]{font-family:ui-serif,"Noto Naskh Arabic","Amiri",Georgia,serif}
+[dir=rtl] pre,[dir=rtl] code{direction:ltr;text-align:left}
+</style>
+</head>
+<body>
+<main>
+<a class="mast" href="/">
+  <img src="/wam-coin.png" alt="The WAM Coin mark" width="44" height="44">
+  <span class="wordmark">WAM Coin<span>A CPU-mineable proof-of-work currency</span></span>
+</a>
+<nav class="top">
+  <a href="/">wamcoin.org</a>
+  <a href="/start/">start</a>
+  <a href="/start-ar/">بالعربية</a>
+  <a href="/whitepaper/">whitepaper</a>
+  <a href="/security/">security</a>
+  <a href="/build/">build</a>
+  <a href="/pool/">pool</a>
+  <a href="/rehearsals/">rehearsals</a>
+  <a href="https://github.com/wam-coin-official/wam-coin/blob/main/docs/MINE.md">source</a>
+</nav>
+<h1 id="mine-wam">Mine WAM</h1>
+<p>Nine lines, no explanation. If you want the explanation, read <a href="/start/">START_HERE.md</a>.</p>
+<p>This page exists because a tester on 5 September said his friends "want plain jane, step by step, and shortest way to start mining", and he was right that the guide is the wrong shape for that. It explains what a blockchain is, which that reader either knows already or does not care about.</p>
+<p>Linux x86_64, about 2 GB of free memory. Nothing else.</p>
+<h2 id="the-test-network-live-now">The test network — live now</h2>
+<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.6/wam-coin-v0.1.6-x86_64-linux-gnu.tar.gz
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.6/wam-miner-v0.1.6-x86_64-linux-gnu.tar.gz
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.6/SHA256SUMS
+sha256sum --ignore-missing -c SHA256SUMS
+tar -xzf wam-coin-v0.1.6-x86_64-linux-gnu.tar.gz &amp;&amp; tar -xzf wam-miner-v0.1.6-x86_64-linux-gnu.tar.gz
+cd wam-coin-v0.1.6/bin
+./wamd -testnet -daemon
+./wam-cli -testnet createwallet "mine"
+./wam-cli -testnet -rpcwallet=mine getnewaddress</code></pre>
+<p>The last command prints your address; it starts with <code>twam1</code>. Then, from where the miner unpacked:</p>
+<pre><code>./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS -t 4</code></pre>
+<p><code>-t 4</code> is how many processor cores to use. Without it the miner takes every core but one, which makes the rest of the machine unpleasant to use.</p>
+<h2 id="the-one-line-that-is-not-optional">The one line that is not optional</h2>
+<pre><code>sha256sum --ignore-missing -c SHA256SUMS</code></pre>
+<p>It should print <code>OK</code>. It costs a second, and it is the whole difference between running our file and running whatever arrived instead. Every other step here can be skipped and retried later; this one cannot be checked afterwards.</p>
+<h2 id="what-you-are-mining">What you are mining</h2>
+<p>Test coins. They are worth nothing, they will not become real coins, and the test chain is wiped whenever that is useful — it has been already. Mine here to find what breaks before 15 September, not to earn.</p>
+<h2 id="on-15-september-mainnet">On 15 September, mainnet</h2>
+<p>The same commands without <code>-testnet</code>:</p>
+<pre><code>./wamd -daemon
+./wam-cli createwallet "mine"
+./wam-cli -rpcwallet=mine getnewaddress
+./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS -t 4</code></pre>
+<p>Two things are <strong>not</strong> the same.</p>
+<p><strong>Your testnet address will not work.</strong> Make a new wallet. Testnet derives on coin type 1 — SLIP-44 reserves it for every test chain, deliberately, so test keys can never be confused with real ones — and WAM mainnet uses 5718349. The prefixes differ too: <code>twam1</code> here, <code>wam1</code> there. The pool refuses a testnet address on mainnet, so nothing is lost; it simply will not work.</p>
+<p><strong>Do not assume today's download is the launch binary.</strong> A release between now and the 15th may change a consensus rule. v0.1.5 moved the mainnet treasury address, and a node left on v0.1.4 would reject every valid block on launch day and fork itself off the network at height 1 — silently, while appearing to run perfectly. Subscribe so you are told:</p>
+<p>github.com/wam-coin-official/wam-coin → <strong>Watch ▾</strong> → <strong>Custom</strong> → <strong>Releases</strong> ✓</p>
+<h2 id="when-it-does-not-work">When it does not work</h2>
+<p><strong><code>dnsseed thread exit</code>, and nothing else happens.</strong> You are on mainnet, which is one block until 15 September, so the node is correctly fully synced and stops looking for peers. Add <code>-testnet</code>.</p>
+<p><strong><code>incorrect password attempt</code> in the log.</strong> There is no password. The node writes <code>&lt;datadir&gt;/.cookie</code> at startup and clients read it, so <code>wam-cli</code> needs the same <code>-testnet</code> and the same <code>-datadir=</code> as the daemon. A leftover <code>wam.conf</code> carrying <code>rpcuser</code>/<code>rpcpassword</code> fights the cookie; delete those two lines.</p>
+<p><strong><code>accepted</code> stays at 0.</strong> Usually the wrong address format — it must start with <code>twam1</code> on the test network.</p>
+<p><strong>No block ever found.</strong> Normal. One machine among many finds one rarely, which is what the pool is for; your share of what the pool finds is paid to your address anyway.</p>
+<h2 id="back-up-the-wallet">Back up the wallet</h2>
+<pre><code>./wam-cli -testnet -rpcwallet=mine backupwallet /path/you/choose/backup.dat</code></pre>
+<p>It prints nothing on success. Check the file exists and has a size — that is the whole confirmation.</p>
+<p>The live wallet is at <code>~/.wam/testnet3/wallets/mine/wallet.dat</code>, and <code>listdescriptors true</code> prints the same keys in portable form. Treat that output like cash: never paste it anywhere, including to us.</p>
+<hr>
+<p><a href="https://discord.gg/Gxvmrjy9Qb">discord</a> · <a href="https://explorer.wamcoin.org">explorer</a> · <a href="https://pool.wamcoin.org">pool</a></p>
+<p class="foot">This page is generated from docs/MINE.md in the repository. It is the same text; nothing here is written twice.</p>
+</main>
+</body>
+</html>
