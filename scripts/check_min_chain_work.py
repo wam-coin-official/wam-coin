@@ -47,6 +47,19 @@ import subprocess
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
+
+sys.path.insert(0, str(REPO / "scripts" / "lib"))
+import quoted  # noqa: E402  -- needs the path above
+
+
+def _read(p):
+    """Read a source file with the author's quotations blanked.
+
+    Both of these checks match values out of C++ that also has comments in
+    it, and the comment beside a value is exactly where somebody explains an
+    old one. See scripts/lib/quoted.py.
+    """
+    return quoted.strip_quoted(pathlib.Path(p).read_text(encoding="utf-8", errors="replace"))
 CHAINPARAMS = REPO / "src" / "wam" / "chainparams.cpp"
 
 GRN, RED, YLW, BLD, OFF = "\033[32m", "\033[31m", "\033[33m", "\033[1m", "\033[0m"
@@ -73,7 +86,7 @@ def declared():
     # reported "no nMinimumChainWork found for testnet" about a value that was
     # sitting right there. A parser that silently sees one of three sections
     # is worse than none: it answers confidently about a file it did not read.
-    text = CHAINPARAMS.read_text(encoding="utf-8")
+    text = _read(CHAINPARAMS)
     NAMES = {
         "CMainParams": "mainnet",
         "CTestNetParams": "testnet",

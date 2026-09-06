@@ -49,6 +49,7 @@ import urllib.request
 
 RED = "\033[31m"; GRN = "\033[32m"; YEL = "\033[33m"; BLD = "\033[1m"; OFF = "\033[0m"
 _fails = []
+UNREACHED = []
 
 
 def ok(m):   print(f"  {GRN}ok{OFF}    {m}")
@@ -113,8 +114,11 @@ if tg.get("token") and tg.get("chatId"):
         r = fetch(base + "/getMe")
         name = (r.get("result") or {}).get("username", "?")
         print("TELEGRAM_TOKEN ok @%s" % name)
+    except urllib.error.HTTPError as e:
+        print("TELEGRAM_TOKEN fail HTTP %s" % e.code); raise SystemExit(0)
     except Exception as e:
-        print("TELEGRAM_TOKEN fail %s" % type(e).__name__); raise SystemExit(0)
+        # A timeout is not a finding about the token.
+        print("TELEGRAM_TOKEN unreachable %s" % type(e).__name__); raise SystemExit(0)
     try:
         r = fetch(base + "/getChat?chat_id=%s" % tg["chatId"])
         c = r.get("result") or {}
@@ -122,7 +126,7 @@ if tg.get("token") and tg.get("chatId"):
     except urllib.error.HTTPError as e:
         print("TELEGRAM_CHAT fail HTTP %s -- the bot cannot see that channel" % e.code)
     except Exception as e:
-        print("TELEGRAM_CHAT fail %s" % type(e).__name__)
+        print("TELEGRAM_CHAT unreachable %s" % type(e).__name__)
 else:
     print("TELEGRAM_TOKEN absent")
 
@@ -134,7 +138,7 @@ if dc.get("webhookUrl"):
     except urllib.error.HTTPError as e:
         print("DISCORD fail HTTP %s -- the webhook was deleted or revoked" % e.code)
     except Exception as e:
-        print("DISCORD fail %s" % type(e).__name__)
+        print("DISCORD unreachable %s" % type(e).__name__)
 else:
     print("DISCORD absent")
 PY
@@ -246,6 +250,22 @@ def main():
             warn(f"{line.split()[0].lower()} is not configured -- nothing is sent there")
         elif " ok" in line:
             ok(line.replace("_", " ").lower())
+        elif " unreachable" in line:
+            # A network timeout reaching Telegram or Discord says nothing about
+            # whether the bot works. On 6 September one timed-out request from
+            # the founder's laptop -- on a connection in Libya, about a bot
+            # running healthily in France -- printed "announcements to this
+            # channel are silently going nowhere". The announcer was cycling
+            # every minute at the time, and api.telegram.org answered from that
+            # server in 0.22 seconds on three tries out of three.
+            #
+            # This project's convention is that exit 2 means the check could not
+            # run. sweep.sh already carries the same lesson in its own comment,
+            # about an ssh call that took longer than a minute being reported as
+            # "everyone can follow mainnet: FAILING".
+            warn(f"{line.replace('_', ' ').lower()} -- could not reach it from "
+                 f"here, which is not the same as it being broken")
+            UNREACHED.append(line.split()[0].lower())
         elif " fail" in line:
             bad(f"{line.replace('_', ' ').lower()} -- announcements to this channel "
                 f"are silently going nowhere")
@@ -331,6 +351,13 @@ def main():
         print("  The stall alert is the message that matters most and the one most\n"
               "  likely to be missing when it is needed.\n")
         return 1
+    if UNREACHED:
+        # Exit 2, this project's word for "the check could not run". A
+        # timeout reported as a failure says something was measured and
+        # found wrong, and what was measured was this machine's connection.
+        print(f"  {YEL}could not reach {', '.join(UNREACHED)} from here{OFF}")
+        print("  Nothing about the bot was established either way.")
+        return 2
     print(f"  {GRN}the announcer is alive and can be heard{OFF}\n")
     return 0
 

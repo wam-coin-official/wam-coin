@@ -47,6 +47,19 @@ import sys
 import time
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
+
+sys.path.insert(0, str(REPO / "scripts" / "lib"))
+import quoted  # noqa: E402  -- needs the path above
+
+
+def _read(p):
+    """Read a source file with the author's quotations blanked.
+
+    Both of these checks match values out of C++ that also has comments in
+    it, and the comment beside a value is exactly where somebody explains an
+    old one. See scripts/lib/quoted.py.
+    """
+    return quoted.strip_quoted(pathlib.Path(p).read_text(encoding="utf-8", errors="replace"))
 SEEDS = REPO / "src" / "wam" / "chainparamsseeds.h"
 
 LAUNCH = datetime.datetime(2026, 9, 15, 0, 0, tzinfo=datetime.timezone.utc)
@@ -69,7 +82,7 @@ def decode(array_name):
     by contrib/seeds/generate-seeds.py for this project; anything else here
     would be a surprise worth stopping for rather than skipping.
     """
-    text = SEEDS.read_text(encoding="utf-8")
+    text = _read(SEEDS)
     m = re.search(re.escape(array_name) + r"\[\]\s*=\s*\{(.*?)\};", text, re.S)
     if not m:
         return None
