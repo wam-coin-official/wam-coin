@@ -134,6 +134,32 @@ with `twam1` on the test network.
 which is what the pool is for; your share of what the pool finds is paid to
 your address anyway.
 
+
+## Your balance will say zero, and that is normal
+
+The pool pays out at **1 WAM** and runs a payment round every **10 minutes**.
+Below that threshold your earnings sit in the pool's ledger and not in your
+wallet, so
+
+```
+./wam-cli -testnet -rpcwallet=mine getbalance
+0.00000000
+```
+
+is what you will see for the first while, however hard the machine is
+working. Nothing is missing and more threads is not the fix — it only raises
+your share of each block the pool finds.
+
+Watch the ledger instead of the wallet:
+
+    https://pool.wamcoin.org
+
+And if you change your payout address, your share history starts again from
+nothing. Whatever the old address had earned stays owed to that address.
+
+Written down on 6 September, after somebody mined for an hour, read
+`0.00000000`, and reasonably concluded something was broken.
+
 ## Back up the wallet
 
 ```
