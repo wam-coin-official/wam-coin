@@ -132,6 +132,12 @@ Everything here is irreversible once the first block is mined. Work through it i
       commands*, not prose: `wam-cli getsupplyinfo` and `getblock <genesis> 2`.
 - [ ] The genesis hash, merkle root and treasury address are published so anyone can verify
       them against their own node.
+- [ ] **9555 is listening on both seed machines, and reachable from outside.** The two
+      addresses compiled into every published binary are `169.58.159.165:9555` and
+      `5.223.52.200:9555`. They cannot be withdrawn from a copy somebody already has.
+      If they do not listen that morning, a new node has no way in at all — not DNS,
+      not seeds. `python3 scripts/check_fixed_seeds.py --network mainnet` measures it;
+      on 6 September both refused the connection, which is correct then and fatal now.
 - [ ] A block explorer is live.
 - [ ] A binary release is published with SHA256 sums and the exact upstream commit that was
       built (`build/wam-core/.wam-patched`).

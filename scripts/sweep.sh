@@ -112,6 +112,7 @@ run "no assistant attribution"   "$PY" scripts/check_attribution.py
 run "mention is not use"         "$PY" scripts/check_mentions.py
 run "every link resolves"        "$PY" scripts/check_links.py
 run "the zone is signed and validates" "$PY" scripts/check_dnssec.py
+run "the seeds inside the binary answer" "$PY" scripts/check_fixed_seeds.py
 run "a floor under what a node follows" "$PY" scripts/check_min_chain_work.py --network testnet ${NODES:+--host ${NODES%% *}}
 
 # The listing entry repeats constants that live in src/wam. Hand-written
