@@ -32,6 +32,7 @@ Three rules, or this becomes a ritual:
 | 9 Sep | **France dies.** Does Singapore carry the network alone? | nothing |
 | 10 Sep | The **third seed**, if the server has arrived | Vultr |
 | 11–12 Sep | Repeat whatever found a defect; publish the BitcoinTalk announcement | signed release ✓ |
+| 12 Sep | **Rewrite the 24 marked commit messages** — on a mirror first, verified, then force-pushed | nothing |
 | 13 Sep | **Freeze.** No change but a critical fix |  |
 | 14 Sep | Full sweep, and read LAUNCH_DAY.md line by line |  |
 | 15 Sep | Launch |  |
@@ -98,6 +99,43 @@ Restarting the node is not rare — it is how every upgrade works, and there is
 one ten days before launch, when a discarded block is a miner's reward.
 
 ---
+
+## The history rewrite, and why it is a rehearsal rather than a chore
+
+Twenty-four commit messages between 24 August and 5 September carry an
+assistant attribution the founder asked to have removed. It is in commit
+messages only: no tracked file, no tag message, no release page and no
+binary carries one, and check_attribution.py in the sweep makes a new one
+impossible.
+
+Removing them rewrites 138 commits. v0.1.0 to v0.1.5 are untouched; v0.1.6
+and v0.1.7 move.
+
+What that does NOT break, measured rather than assumed: verify_release.sh
+compares a signature to the binaries and never looks at a commit, so every
+published download still verifies exactly as before. What it does break is
+one informational line on each of two release pages -- "Built by GitHub
+Actions from <sha>" -- and every clone anyone has taken, which then needs a
+forced fetch.
+
+It is scheduled, and rehearsed on a mirror, because it is irreversible and
+because doing it as the tail end of a long night is how an operation that
+costs a line of text ends up costing a repository. The order:
+
+1. `git clone --mirror` to a scratch directory. Everything below happens
+   there first, and nothing is pushed until it passes.
+2. Rewrite the messages. Confirm: 138 new hashes, the same trees --
+   `git diff <old-tip> <new-tip>` must be empty, because nothing about the
+   content is changing.
+3. `check_attribution.py` reports zero, including the backlog.
+4. Only then force-push, and immediately edit the two release bodies to name
+   the new commits.
+5. Say so in the channels, once: anyone with a clone needs
+   `git fetch --all --prune` and a reset. A public history that changes
+   without a word is how a project looks compromised.
+
+If step 2 or 3 does not come out clean, nothing is pushed and the 24 stay.
+They cost the system nothing where they are.
 
 ## Still open
 
