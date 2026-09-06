@@ -27,6 +27,19 @@ cd wam-coin-v0.1.7/bin
 ./wam-cli -testnet -rpcwallet=mine getnewaddress
 ```
 
+> **Back it up before you do anything else.** One command, now, while there is
+> nothing in it to lose:
+>
+> ```
+> ./wam-cli -testnet -rpcwallet=mine backupwallet ~/wam-wallet-backup.dat
+> ```
+>
+> This page says the same thing again further down, and on 6 September that was
+> a hundred lines too late: somebody following it created a wallet, tidied his
+> directory an hour later, and deleted the only copy. On testnet that costs
+> nothing. The habit is what is being built here, and the person who builds it
+> on 15 September has money in the file.
+
 **If you restart the node and `wam-cli` answers `-18 Requested wallet does not
 exist or is not loaded`,** the wallet is on disk and simply not open. Bitcoin
 Core reopens the wallets it had open when it was last shut down cleanly; a
