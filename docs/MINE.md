@@ -160,6 +160,34 @@ nothing. Whatever the old address had earned stays owed to that address.
 Written down on 6 September, after somebody mined for an hour, read
 `0.00000000`, and reasonably concluded something was broken.
 
+
+### And `getbalance` will DROP when you send to yourself
+
+Send one coin from your own wallet to another address in the same wallet and
+the balance goes down, not sideways. Nothing was lost. `getbalance` reports
+only what is confirmed and spendable, and your change output is sitting in
+the mempool until a block carries it.
+
+`getbalance` is one number. `getbalances` is the truth:
+
+```
+./wam-cli -testnet -rpcwallet=mine getbalances
+{
+  "mine": {
+    "trusted": 6.99973355,            confirmed, spendable now
+    "untrusted_pending": 11.15475873, sent or received, not yet in a block
+    "immature": 0.00000000            mined, waiting out the 100 blocks
+  }
+}
+```
+
+Use `getbalances` whenever a number surprises you. The three add up; one of
+them alone never does.
+
+Written down on 6 September because a miner sent a coin to himself, watched
+the balance fall, and another miner — walkjivefly — explained it in the
+channel before this project did.
+
 ## Back up the wallet
 
 ```
