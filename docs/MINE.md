@@ -27,6 +27,23 @@ cd wam-coin-v0.1.7/bin
 ./wam-cli -testnet -rpcwallet=mine getnewaddress
 ```
 
+**If you restart the node and `wam-cli` answers `-18 Requested wallet does not
+exist or is not loaded`,** the wallet is on disk and simply not open. Bitcoin
+Core reopens the wallets it had open when it was last shut down cleanly; a
+node stopped any other way, or started against a datadir that was cleared,
+comes back with none.
+
+```
+./wam-cli -testnet listwallets           # what is open right now
+ls ~/.wam/testnet3/wallets/              # what exists on disk
+./wam-cli -testnet loadwallet "mine"     # open it again
+```
+
+Nothing is lost either way — `createwallet` writes a file and deleting
+`blocks`, `chainstate` or `peers.dat` does not touch it. This was found on
+6 September by somebody following this page, restarting his node three times,
+and being told his wallet did not exist.
+
 The last command prints your address; it starts with `twam1`. Then, from
 where the miner unpacked:
 

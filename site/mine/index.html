@@ -87,6 +87,11 @@ cd wam-coin-v0.1.7/bin
 ./wamd -testnet -daemon
 ./wam-cli -testnet createwallet "mine"
 ./wam-cli -testnet -rpcwallet=mine getnewaddress</code></pre>
+<p><strong>If you restart the node and <code>wam-cli</code> answers <code>-18 Requested wallet does not exist or is not loaded</code>,</strong> the wallet is on disk and simply not open. Bitcoin Core reopens the wallets it had open when it was last shut down cleanly; a node stopped any other way, or started against a datadir that was cleared, comes back with none.</p>
+<pre><code>./wam-cli -testnet listwallets           # what is open right now
+ls ~/.wam/testnet3/wallets/              # what exists on disk
+./wam-cli -testnet loadwallet "mine"     # open it again</code></pre>
+<p>Nothing is lost either way — <code>createwallet</code> writes a file and deleting <code>blocks</code>, <code>chainstate</code> or <code>peers.dat</code> does not touch it. This was found on 6 September by somebody following this page, restarting his node three times, and being told his wallet did not exist.</p>
 <p>The last command prints your address; it starts with <code>twam1</code>. Then, from where the miner unpacked:</p>
 <pre><code>./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS -t 4</code></pre>
 <p><code>-t 4</code> is how many processor cores to use. Without it the miner takes every core but one, which makes the rest of the machine unpleasant to use.</p>

@@ -109,6 +109,23 @@ make as many as you like, and you do not register it with anyone.
 ./wam-cli -testnet -rpcwallet=mine getnewaddress
 ```
 
+**If you restart the node and `wam-cli` answers `-18 Requested wallet does not
+exist or is not loaded`,** the wallet is on disk and simply not open. Bitcoin
+Core reopens the wallets it had open when it was last shut down cleanly; a
+node stopped any other way, or started against a datadir that was cleared,
+comes back with none.
+
+```
+./wam-cli -testnet listwallets           # what is open right now
+ls ~/.wam/testnet3/wallets/              # what exists on disk
+./wam-cli -testnet loadwallet "mine"     # open it again
+```
+
+Nothing is lost either way — `createwallet` writes a file and deleting
+`blocks`, `chainstate` or `peers.dat` does not touch it. This was found on
+6 September by somebody following this page, restarting his node three times,
+and being told his wallet did not exist.
+
 You will get something like `twam1q4syaj2akkysnsymxm8g85whanz23v3jn0jm6dd`.
 That is yours. Anyone can send to it; only you can spend from it.
 
