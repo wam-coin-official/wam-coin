@@ -38,6 +38,23 @@ test, all fighting the units above.
 
 They are disabled, not deleted, with copies in `~/wam-disabled-units/`.
 
+## Talking to the node
+
+The node keeps its data in `/home/grgo/wam-testnet`, not the default `~/.wam`,
+and listens for RPC on 19554. `wam-cli` with neither flag answers
+
+    error: Could not locate RPC credentials.
+
+which reads like a broken node and was said, on 6 September, about a node
+that was fully synced and following the tip. There is an alias in `.bashrc`:
+
+    alias wam-cli='/home/grgo/wam-current-bin/wam-cli -testnet -datadir=/home/grgo/wam-testnet -rpcport=19554'
+
+It carries no secret. The unit used to pass `-rpcuser=t -rpcpassword=t` on
+the command line, where anything that can run `ps` reads them; without them
+`wamd` writes a `.cookie` in the datadir instead — a fresh random secret each
+run, readable only by `grgo`, and found automatically from `-datadir`.
+
 ## Operating them
 
     sudo systemctl status wam-node wam-miner
