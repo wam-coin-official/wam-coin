@@ -111,6 +111,11 @@ cd wam-coin-v0.1.7/bin
 <p>An address is where WAM is sent, like an account number. It is free, you can make as many as you like, and you do not register it with anyone.</p>
 <pre><code>./wam-cli -testnet createwallet "mine"
 ./wam-cli -testnet -rpcwallet=mine getnewaddress</code></pre>
+<p><strong>If you restart the node and <code>wam-cli</code> answers <code>-18 Requested wallet does not exist or is not loaded</code>,</strong> the wallet is on disk and simply not open. Bitcoin Core reopens the wallets it had open when it was last shut down cleanly; a node stopped any other way, or started against a datadir that was cleared, comes back with none.</p>
+<pre><code>./wam-cli -testnet listwallets           # what is open right now
+ls ~/.wam/testnet3/wallets/              # what exists on disk
+./wam-cli -testnet loadwallet "mine"     # open it again</code></pre>
+<p>Nothing is lost either way — <code>createwallet</code> writes a file and deleting <code>blocks</code>, <code>chainstate</code> or <code>peers.dat</code> does not touch it. This was found on 6 September by somebody following this page, restarting his node three times, and being told his wallet did not exist.</p>
 <p>You will get something like <code>twam1q4syaj2akkysnsymxm8g85whanz23v3jn0jm6dd</code>. That is yours. Anyone can send to it; only you can spend from it.</p>
 <blockquote><p><strong>The one rule that matters.</strong> The file <code>wallet.dat</code> inside the node's folder holds the keys to your money. Copy it somewhere safe. If you lose it, the coins are gone — there is no support line, no password reset, and no one who can help. That is the same freedom that means nobody can freeze your money, seen from the other side.</p></blockquote>
 <hr>
