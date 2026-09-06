@@ -70,6 +70,13 @@ RED = "\033[31m"; GRN = "\033[32m"; YEL = "\033[33m"; BLD = "\033[1m"; OFF = "\0
 # Everything a stranger can read. Build output and dependencies are excluded:
 # they are copies of a moment, not claims we are making now.
 PUBLISHED = [
+    # CONTRIBUTING.md was missing from this list until 6 September 2026. It is
+    # on GitHub, it is the first thing a would-be contributor opens, and it
+    # states the founder allocation -- so it is exactly the kind of document
+    # this checks, and it was the only published one it did not read. Found
+    # while removing audit_repo.sh's guess at the same claim: that guess was
+    # covering this file, badly, and taking it away exposed the gap.
+    "CONTRIBUTING.md",
     "README.md", "WHITEPAPER.md", "SECURITY.md", "PROGRESS.md",
     "docs/*.md", "posts/*.txt", "integration/*/PR.md",
     "site/*.html", "explorer/web/index.html", "out/*.html",
@@ -188,6 +195,7 @@ def main() -> int:
     #
     # Prose cannot be parsed, so the sentences that make a factual claim are
     # named. Each is here because it was true once.
+    # wam:quote-begin
     FORBIDDEN = [
         (r"four of which are locked",
          "every tranche is locked; none is liquid at launch"),
@@ -198,6 +206,7 @@ def main() -> int:
         (r"first tranche[^.\n]{0,60}(liquid|spendable|available)[^.\n]{0,30}launch",
          "no tranche is spendable at launch"),
     ]
+    # wam:quote-end
     for rel in files():
         text = _read(ROOT / rel)
         for i, line in enumerate(text.splitlines(), 1):

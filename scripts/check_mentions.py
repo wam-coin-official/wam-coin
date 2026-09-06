@@ -54,6 +54,8 @@ import subprocess
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO / "scripts" / "lib"))
+import quoted  # noqa: E402  -- needs the path above
 
 GRN, RED, YLW, BLD, OFF = "\033[32m", "\033[31m", "\033[33m", "\033[1m", "\033[0m"
 
@@ -126,6 +128,18 @@ def main():
             text = (REPO / rel).read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
+        # Classified on the text with quotations removed -- this check has to
+        # honour its own convention or it is the thing it was written to stop.
+        #
+        # It flagged scripts/lib/quoted.py on its first run, because the
+        # documentation in that file shows a reviewer how to find every mark:
+        #
+        #     git grep -n 'wam:quote-'
+        #
+        # so the module that exists to say "mention is not use" was reported
+        # for mentioning grep. Fifth instance in two days, in the file written
+        # to prevent the first four.
+        text = quoted.strip_quoted(text)
         if not (READS_FILES.search(text) and MATCHES_TEXT.search(text)):
             continue
         scanners.append(rel)
@@ -165,8 +179,6 @@ def main():
     print(f"  {GRN}ok{OFF}    the rest honour them")
 
     # The marks have to work, not merely be imported.
-    sys.path.insert(0, str(REPO / "scripts" / "lib"))
-    import quoted
     sample = ("live TODO here\n"
               "# wam:quote-begin\n"
               "quoted TODO here\n"

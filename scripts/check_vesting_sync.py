@@ -124,7 +124,7 @@ def main() -> int:
                 f"tranche {i} unlock time {t} is not above the CLTV time threshold "
                 f"({CLTV_TIME_THRESHOLD}). A value below it is read as a BLOCK HEIGHT, "
                 f"so those coins would unlock within hours of launch while the number "
-                f"still looks like a date. None of the reserve may be liquid at launch.")
+                f"still looks like a date. None of the reserve may be liquid at launch.")  # wam:quote-line
 
     if authority != sorted(authority):
         failures.append("the unlock times are not in ascending order")
@@ -137,7 +137,7 @@ def main() -> int:
         return 1
 
     print("  ok    all three copies agree")
-    print("  ok    every tranche carries a real time lock; none is liquid at launch")
+    print("  ok    every tranche carries a real time lock; none is liquid at launch")  # wam:quote-line
     print("  ok    the schedule is in ascending order")
     print("-" * 70)
     return 0

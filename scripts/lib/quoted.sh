@@ -1,4 +1,3 @@
-#!/bin/bash
 # Copyright (c) 2026 The WAM Coin developers
 # Distributed under the MIT software license, see COPYING.
 #

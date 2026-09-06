@@ -253,7 +253,7 @@ def main() -> int:
 
     check("tranche count matches the unlock table", len(UNLOCKS), TRANCHES)
     check("tranches sum to exactly the premine", TRANCHES * TRANCHE_AMT, PREMINE)
-    check("no tranche is unlocked at genesis", any(t == 0 for t in UNLOCKS), False)
+    check("no tranche is unlocked at genesis", any(t == 0 for t in UNLOCKS), False)  # wam:quote-line
     check("every lock is read as a timestamp, not a height",
           all(t > 500_000_000 for t in UNLOCKS))
     check("every lock is after the launch",
@@ -262,7 +262,7 @@ def main() -> int:
           all(UNLOCKS[i] < UNLOCKS[i + 1] for i in range(len(UNLOCKS) - 1)))
     check("the schedule spans 5 years",
           round((UNLOCKS[-1] - GTIME) / 86400 / 365.25), 5)
-    check("liquid at launch is 0% of the reserve",
+    check("liquid at launch is 0% of the reserve",  # wam:quote-line
           sum(TRANCHE_AMT for t in UNLOCKS if t <= GTIME), 0)
 
     # -- 5. timing ----------------------------------------------------------

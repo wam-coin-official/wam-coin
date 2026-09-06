@@ -350,6 +350,22 @@ def nav_links(current, lang):
 
 def build(src, outdir, lang, direction, title, desc, og_desc):
     md = (REPO / src).read_text(encoding="utf-8")
+
+    # The quotation marks are a note to the checks, not to the reader.
+    #
+    # This renderer escapes HTML in markdown text, so `<!-- wam:quote-line -->`
+    # came out as `&lt;!-- wam:quote-line --&gt;` -- visible, in the middle of a
+    # sentence, in the whitepaper. Caught by looking at the built page rather
+    # than trusting that an HTML comment is invisible: it is, until something
+    # escapes it.
+    #
+    # A whole-line mark takes its line with it; an end-of-line one leaves the
+    # sentence alone. See scripts/lib/quoted.py.
+    md = "\n".join(
+        line for line in md.splitlines()
+        if not re.search(r"^\s*(<!--\s*)?#?\s*wam:quote-(begin|end)\b", line)
+    )
+    md = re.sub(r"\s*(<!--\s*)?wam:quote-line\s*(-->)?", "", md)
     body = convert(md, src)
 
     path = "/" + outdir.split("/", 1)[1] + "/"

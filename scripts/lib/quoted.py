@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright (c) 2026 The WAM Coin developers
 # Distributed under the MIT software license, see COPYING.
 #
@@ -54,7 +53,7 @@
 #  Not a way to silence a check that is telling the truth. The marks say "this
 #  is a quotation", and a reviewer can grep for every one of them in a second:
 #
-#      git grep -n 'wam:quote-'
+#      git grep -n 'wam:quote-'          wam:quote-line
 # ===========================================================================
 
 import re

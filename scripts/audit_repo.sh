@@ -19,7 +19,7 @@
 #
 #    1. A file path referenced anywhere that does not exist
 #    2. Any superseded genesis hash, anywhere
-#    3. Any claim that part of the founder reserve is liquid at launch
+#    3. Any superseded vesting fact (the claim itself: check_published_claims.py)
 #    4. The three copies of the vesting schedule disagreeing
 #    5. References to directories that were retired
 #    6. Placeholder values that were meant to be replaced before launch
@@ -88,12 +88,12 @@ SEARCH=(--include=*.md --include=*.html --include=*.js --include=*.py
 # proximity-based. The first one fired the day the pages were generated: the
 # whitepaper sentence
 #
-#     Of that, **none** is liquid on launch day
+#     Of that, **none** is liquid on launch day  # wam:quote-line
 #
 # is negated correctly in markdown -- `none.{0,4} is liquid` spans the two
 # asterisks -- and in HTML the same words are separated by `</strong> `, which
 # is nine characters. The negation missed, and the audit reported that we were
-# claiming the reserve is liquid at launch, in the very sentence denying it.
+# claiming the reserve is liquid at launch, in the very sentence denying it.  # wam:quote-line
 #
 # Excluding generated output is the fix rather than widening the pattern:
 # a copy cannot disagree with its source, so there is nothing there to audit.
@@ -159,26 +159,50 @@ done
 [ "$DEAD" = 0 ] && ok "no superseded genesis hash anywhere"
 
 # ---------------------------------------------------------------------------
-step "3. nothing claims the reserve is liquid at launch"
+step "3. no superseded vesting fact survives"
 
-# Phrases that were true before 2026-08-18 and are now false. The negative
-# lookahead skips the sentences that exist precisely to deny them.
-# The negations are as important as the pattern. Half the places that mention
-# "liquid at launch" now exist specifically to deny it, and a check that cannot
-# tell a claim from its denial gets switched off within a week.
-NEGATED='none.{0,4} is liquid|nothing liquid|NONE liquid|none of it|no tranche|not liquid'
-NEGATED="$NEGATED|used to|did not survive|does not need|may be liquid|is 0%|means a tranche is"
-NEGATED="$NEGATED|must not|that justification|nothing in the reserve|لا شيء"
+# Stale FACTS only -- strings that were true before 2026-08-18 and can never
+# be true again. Not topics.
+#
+# `liquid at launch` and `liquid on launch day` used to be in this list, and  # wam:quote-line
+# they are topics: fifteen lines in nine files say those words in order to
+# deny them. Sixteen hand-written phrases in a NEGATED list tried to tell a
+# claim from its denial, and that list could hide a real violation, which is
+# the worst thing a check can do. A line reading
+#
+# wam:quote-begin
+#     the reserve is liquid at launch, but you must not spend it  # wam:quote-line
+# wam:quote-end
+#
+# was rescued by `must not` and passed in silence.
+#
+# The claim itself is checked properly by check_published_claims.py, which
+# does not match topics at all: it reads the unlock timestamps out of
+# wam-params.h and fails any document stating a date consensus does not
+# enforce, plus the claim FORMS ("first tranche ... liquid ... launch"). That
+# compares against what the network does, which is the only thing worth
+# comparing against. CONTRIBUTING.md was added to its list on 6 September,
+# the one published file it did not read.
+#
+# What is left here is the six that need no judgement, and the handful of
+# places that quote them are marked with wam:quote-line.
+# wam:quote-begin
+STALE_FACTS='1\.82%|20% liquid|unlocked at genesis|tranche 1 is spendable'
+STALE_FACTS="$STALE_FACTS|launch working capital|vested to 2030"
+STALE_FACTS="$STALE_FACTS|liquid at launch|liquid on launch day"
+# wam:quote-end
 
-STALE=$(grep -rniE '(1\.82%|20% liquid|liquid at launch|liquid on launch day|unlocked at genesis|tranche 1 is spendable|launch working capital|vested to 2030)' \
-        "${SEARCH[@]}" . 2>/dev/null \
-        | grep -vE "$EXCLUDE|audit_repo" \
-        | grep -viE "$NEGATED" || true)
+STALE=""
+for f in $(files_matching "$STALE_FACTS" "${SEARCH[@]}" .); do
+    STALE="$STALE$(unquoted "$f" | grep -niE "$STALE_FACTS" | sed "s|^|$f:|")
+"
+done
+STALE="$(printf '%s' "$STALE" | grep -v '^$' || true)"
 if [ -n "$STALE" ]; then
-    fail "text still describes the old vesting schedule:"
+    fail "text still states a fact the vesting schedule replaced:"
     printf '%s\n' "$STALE" | head -8 | sed 's/^/          /'
 else
-    ok "no claim that any tranche is liquid at launch"
+    ok "no superseded vesting fact survives (the claim itself: check_published_claims.py)"
 fi
 
 # ---------------------------------------------------------------------------
@@ -257,7 +281,7 @@ step "7. claims about maturity and duration are current"
 
 # The founder reserve was locked over five years, not four, on 2026-08-18. The
 # whole documentation set said four, in seven places, and none of the earlier
-# checks noticed -- they searched for "liquid at launch" and this is a duration.
+# checks noticed -- they searched for "liquid at launch" and this is a duration.  # wam:quote-line
 # A reader comparing "vested over 4 years" against a schedule ending in 2031
 # concludes the project cannot keep its own numbers straight.
 DURATION=$(grep -rniE '(vested|locked|vesting).{0,24}(4 years|four years)|20% per year to 2030|to 2030-09-15' \
