@@ -66,6 +66,7 @@ is the day it is needed.
 | 5 Sep | **Restore a backup, end to end** | nothing in the backup; **the node restart lost block 5783** — the pool read "Loading wallet…" as a rejection and threw a valid block away | `jobManager` retries only where no daemon answered |
 | 5 Sep | **A stress test run by someone outside the project** — Sparks60 | **difficulty reached the floor for the first time**: it fell to 0.00024414, the same value as block 1, and stopped. DGW spent its entire 3× range on one drop and we had never seen it reach the bottom. **And our own first account of it was wrong** | the floor and what it costs are written down below; the summary was corrected in the same channel |
 | 6 Sep | **A stranger verifies a release, unprompted** — Sparks60 again | **three faults in our own published instructions**, none of them his: it never said to download the release, only to clone and verify; the corrected form still assumed the clone sat beside the downloads, and his was at `/root/wam-coin` while his files were in `/root/Downloads`; and the failure message said "download it from the release page" without saying which of four files | the instruction has no clone in it now — five downloads and one command, wherever the reader is standing; the message prints the commands with the version filled in |
+| 6 Sep | **The fixed seeds are exercised for the first time** — Sparks60, cold start with `-dnsseed=0` | **they work.** `Added 2 fixed seeds from reachable networks`, both peers connected one second later, with DNS disabled and no `peers.dat`. Also: our DNS seed answered a stranger's own network from another country, which had never been tested outside our servers | nothing to fix — the feature shipped in v0.1.7 had never once run, here or anywhere |
 
 Five in one evening, in a phase that had been rehearsed once already. That is
 the number to watch.
@@ -170,6 +171,40 @@ tested from where its audience stands.** We had tested verify_release.sh from
 a clean directory with an empty keyring — and with the files already
 downloaded and the repository already cloned, because the person testing it
 had just built them both.
+
+### 6 September: v0.1.7's headline feature ran for the first time, in somebody else's hands
+
+The release notes said a node can now find the network when DNS cannot be
+trusted. That was true of the code and unproven in the world. Every node this
+project runs already knows its peers, so the fallback had never been reached
+-- not once, on any machine, since it shipped.
+
+Two of his runs did not exercise it either, and the log said so honestly both
+times: `Added 0 fixed seeds`, because DNS had already worked and the seeds
+were not needed. The third run disabled DNS:
+
+<!-- wam:quote-begin -->
+    Command-line arg: dnsseed=0
+    Creating peers.dat because the file was not found
+    DNS seeding disabled
+    Adding fixed seeds as -dnsseed=0 ... and neither -addnode nor -seednode are provided
+    Added 2 fixed seeds from reachable networks
+    New outbound-full-relay peer connected: version: 70016, blocks=6137, peer=0
+<!-- wam:quote-end -->
+
+One second from an empty address book to a connected peer, with the only
+route in being the two addresses compiled into the binary.
+
+The other half is worth as much and is easier to overlook: the cold start
+before it showed `2 addresses found from DNS seeds` from
+`testnet-seed.wamcoin.org` -- on a stranger's machine, on his connection, in
+his country. Every previous test of that seed was from our own servers, or
+from Google and Cloudflare, which answer for reasons that need not apply to
+anybody else.
+
+Neither of those facts could have been established from inside this project,
+and both were established in an afternoon by somebody who was told what to
+watch for and why.
 
 ## Still open
 
