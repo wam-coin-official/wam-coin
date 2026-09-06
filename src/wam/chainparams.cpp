@@ -546,7 +546,29 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 0;
 
-        consensus.nMinimumChainWork = uint256{};
+        // A floor under how much work a chain must carry before this node will
+        // follow it at all.
+        //
+        // Zero means "follow whoever shows me the heaviest chain", and for a
+        // young network that is not a theoretical weakness. On 6 September
+        // 2026 this chain carried 6.63 billion hashes of work across 5,897
+        // blocks. At the difficulty floor a block costs about 1.05 million
+        // hashes, so ten ordinary desktops rebuild the entire history from
+        // genesis in under a day -- and a node syncing for the first time
+        // would follow that history instead of this one, because it is
+        // heavier and nothing told the node otherwise.
+        //
+        // Set from block 5797, a hundred behind the tip when it was written,
+        // so there is margin: a value above the real chain's work would stop
+        // new nodes syncing the real chain, which is the way this setting
+        // fails badly. check_min_chain_work.py compares both directions
+        // against a running node.
+        //
+        // It is NOT a validity rule. A node with this value and a node with
+        // zero accept exactly the same blocks; they differ only in which
+        // chains they are willing to consider while syncing. No release
+        // carrying it needs to be MANDATORY.
+        consensus.nMinimumChainWork = uint256S("00000000000000000000000000000000000000000000000000000001852b0ce7");
         consensus.defaultAssumeValid = uint256{};
 
         pchMessageStart[0] = 0x77; // 'w'
