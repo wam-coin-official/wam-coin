@@ -25,6 +25,25 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
+
+# An interpreter that is actually Python.
+#
+# This is a tool the founder runs on his own machine, and on that machine
+# `python3` is a Microsoft Store stub: it prints nothing and exits without
+# running anything. So the guard below --
+#
+# wam:quote-begin
+#     python3 check_listing_entry.py || fail "the check is failing"
+# wam:quote-end
+#
+# -- reported "check_listing_entry.py is failing" on 6 September about a check
+# that exits 0 when it is actually run. The submission could not be built, and
+# the reason given was a lie about a different file.
+#
+# install.sh and bots/setup.sh deliberately do NOT do this: they run on Linux
+# servers where "$PY" is real, and they must not depend on a library inside
+# a repository the reader may not have cloned yet.
+. "$REPO/scripts/lib/python.sh"
 OUT="${1:-$HERE/submission}"
 
 # Which coins repository to build against.
@@ -54,7 +73,7 @@ printf '%sbuilding the Komodo submission%s\n' "$BLD" "$OFF"
 # Refuse to build a submission whose fields disagree with the source. The
 # entry is read by software: a wrong pubtype does not look wrong, it sends
 # somebody's coins nowhere.
-python3 "$REPO/scripts/check_listing_entry.py" >/dev/null 2>&1 \
+"$PY" "$REPO/scripts/check_listing_entry.py" >/dev/null 2>&1 \
     || fail "check_listing_entry.py is failing -- fix that before submitting anything"
 ok "every field still matches src/wam"
 
@@ -72,7 +91,7 @@ curl -fsS --max-time 60 \
     -o "$THEIRS" || fail "could not download the coins file from $REPO_SLUG"
 ok "downloaded $REPO_SLUG ($(wc -c < "$THEIRS") bytes)"
 
-python3 - "$HERE/coin-entry.json" "$THEIRS" "$OUT/coins" <<'PY'
+"$PY" - "$HERE/coin-entry.json" "$THEIRS" "$OUT/coins" <<'PY'
 import json, sys
 
 entry_path, theirs_path, out_path = sys.argv[1:4]
