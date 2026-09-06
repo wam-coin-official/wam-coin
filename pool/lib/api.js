@@ -33,6 +33,19 @@ const MIME = {
     '.json': 'application/json; charset=utf-8'
 };
 
+
+// twam1qtekdutq...a7ljs.server -- recognisable to its owner, useless for
+// building a list. The suffix after the dot is a label the miner chose for his
+// own machine and identifies nothing on the chain, so it is kept intact.
+function redactWorker(worker) {
+    if (typeof worker !== 'string' || !worker) return '—';
+    const dot = worker.indexOf('.');
+    const addr = dot === -1 ? worker : worker.slice(0, dot);
+    const rest = dot === -1 ? '' : worker.slice(dot);
+    if (addr.length <= 16) return addr + rest;
+    return addr.slice(0, 10) + '…' + addr.slice(-5) + rest;
+}
+
 class ApiServer {
     constructor({ config, logger, jobManager, stratumServer, shareProcessor, daemon }) {
         this.config = config;
@@ -121,7 +134,30 @@ class ApiServer {
             };
             break;
         case '/api/miners':
-            body = { miners: this.stratum.getConnectedMiners() };
+            // Truncated, always. This endpoint used to return every connected
+            // miner's full payout address, publicly and without a password:
+            //
+            //     "worker": "twam1qtekdutqnwmqwtsh4rddncxru2s0y3vp5ea7ljs.server"
+            //
+            // An address on a public chain reveals everything it has ever
+            // received and everything it holds, so anyone could produce a list
+            // of who mines here and what each of them has earned -- and the
+            // largest earner is the one worth attacking first. It is the same
+            // rule this project already applies to node operators: a list of
+            // who runs a node is a list of who gets attacked.
+            //
+            // What the big pools do, and what this does now: aggregate totals
+            // are public, and an individual looks up his own numbers by giving
+            // his own address to /api/miner. Knowing your address finds your
+            // row; nothing lets you enumerate everybody else's.
+            //
+            // Enough of the address is kept for a miner to recognise his own
+            // line on the page, which is the only thing the listing is for.
+            // Our own tooling reads the machine directly and never needed this.
+            body = { miners: this.stratum.getConnectedMiners().map((m) => ({
+                ...m,
+                worker: redactWorker(m.worker)
+            })) };
             break;
         case '/api/hashrate':
             body = await this.shares.getHashrateStats();

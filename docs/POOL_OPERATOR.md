@@ -184,6 +184,13 @@ curl -s localhost:8080/api/health | jq
 Alert on `ok: false`. The three conditions it reports are: no block template, a template
 older than 120 seconds (the daemon is wedged or unreachable), and zero connected miners.
 
+`/api/miners` lists connected miners with their payout address **truncated**
+(`twam1qtekd…a7ljs.server`). It used to return the address in full, publicly,
+which let anyone produce a list of who mines here and — since an address on a
+public chain reveals everything it has received — what each of them has earned.
+A miner looks up his own figures by giving his own address to `/api/miner`.
+Knowing an address finds its row; nothing enumerates the others.
+
 Other endpoints: `/api/stats`, `/api/blocks`, `/api/miners`, `/api/hashrate`,
 `/api/payments`, `/api/miner?address=W...`, `/api/network`.
 
