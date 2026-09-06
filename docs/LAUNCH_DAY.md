@@ -303,13 +303,25 @@ the testnet node, and said so rather than mining to the wrong chain:
 config says network='regtest' but wamd reports chain='test'. Refusing to start.
 ```
 
-**One thing is still outstanding.** The nightly backup runs with testnet
-defaults (`WAM_NETWORK`, `WAM_DATADIR`), so the mainnet pool wallet is not
-in it. The copy above was taken by hand with the node stopped, which is
-safe, but it is one file from one day. `wam-backup.sh` supports mainnet
-already; it needs a second timer instance on the day, once the node is up —
-because it uses `backupwallet` over RPC, which needs a running node, and
-copying a live wallet file yields something that opens corrupt.
+**Turn on the mainnet backup, once the node is up.** One command:
+
+```bash
+systemctl enable --now wam-backup@mainnet.timer
+```
+
+The copy above was taken by hand with the node stopped, which is safe, but
+it is one file from one day. From here the wallet that pays miners is in
+the nightly archive like everything else.
+
+It has to come after the node starts, not before: the script takes the
+wallet through `backupwallet` over RPC, and copying a live wallet file
+yields something that opens corrupt. The unit is already installed on both
+hosts and deliberately left disabled, so this is an enable and not an
+install. Confirm it took:
+
+```bash
+systemctl start wam-backup@mainnet.service && ls -1t /root/backups/wam-backup-mainnet-*.gpg | head -1
+```
 
 12. **Start mining.** The pool, or a single miner — it does not matter
     which, only that a block is produced.
