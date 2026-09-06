@@ -135,6 +135,7 @@ run "executable bits in index"   bash scripts/test/test_exec_bits.sh
 # it prints says nothing about why. gen_founder_key.py -- run once, from a
 # live USB, by one person -- sat in this repository that way.
 run "line endings are LF"        bash scripts/test/test_line_endings.sh
+run "embedded python parses"     bash scripts/test/test_embedded_python.sh
 run "service hardening"          bash scripts/test/test_harden.sh
 
 # systemd sets no HOME for a service with no User=, so wam-cli looks in

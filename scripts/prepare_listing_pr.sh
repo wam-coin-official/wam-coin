@@ -52,7 +52,7 @@ warn() { printf '  %swarn%s   %s\n' "$YLW" "$OFF" "$*"; }
 die()  { printf '  %sfail%s   %s\n' "$RED" "$OFF" "$*" >&2; exit 1; }
 step() { printf '\n%s%s%s\n' "$BLD" "$*" "$OFF"; }
 
-# venue | upstream repo | fork name | branch
+# venue | upstream repo | fork name | branch | the open pull request
 #
 # The branch is per venue and not one name for all of them, because they are
 # not all one branch. On 6 September 2026 this script would have pushed a
@@ -66,13 +66,13 @@ step() { printf '\n%s%s%s\n' "$BLD" "$*" "$OFF"; }
 # mirror is a separate target that has to be named.
 venues() {
     cat <<'V'
-slips          satoshilabs/slips                          slips                           add-wam-coin
-bisq           bisq-network/bisq                          bisq                            add-wam-coin
-haveno         haveno-dex/haveno                          haveno                          add-wam-coin
-blockdx        blocknetdx/blockchain-configuration-files   blockchain-configuration-files  add-wam-coin
-basicswap      basicswap/basicswap                        basicswap                       add-wam-coin
-komodo         GLEECBTC/coins                             coins                           add-wam-coin-gleec
-komodo-mirror  KomodoPlatform/coins                       coins                           add-wam-coin
+slips          satoshilabs/slips                          slips                           add-wam-coin  2051
+bisq           bisq-network/bisq                          bisq                            add-wam-coin  8030
+haveno         haveno-dex/haveno                          haveno                          add-wam-coin  2528
+blockdx        blocknetdx/blockchain-configuration-files   blockchain-configuration-files  add-wam-coin  197
+basicswap      basicswap/basicswap                        basicswap                       add-wam-coin  701
+komodo         GLEECBTC/coins                             coins                           add-wam-coin-gleec  1975
+komodo-mirror  KomodoPlatform/coins                       coins                           add-wam-coin  21
 V
 }
 
@@ -91,8 +91,8 @@ WAMCoinTest.java  assets/src/test/java/haveno/asset/coins/WAMCoinTest.java
 L
         ;;
     blockdx) cat <<'L'
-xbridge-confs/wamcoin--v0.1.3.conf  xbridge-confs/wamcoin--v0.1.3.conf
-wallet-confs/wamcoin--v0.1.3.conf   wallet-confs/wamcoin--v0.1.3.conf
+xbridge-confs/wam--v0.1.6.conf      xbridge-confs/wam--v0.1.6.conf
+wallet-confs/wam--v0.1.6.conf       wallet-confs/wam--v0.1.6.conf
 L
         ;;
     basicswap) cat <<'L'
@@ -121,6 +121,54 @@ LINE="$(venues | awk -v v="$VENUE" '$1==v')"
 UPSTREAM="$(printf '%s' "$LINE" | awk '{print $2}')"
 FORK="$(printf '%s' "$LINE" | awk '{print $3}')"
 BRANCH="$(printf '%s' "$LINE" | awk '{print $4}')"
+PRNUM="$(printf '%s' "$LINE" | awk '{print $5}')"
+
+# ---------------------------------------------------------------------------
+#  Ask the pull request itself where it is built from, before touching anything
+# ---------------------------------------------------------------------------
+#
+#  The branch used to be one name for every venue, and that name belonged to
+#  KomodoPlatform/coins#21 -- a mirror whose last commit was 2025-12-05.
+#  Pushing a correction there updates a review nobody is reading and prints a
+#  URL that looks like success. The live review is GLEECBTC/coins#1975, built
+#  from a different branch entirely.
+#
+#  A table can be wrong in the same way twice. So the table is checked against
+#  the thing it describes: GitHub is asked which repository and which branch
+#  the open pull request actually reads, and if that is not exactly where this
+#  script is about to push, it stops. No argument, no override -- if they
+#  disagree, one of them is wrong and a person has to look.
+verify_target() {
+    [ -n "${PRNUM:-}" ] || { warn "no pull request recorded for $VENUE -- target not verified"; return 0; }
+    local api="https://api.github.com/repos/$UPSTREAM/pulls/$PRNUM"
+    local body
+    body="$(curl -s --max-time 25 "$api" 2>/dev/null)" || {
+        warn "could not reach GitHub to verify the target; not pushing blind"
+        die "verification is not optional -- run it again when the network is back"
+    }
+    local head_repo head_ref state
+    head_repo="$(printf '%s' "$body" | "$PY" -c 'import json,sys; d=json.load(sys.stdin); print((d.get("head") or {}).get("repo",{}).get("full_name") or "")' 2>/dev/null)"
+    head_ref="$(printf '%s' "$body" | "$PY" -c 'import json,sys; d=json.load(sys.stdin); print((d.get("head") or {}).get("ref") or "")' 2>/dev/null)"
+    state="$(printf '%s' "$body" | "$PY" -c 'import json,sys; print(json.load(sys.stdin).get("state") or "")' 2>/dev/null)"
+
+    [ -n "$head_repo" ] || die "$UPSTREAM#$PRNUM did not answer with a head repository.
+     Refusing to push to a target that cannot be confirmed."
+
+    printf '  %-16s %s#%s  (%s)
+' "pull request" "$UPSTREAM" "$PRNUM" "$state"
+    printf '  %-16s %s:%s
+' "it reads" "$head_repo" "$head_ref"
+    printf '  %-16s %s:%s
+' "we would push" "$OWNER/$FORK" "$BRANCH"
+
+    if [ "$head_repo" != "$OWNER/$FORK" ] || [ "$head_ref" != "$BRANCH" ]; then
+        die "the open pull request does not read what this script would push.
+     Pushing anyway updates a branch nobody is reviewing, and says it worked.
+     Fix the row in venues() -- or the pull request -- before running again."
+    fi
+    ok "the target is the branch that pull request actually reads"
+}
+verify_target
 [ -n "$BRANCH" ] || die "no branch recorded for $VENUE -- refusing to guess.
      Pushing to the wrong branch updates a pull request nobody is reading and
      reports success while doing it."
@@ -138,8 +186,13 @@ step "1. our fork"
 
 W="$(mktemp -d)"
 trap 'rm -rf "$W"' EXIT
-if ! git clone --quiet --depth 30 "git@github.com:$OWNER/$FORK.git" "$W/repo" 2>/dev/null; then
-    die "cannot clone git@github.com:$OWNER/$FORK.git
+# HTTPS, not SSH. This machine cannot open an SSH connection to GitHub at all
+# -- "unsupported KEX method sntrup761x25519-sha512@openssh.com" -- so every
+# clone here failed with a message about forking a repository that had been
+# forked weeks earlier. The project's own remote was moved to HTTPS on
+# 6 September for the same reason.
+if ! git -c http.version=HTTP/1.1 clone --quiet --depth 30         "https://github.com/$OWNER/$FORK.git" "$W/repo" 2>/dev/null; then
+    die "cannot clone https://github.com/$OWNER/$FORK.git
 
            Fork it once, by hand, at:
                https://github.com/$UPSTREAM/fork"
@@ -175,6 +228,7 @@ fi
 step "2. files"
 
 COPIED=0
+DESTS=""
 while read -r src dest; do
     [ -n "${src:-}" ] || continue
     [ -f "$SRCDIR/$src" ] || die "integration/$VENUE/$src is missing"
@@ -197,6 +251,9 @@ while read -r src dest; do
     fi
     cp "$SRCDIR/$src" "$dest"
     ok "$src -> $dest"
+    # Kept so a venue whose filenames carry a version can retire the ones it
+    # has just superseded. Adding a file is not the same as replacing it.
+    DESTS="$DESTS $dest"
     COPIED=$((COPIED + 1))
 done < <(layout "$VENUE")
 
@@ -279,6 +336,28 @@ PY
     COPIED=$((COPIED + 1))
     ;;
 blockdx)
+# Retire the conf files this submission supersedes.
+#
+# Their names carry a version, so a new release leaves the old ones behind on
+# the branch. On 6 September the open pull request showed four conf files:
+# wam--v0.1.6.conf, which the manifest points at, and wamcoin--v0.1.3.conf,
+# from before the coin's prefix changed, which nothing points at and which a
+# reviewer has to work out is dead. Adding files is not the same as replacing
+# them, and only one of those was being done.
+#
+# Anything in these two directories that is ours and is not what we just wrote
+# goes. "Ours" is the wam/wamcoin prefix; nobody else's coin is touched.
+for d in wallet-confs xbridge-confs; do
+    [ -d "$d" ] || continue
+    for f in "$d"/wam--*.conf "$d"/wamcoin--*.conf; do
+        [ -e "$f" ] || continue
+        keep=0
+        for k in $DESTS; do [ "$k" = "$f" ] && keep=1; done
+        [ "$keep" = 1 ] && continue
+        git rm -q "$f" && ok "retired $f (superseded, nothing points at it)"
+    done
+done
+
 # The two conf files are only two thirds of it: manifest-latest.json is
 # what makes Block DX read them at all, and the first run pushed a branch
 # without it -- two files that nothing points to.
@@ -287,15 +366,24 @@ import json, sys, pathlib
 man, entry = pathlib.Path(sys.argv[1]), json.loads(pathlib.Path(sys.argv[2]).read_text())
 raw = man.read_text(encoding="utf-8")
 data = json.loads(raw)
-if any(x.get("ticker") == entry["ticker"] for x in data):
-print("  ok     manifest already lists %s" % entry["ticker"])
-else:
+# Replace ours if it is already there, rather than skipping.
+#
+# This said "manifest already lists WAM" and stopped, which is right only if
+# the entry never changes. It does: the conf filenames moved from
+# wamcoin--v0.1.3 to wam--v0.1.6 and the versions list grew to cover v0.1.7,
+# and an unchanged manifest points at files the branch no longer carries.
+existing = [i for i, x in enumerate(data) if x.get("ticker") == entry["ticker"]]
 ref = next((x for x in data if x.get("ticker") == "LTC"), data[0])
 missing = set(ref) - set(entry)
 if missing:
     print("  fail   the entry lacks %s, which their own rows carry" % sorted(missing))
     raise SystemExit(1)
-data.append(entry)
+if existing:
+    for i in existing:
+        data[i] = entry
+    print("  ok     manifest entry for %s replaced" % entry["ticker"])
+else:
+    data.append(entry)
 # Their file's own indentation, measured rather than assumed.
 ind = len(raw.split("\n")[1]) - len(raw.split("\n")[1].lstrip()) if "\n" in raw else 2
 man.write_text(json.dumps(data, indent=ind or 2) + ("\n" if raw.endswith("\n") else ""),

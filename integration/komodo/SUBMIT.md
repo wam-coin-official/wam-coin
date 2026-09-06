@@ -37,7 +37,9 @@ Everything below was checked against `KomodoPlatform/coins` at master on
 is present in any of them.
 
 This is the first venue in the order that matters, and the reason is worth
-stating once. Bisq does not add altcoins at all. Haveno answered *"we only
+stating once. Bisq closed ours on a mistaken identity -- they found the gaming token
+also called WAM and said they do not add a second fork of a coin they
+already list; it has been corrected and resent. Haveno answered *"we only
 consider coins with market traction / price"*, which is a sequencing rule
 rather than a judgement — they are where a coin arrives, not where it
 starts. BasicSwap said *"mainnet is scheduled for 2026-09-15"* and closed,
