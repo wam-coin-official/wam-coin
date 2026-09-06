@@ -45,7 +45,6 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$HERE"
 
 OWNER="wam-coin-official"
-BRANCH="add-wam-coin"
 
 GRN=$'\033[32m'; RED=$'\033[31m'; YLW=$'\033[33m'; BLD=$'\033[1m'; OFF=$'\033[0m'
 ok()   { printf '  %sok%s     %s\n' "$GRN" "$OFF" "$*"; }
@@ -53,15 +52,27 @@ warn() { printf '  %swarn%s   %s\n' "$YLW" "$OFF" "$*"; }
 die()  { printf '  %sfail%s   %s\n' "$RED" "$OFF" "$*" >&2; exit 1; }
 step() { printf '\n%s%s%s\n' "$BLD" "$*" "$OFF"; }
 
-# venue | upstream repo | fork name
+# venue | upstream repo | fork name | branch
+#
+# The branch is per venue and not one name for all of them, because they are
+# not all one branch. On 6 September 2026 this script would have pushed a
+# corrected confirmation depth to `add-wam-coin` -- which is the branch behind
+# KomodoPlatform/coins#21, the DEAD MIRROR, whose last commit was 2025-12-05.
+# The live review is GLEECBTC/coins#1975 and it is built from
+# `add-wam-coin-gleec`. The script would have reported success, updated the
+# pull request nobody reads, and left the one under review saying 20.
+#
+# So `komodo` now means the repository that is actually reviewing us, and the
+# mirror is a separate target that has to be named.
 venues() {
     cat <<'V'
-slips      satoshilabs/slips                          slips
-bisq       bisq-network/bisq                          bisq
-haveno     haveno-dex/haveno                          haveno
-blockdx    blocknetdx/blockchain-configuration-files  blockchain-configuration-files
-basicswap  basicswap/basicswap                        basicswap
-komodo     KomodoPlatform/coins                       coins
+slips          satoshilabs/slips                          slips                           add-wam-coin
+bisq           bisq-network/bisq                          bisq                            add-wam-coin
+haveno         haveno-dex/haveno                          haveno                          add-wam-coin
+blockdx        blocknetdx/blockchain-configuration-files   blockchain-configuration-files  add-wam-coin
+basicswap      basicswap/basicswap                        basicswap                       add-wam-coin
+komodo         GLEECBTC/coins                             coins                           add-wam-coin-gleec
+komodo-mirror  KomodoPlatform/coins                       coins                           add-wam-coin
 V
 }
 
@@ -89,7 +100,7 @@ chainparams.py  basicswap/interface/wam/chainparams.py
 wam.py          basicswap/interface/wam/wam.py
 L
         ;;
-    komodo) cat <<'L'
+    komodo|komodo-mirror) cat <<'L'
 electrums-WAM.json  electrums/WAM
 L
         ;;
@@ -109,6 +120,10 @@ LINE="$(venues | awk -v v="$VENUE" '$1==v')"
 [ -n "$LINE" ] || die "unknown venue '$VENUE' -- try --list"
 UPSTREAM="$(printf '%s' "$LINE" | awk '{print $2}')"
 FORK="$(printf '%s' "$LINE" | awk '{print $3}')"
+BRANCH="$(printf '%s' "$LINE" | awk '{print $4}')"
+[ -n "$BRANCH" ] || die "no branch recorded for $VENUE -- refusing to guess.
+     Pushing to the wrong branch updates a pull request nobody is reading and
+     reports success while doing it."
 SRCDIR="$HERE/integration/$VENUE"
 
 [ -d "$SRCDIR" ] || die "no integration/$VENUE"
