@@ -92,7 +92,10 @@ hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
 <pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/wam-coin-v0.1.7-x86_64-linux-gnu.tar.gz
 curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS</code></pre>
 <h3 id="check-that-it-is-really-our-file">Check that it is really our file</h3>
-<pre><code>sha256sum --ignore-missing -c SHA256SUMS</code></pre>
+<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS.asc
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.sh
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
+bash verify_release.sh .</code></pre>
 <p>You should see <code>OK</code>. If you see <code>FAILED</code>, the download was corrupted or altered — delete it and download again. <strong>Do not skip this.</strong> It costs one second and it is the only thing standing between you and a file somebody else swapped in.</p>
 <h3 id="unpack-and-run">Unpack and run</h3>
 <pre><code>tar -xzf wam-coin-v0.1.7-x86_64-linux-gnu.tar.gz

@@ -93,7 +93,10 @@ To check a download:
 ```
 gpg --import SIGNING-KEY.asc
 gpg --verify SHA256SUMS.asc SHA256SUMS
-sha256sum --ignore-missing -c SHA256SUMS
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS.asc
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.sh
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
+bash verify_release.sh .
 ```
 
 or run [scripts/verify_release.sh](scripts/verify_release.sh), which does the

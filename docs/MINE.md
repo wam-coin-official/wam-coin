@@ -16,7 +16,10 @@ Linux x86_64, about 2 GB of free memory. Nothing else.
 curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/wam-coin-v0.1.7-x86_64-linux-gnu.tar.gz
 curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/wam-miner-v0.1.7-x86_64-linux-gnu.tar.gz
 curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS
-sha256sum --ignore-missing -c SHA256SUMS
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS.asc
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.sh
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
+bash verify_release.sh .
 tar -xzf wam-coin-v0.1.7-x86_64-linux-gnu.tar.gz && tar -xzf wam-miner-v0.1.7-x86_64-linux-gnu.tar.gz
 cd wam-coin-v0.1.7/bin
 ./wamd -testnet -daemon
@@ -37,7 +40,10 @@ core but one, which makes the rest of the machine unpleasant to use.
 ## The one line that is not optional
 
 ```
-sha256sum --ignore-missing -c SHA256SUMS
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS.asc
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.sh
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
+bash verify_release.sh .
 ```
 
 It should print `OK`. It costs a second, and it is the whole difference
