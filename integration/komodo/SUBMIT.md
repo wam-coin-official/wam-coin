@@ -138,7 +138,7 @@ pubtype 73, p2shtype 135, wiftype 190 and bech32_hrp wam from
 src/wam/chainparams.cpp; avg_blocktime 120 from src/wam/wam-params.h;
 derivation_path m/44'/5718349' from the registered coin type.
 
-required_confirmations is 20 rather than the 3 most entries use. WAM is a
+required_confirmations is 60 rather than the 3 most entries use. WAM is a
 new RandomX chain, and the cost of reversing a confirmation is set by
 hashrate, not by block timing — so a young chain deserves a larger number
 and we would rather ask for it than have a user find out why.

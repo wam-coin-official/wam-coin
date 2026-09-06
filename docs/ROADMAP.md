@@ -99,6 +99,48 @@ Everything above is engineering, and engineering is the part you control. What f
 not a guarantee of anything. It is the honest list of what separates chains that are alive
 in three years from the thousands that are not.
 
+### 0. Value does not arrive before the hashrate that defends it
+
+Decided by the founder on 6 September 2026, against an earlier idea of his own:
+giving WAM a price from day one by accepting it across the companies he owns.
+
+He worked out why not, and he is right. A proof-of-work chain's entire security
+budget is its hashrate. An attacker performs one calculation -- does what I gain
+exceed what it costs to out-hash the network -- and value arrives instantly
+while hashrate arrives slowly. In between there is a window where the coin is
+worth taking and not worth defending, and that window is where small chains
+die. Not theory: it is how most 51% attacks on small coins have happened, and
+nearly all of them followed a listing.
+
+Measured on the day the decision was made:
+
+<!-- wam:quote-begin -->
+    the whole test network      5,446 - 6,089 H/s
+    one ordinary desktop        8,740 H/s  (8 threads, measured)
+<!-- wam:quote-end -->
+
+The network is weaker than a single desktop computer. Out-hashing it for six
+hours costs less than ten dollars of rented CPU. That is not a defect and it is
+not unusual -- it is what every chain looks like on its first day. It becomes a
+defect only if something valuable is put behind it first.
+
+So: no manufactured demand, no company acceptance, no artificial price, until
+the cost of attacking the chain is large next to whatever is being placed on
+it. The rule is a comparison and not a feeling --
+
+  **what we put on the chain stays below what an attack on it costs**
+
+-- and it is meant to be checked with a number before any decision to widen
+use, not argued about afterwards.
+
+What holds the line meanwhile is confirmation depth. A reorg 60 blocks deep
+costs sixty times a reorg one block deep, which is why the published guidance
+is 20 confirmations wallet-to-wallet and 60 for an exchange deposit. When WAM
+is eventually accepted anywhere, the depth required rises with the amount.
+
+Value earned by mining brings its own defence with it. Value granted by us
+arrives alone.
+
 ### 1. Answer "why does this exist?" in one sentence — and mean it
 
 Right now WAM's differentiators are: a hard 22M cap, CPU-mineable, 2-minute blocks, and a

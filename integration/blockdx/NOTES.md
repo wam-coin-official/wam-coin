@@ -46,6 +46,22 @@ otherwise would fail at the first swap rather than at submission.
 satoshis per byte is ten times the relay minimum a WAM node enforces, which
 leaves room without inventing a fee market.
 
+**`Confirmations=60`.** It was `0`, and it was the only value in that file
+with no reason written beside it.
+
+The cost of reversing a confirmation is set by hashrate, not by block timing.
+On 6 September 2026 this chain ran at 5,400-6,100 H/s, and one ordinary
+desktop measures 8,740 H/s on eight threads -- so the whole network is weaker
+than a single computer, and out-hashing it for six hours costs under ten
+dollars of rented CPU. That is ordinary for a chain three weeks old and it is
+exactly why the number here matters: a swap settled at zero confirmations on
+such a chain is not settled at all.
+
+Sixty blocks is two hours at a 120-second target. It is deliberately slower
+than a DEX would like. It is the same number this project publishes for an
+exchange deposit, and asking for it here rather than discovering later why it
+was needed is the whole point.
+
 ## The version in the filename
 
 Their names carry the wallet version a config was verified against —

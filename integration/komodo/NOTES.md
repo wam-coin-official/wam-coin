@@ -35,7 +35,7 @@ source wins and this file is wrong.
 | `avg_blocktime` | 120 | `WAM_POW_TARGET_SPACING` |
 | `sign_message_prefix` | `WAM Coin Signed Message:\n` | `MESSAGE_MAGIC`, changed by `WAM-021` |
 
-**`required_confirmations` is 20**, which is forty minutes at a two-minute
+**`required_confirmations` is 60**, which is two hours at a two-minute
 target. It was 6 until 2026-08-29, with a note saying 6 gave "a comparable
 reorg cost on this chain's timing". That was wrong, and wrong in the
 direction that costs somebody money.

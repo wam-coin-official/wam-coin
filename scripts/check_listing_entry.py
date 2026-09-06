@@ -107,14 +107,22 @@ def main():
 
     # Not derived from source -- a judgement, recorded so a later change is
     # deliberate rather than accidental. See integration/komodo/NOTES.md.
+    # 6 -> 20 on 2026-08-29, 20 -> 60 on 2026-09-06. The direction has been the
+    # same each time and for the same reason: reorg cost is set by hashrate, and
+    # this chain's hashrate was measured that day at 5,400-6,100 H/s against a
+    # single desktop's 8,740. Sixty is also the number this project publishes
+    # for an exchange deposit, so the entry and the documentation now ask for
+    # the same thing -- they did not before, and the machine-readable copy was
+    # the lower of the two, which is the wrong way round.
     rc = entry.get("required_confirmations")
-    if rc != 20:
-        bad(f"required_confirmations is {rc}. It was set to 20 on 2026-08-29 "
-            f"because this is a new RandomX chain and the cost of reversing a "
-            f"confirmation is set by hashrate, not block timing. Changing it "
-            f"is a decision, not a typo -- update NOTES.md with the reason.")
+    if rc != 60:
+        bad(f"required_confirmations is {rc}. It was raised to 60 on 2026-09-06, "
+            f"matching the depth this project publishes for an exchange deposit, "
+            f"because the cost of reversing a confirmation is set by hashrate and "
+            f"this network is weaker than one desktop computer. Changing it is a "
+            f"decision, not a typo -- update NOTES.md with the reason.")
     else:
-        ok(f"{'required_confirmations':<18} 20  (a judgement, not a constant)")
+        ok(f"{'required_confirmations':<18} 60  (a judgement, not a constant)")
 
     # Fields comparable entries carry. Missing one is not fatal, but it is
     # the kind of omission a reviewer notices and we would rather not.
