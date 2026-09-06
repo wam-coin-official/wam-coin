@@ -133,11 +133,11 @@ Then get the checker and the public key from the repository - deliberately
 a different place from the binary - and run it:
 
 [code]
-cd ~/Downloads
 curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS
 curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS.asc
-git clone https://github.com/wam-coin-official/wam-coin
-bash wam-coin/scripts/verify_release.sh ~/Downloads
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.sh
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
+bash verify_release.sh .
 [/code]
 
 It refuses to print ok unless three things hold: the signature is good, it

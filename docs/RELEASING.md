@@ -119,11 +119,11 @@ Then check it as a stranger would — clean directory, empty keyring, nothing
 but what the announcement says to fetch:
 
 ```
-cd ~/Downloads
 curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS
 curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS.asc
-git clone https://github.com/wam-coin-official/wam-coin
-bash wam-coin/scripts/verify_release.sh ~/Downloads
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.sh
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
+bash verify_release.sh .
 ```
 
 It must print `ok` twice and exit 0. If it does not, the release is public and

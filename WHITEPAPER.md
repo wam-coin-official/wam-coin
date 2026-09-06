@@ -18,7 +18,7 @@ The founder and operating allocations are stated up front, separately, with thei
 | Allocation | Amount | Share | Status |
 |---|---:|---:|---|
 | **Public mining** | 19,250,000 WAM | **87.50%** | issued to miners over ~25 years |
-| Founder reserve | 2,000,000 WAM | 9.09% | genesis block, **locked 5 years, none liquid at launch** |
+| Founder reserve | 2,000,000 WAM | 9.09% | genesis block, **locked 5 years, none liquid at launch** <!-- wam:quote-line --> |
 | Operating budget | 750,000 WAM | 3.41% | 5% of subsidy, **ends at block 400,000** |
 | *Founder + operating* | *2,750,000 WAM* | ***12.50%*** | — |
 
@@ -287,7 +287,7 @@ blocks" only equals one year if the chain sustains exactly 120 seconds per block
 if hash rate falls, a four-year commitment silently becomes five. Timestamps are what the
 public will hold this schedule to, so timestamps are what consensus enforces.
 
-**Why none of it is liquid at launch.** An earlier version of this schedule released the
+**Why none of it is liquid at launch.** An earlier version of this schedule released the <!-- wam:quote-line -->
 first tranche at genesis, and justified it as working capital for listings, audits and
 infrastructure. That justification did not survive the paragraph after it: the operating fee
 (§3.2) already delivers ~1,800 WAM per day, unlocked from block 1, and *that* is what pays
@@ -315,7 +315,7 @@ Stated plainly, in one place, so that nobody has to assemble it from footnotes:
 | **Founder + operating total** | **2,750,000 WAM** | **12.50%** | — |
 | **Public mining** | **19,250,000 WAM** | **87.50%** | — |
 
-Twelve and a half percent. Of that, **none** is liquid on launch day: the entire 2,000,000
+Twelve and a half percent. Of that, **none** is liquid on launch day: the entire 2,000,000 <!-- wam:quote-line -->
 reserve is time-locked until 2027 at the earliest, and the operating fee has to be mined
 block by block on the same schedule as everyone else's coins.
 
@@ -545,7 +545,7 @@ Nothing in this document asks for trust. Each claim has a corresponding check:
 |---|---|
 | 22,000,000 hard cap | `python3 scripts/verify_supply.py` |
 | Founder total is 12.50% | `python3 scripts/verify_supply.py` (section 4) |
-| The reserve really is locked 5 years, with nothing liquid at launch | `python3 scripts/verify_supply.py` (section 4b) |
+| The reserve really is locked 5 years, with nothing liquid at launch | `python3 scripts/verify_supply.py` (section 4b) <!-- wam:quote-line --> |
 | The fee really does expire at 400,000 | `python3 scripts/verify_supply.py` (section 4) |
 | Vesting scripts are bare CLTV, not P2SH | `python3 genesis/test_serialization.py` |
 | Live locked/unlocked split | `wam-cli getsupplyinfo` |

@@ -103,7 +103,7 @@ would have caused — that sentence is worth more in two years than the diff.
   to no other, and that will not change. WAM's treasury is a consensus rule paid
   by the coinbase, visible in every block, ending at height 400,000.
 * **Changing the monetary policy.** 22,000,000 cap, 200,000-block halving,
-  2,000,000 premine vested to 2031, none of it liquid at launch. These are the
+  2,000,000 premine vested to 2031, none of it liquid at launch. These are the <!-- wam:quote-line -->
   terms anyone who mines this
   chain agreed to. A patch that alters them is a proposal for a different coin.
 

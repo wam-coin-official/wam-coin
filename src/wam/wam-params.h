@@ -286,7 +286,7 @@ static_assert(WAM_PREMINE_TRANCHES * WAM_PREMINE_TRANCHE_AMOUNT == WAM_GENESIS_P
 // time rather than a block height -- a lock below it would be a height, would
 // be satisfied almost immediately, and would look like a lock while being none.
 static_assert(WAM_PREMINE_UNLOCK_TIMES[0] > 500000000,
-              "every founder tranche must carry a real time lock; none is liquid at launch");
+              "every founder tranche must carry a real time lock; none is liquid at launch");  // wam:quote-line
 
 // ---------------------------------------------------------------------------
 // Block timing and difficulty

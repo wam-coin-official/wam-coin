@@ -302,6 +302,7 @@ jobs:
           fi
 
           BASE="https://github.com/wam-coin-official/wam-coin/releases"
+          RAW="https://raw.githubusercontent.com/wam-coin-official/wam-coin/main"
           notes="$(mktemp)"
           {
             if [ -n "$mandatory" ]; then
@@ -336,11 +337,26 @@ jobs:
             # in an empty directory, and got "SHA256SUMS is not here" -- with
             # nothing wrong on his side. Whoever wrote these two lines already
             # had the files in front of him.
-            echo "cd ~/Downloads"
+            # No clone.
+            #
+            # The clone form assumed the repository sat beside the downloads.
+            # An outside tester's was at /root/wam-coin while his downloads
+            # were in /root/Downloads, so the last line could not find the
+            # script -- and when he wiped and started again, the clone went
+            # with it and the instruction broke a second way. Twenty megabytes
+            # fetched to run one file, and a directory layout nobody stated.
+            #
+            # Five downloads and one command, in whatever directory the reader
+            # is standing in. It is no weaker: cloning took the script and the
+            # key from the same origin these two do, and the trust anchor was
+            # never the transport -- it is the fingerprint in SECURITY.md,
+            # which the script compares and which the reader is told to check
+            # over HTTPS.
             echo "curl -LO $BASE/download/$VERSION/SHA256SUMS"
             echo "curl -LO $BASE/download/$VERSION/SHA256SUMS.asc"
-            echo "git clone https://github.com/wam-coin-official/wam-coin"
-            echo "bash wam-coin/scripts/verify_release.sh ~/Downloads"
+            echo "curl -LO $RAW/scripts/verify_release.sh"
+            echo "curl -LO $RAW/SIGNING-KEY.asc"
+            echo "bash verify_release.sh ."
             echo '```'
             echo
             echo "WAM has no market value and may never have one. This is testnet"

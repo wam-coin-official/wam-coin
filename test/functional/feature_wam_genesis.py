@@ -69,7 +69,7 @@ class WamGenesisTest(BitcoinTestFramework):
             assert OP_CHECKLOCKTIMEVERIFY in script, (
                 f'tranche {i + 1} carries no time lock. This test used to require '
                 'the opposite of exactly this for the first output, which was the '
-                'launch working capital; nothing in the reserve is liquid now.')
+                'launch working capital; nothing in the reserve is liquid now.')  # wam:quote-line
             assert len(script) != 25, (
                 f'tranche {i + 1} is a bare 25-byte P2PKH, which means it can be '
                 'spent on launch day')

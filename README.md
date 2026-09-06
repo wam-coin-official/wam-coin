@@ -176,7 +176,7 @@ Every single change made to Bitcoin Core, with its rationale.
 |---|---|
 | Maximum supply | **22,000,000 WAM** (hard-coded, unreachable by 0.022 WAM) |
 | **Public mining** | **19,250,000 WAM — 87.50%** |
-| Founder reserve | 2,000,000 WAM (9.09%) — **locked 5 years, on-chain, none of it liquid at launch** |
+| Founder reserve | 2,000,000 WAM (9.09%) — **locked 5 years, on-chain, none of it liquid at launch** <!-- wam:quote-line --> |
 | Operating budget | 750,000 WAM (3.41%) — 5% fee, **expires at block 400,000** |
 | *Founder + operating* | *2,750,000 WAM — **12.50%*** |
 | Initial subsidy | 50 WAM |
@@ -204,6 +204,7 @@ fees, and the treasury 2.5 WAM. Total emission is unchanged, which is what keeps
 
 **Both founder allocations are bounded by consensus, not by promise:**
 
+<!-- wam:quote-begin -->
 ```
 Founder reserve   2,000,000 WAM   5 tranches, NONE liquid at launch.
                                   Every one behind OP_CHECKLOCKTIMEVERIFY:
@@ -215,6 +216,7 @@ Operating fee       750,000 WAM   5% of the subsidy for heights 1..400,000 only.
                                   This is the operating money -- which is why
                                   the reserve does not need to be liquid.
 ```
+<!-- wam:quote-end -->
 
 The vesting locks are **bare CLTV scripts in the genesis block**, not P2SH — the unlock
 date is readable straight out of block 0 (`wam-cli getblock <genesis> 2`), so the schedule

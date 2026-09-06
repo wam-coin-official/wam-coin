@@ -65,11 +65,11 @@ write.
 
 4/ And one command checks a download against it:
 
-cd ~/Downloads
 curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS
 curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS.asc
-git clone https://github.com/wam-coin-official/wam-coin
-bash wam-coin/scripts/verify_release.sh ~/Downloads
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.sh
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
+bash verify_release.sh .
 
 It won't say ok unless the signature is good, made by that key, and covers
 the file in front of you.

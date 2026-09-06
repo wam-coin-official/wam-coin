@@ -188,7 +188,7 @@ BOOST_AUTO_TEST_CASE(no_tranche_is_spendable_at_launch)
 {
     // This test used to be called tranche_one_has_no_lock_at_all and asserted
     // the opposite: that the first tranche was plain P2PKH, spendable on day
-    // one, the "launch working capital". That justification never held up --
+    // one, the "launch working capital". That justification never held up --  // wam:quote-line
     // the 5% treasury pays from block 1 and is the operating money -- so all
     // it bought was 400,000 WAM the founder could sell into a market with no
     // liquidity, which is the objection every premine attracts.
