@@ -78,7 +78,10 @@ hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
 <pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/wam-coin-v0.1.7-x86_64-linux-gnu.tar.gz
 curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/wam-miner-v0.1.7-x86_64-linux-gnu.tar.gz
 curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS
-sha256sum --ignore-missing -c SHA256SUMS
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS.asc
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.sh
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
+bash verify_release.sh .
 tar -xzf wam-coin-v0.1.7-x86_64-linux-gnu.tar.gz &amp;&amp; tar -xzf wam-miner-v0.1.7-x86_64-linux-gnu.tar.gz
 cd wam-coin-v0.1.7/bin
 ./wamd -testnet -daemon
@@ -88,7 +91,10 @@ cd wam-coin-v0.1.7/bin
 <pre><code>./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS -t 4</code></pre>
 <p><code>-t 4</code> is how many processor cores to use. Without it the miner takes every core but one, which makes the rest of the machine unpleasant to use.</p>
 <h2 id="the-one-line-that-is-not-optional">The one line that is not optional</h2>
-<pre><code>sha256sum --ignore-missing -c SHA256SUMS</code></pre>
+<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS.asc
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.sh
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
+bash verify_release.sh .</code></pre>
 <p>It should print <code>OK</code>. It costs a second, and it is the whole difference between running our file and running whatever arrived instead. Every other step here can be skipped and retried later; this one cannot be checked afterwards.</p>
 <h2 id="what-you-are-mining">What you are mining</h2>
 <p>Test coins. They are worth nothing, they will not become real coins, and the test chain is wiped whenever that is useful — it has been already. Mine here to find what breaks before 15 September, not to earn.</p>

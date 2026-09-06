@@ -102,7 +102,10 @@ RSA 4096 · created 2026-09-03 · expires 2031-09-02</code></pre>
 <p>To check a download:</p>
 <pre><code>gpg --import SIGNING-KEY.asc
 gpg --verify SHA256SUMS.asc SHA256SUMS
-sha256sum --ignore-missing -c SHA256SUMS</code></pre>
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS.asc
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.sh
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
+bash verify_release.sh .</code></pre>
 <p>or run <a href="https://github.com/wam-coin-official/wam-coin/blob/main/scripts/verify_release.sh">scripts/verify_release.sh</a>, which does the three and refuses to say "ok" unless all three pass.</p>
 <p><code>gpg --verify</code> printing <code>Good signature</code> with a <code>WARNING: This key is not certified with a trusted signature</code> is the normal and expected result. It means the signature is genuine and that you have not personally vouched for the key — which nobody should, on first contact. The fingerprint above is what you check instead.</p>
 <h3 id="the-key-is-not-on-any-server-this-project-runs">The key is not on any server this project runs</h3>
