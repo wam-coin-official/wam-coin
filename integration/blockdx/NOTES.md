@@ -15,8 +15,8 @@ have applied.
 
 | From here | To there |
 |---|---|
-| [`xbridge-confs/wamcoin--v0.1.3.conf`](xbridge-confs/wamcoin--v0.1.3.conf) | `xbridge-confs/wamcoin--v0.1.3.conf` |
-| [`wallet-confs/wamcoin--v0.1.3.conf`](wallet-confs/wamcoin--v0.1.3.conf) | `wallet-confs/wamcoin--v0.1.3.conf` |
+| [`xbridge-confs/wam--v0.1.6.conf`](xbridge-confs/wam--v0.1.6.conf) | `xbridge-confs/wam--v0.1.6.conf` |
+| [`wallet-confs/wam--v0.1.6.conf`](wallet-confs/wam--v0.1.6.conf) | `wallet-confs/wam--v0.1.6.conf` |
 | [`manifest-entry.json`](manifest-entry.json) | one object appended to `manifest-latest.json` |
 
 ## Every value, and where it comes from
@@ -49,6 +49,6 @@ leaves room without inventing a fee market.
 ## The version in the filename
 
 Their names carry the wallet version a config was verified against —
-`litecoin--v0.15.1.conf`. Ours says `v0.1.3` for the same reason, and a new
+`litecoin--v0.15.1.conf`. Ours says `v0.1.6` for the same reason, and a new
 file goes beside it when a release changes anything XBridge reads. That has not
 happened yet and the file is written the day it does.

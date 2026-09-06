@@ -92,7 +92,7 @@ Everything here is irreversible once the first block is mined. Work through it i
       one of those is fixable.
 - [ ] `getblock <genesis> 2` shows five outputs, **all five** with `scriptPubKey` of 32
       bytes carrying their unlock timestamp in bare CLTV form (no P2SH hash). A 25-byte
-      script anywhere in that list means a tranche is liquid on launch day.
+      script anywhere in that list means a tranche is liquid on launch day. <!-- wam:quote-line -->
 - [ ] Mine blocks 1–30 and confirm with `getdevfeeinfo "<hash>"` that every one paid the
       treasury and reports `compliant: true`.
 - [ ] Deliberately mine an **invalid** block that omits the treasury output and confirm the
@@ -136,6 +136,33 @@ Everything here is irreversible once the first block is mined. Work through it i
 - [ ] A binary release is published with SHA256 sums and the exact upstream commit that was
       built (`build/wam-core/.wam-patched`).
 - [ ] A security contact address exists and is monitored.
+
+### The listings that were told to come back
+
+Three venues closed our pull request on timing, not on the code. Each is a
+promise made to a stranger who is now waiting, and until 6 September 2026 that
+promise lived in one paragraph of `integration/README.md` and in one person's
+memory. Nothing on launch day said to keep it.
+
+- [ ] **BasicSwap** — reopen or resubmit
+      [basicswap#701](https://github.com/basicswap/basicswap/pull/701). They
+      closed it saying *"mainnet is scheduled for 2026-09-15"*, in those words.
+      That date is this one.
+- [ ] **Block DX** — [#197](https://github.com/blocknetdx/blockchain-configuration-files/pull/197)
+      is open and a maintainer intends to test the wallet in docker. Tell them
+      the mainnet binaries exist, and that `manifest-entry.json` now covers
+      v0.1.6 and v0.1.7.
+- [ ] **Komodo** — [GLEECBTC/coins#1975](https://github.com/GLEECBTC/coins/pull/1975)
+      is open. The electrum servers named in it must be answering on mainnet
+      before anyone tests the entry, or it looks broken and the reviewer is
+      right.
+- [ ] **Haveno** — [#2528](https://github.com/haveno-dex/haveno/pull/2528) was
+      closed with *"we only consider coins with market traction / price"*. Not
+      the day mainnet starts; the day there is something to point at. Written
+      here so that waiting is a decision rather than a thing forgotten.
+
+Bisq is deliberately not on this list. They add no new altcoins at all, and
+re-asking a policy answer is how a project becomes the one that keeps asking.
 
 ## Ongoing
 

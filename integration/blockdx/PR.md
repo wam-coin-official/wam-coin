@@ -4,8 +4,8 @@ WAM Coin is a Bitcoin Core v28.1 fork using RandomX proof of work. Its RPC
 surface, transaction format, script language and SegWit are Bitcoin's, so
 XBridge needs only the usual three files.
 
-  xbridge-confs/wamcoin--v0.1.3.conf
-  wallet-confs/wamcoin--v0.1.3.conf
+  xbridge-confs/wam--v0.1.6.conf
+  wallet-confs/wam--v0.1.6.conf
   manifest-latest.json                 (one entry)
 
 Values were taken from bitcoin--v0.17.0.conf rather than from a general idea of
