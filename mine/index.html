@@ -121,6 +121,15 @@ bash verify_release.sh .</code></pre>
 <p><strong><code>incorrect password attempt</code> in the log.</strong> There is no password. The node writes <code>&lt;datadir&gt;/.cookie</code> at startup and clients read it, so <code>wam-cli</code> needs the same <code>-testnet</code> and the same <code>-datadir=</code> as the daemon. A leftover <code>wam.conf</code> carrying <code>rpcuser</code>/<code>rpcpassword</code> fights the cookie; delete those two lines.</p>
 <p><strong><code>accepted</code> stays at 0.</strong> Usually the wrong address format — it must start with <code>twam1</code> on the test network.</p>
 <p><strong>No block ever found.</strong> Normal. One machine among many finds one rarely, which is what the pool is for; your share of what the pool finds is paid to your address anyway.</p>
+<h2 id="your-balance-will-say-zero-and-that-is-normal">Your balance will say zero, and that is normal</h2>
+<p>The pool pays out at <strong>1 WAM</strong> and runs a payment round every <strong>10 minutes</strong>. Below that threshold your earnings sit in the pool's ledger and not in your wallet, so</p>
+<pre><code>./wam-cli -testnet -rpcwallet=mine getbalance
+0.00000000</code></pre>
+<p>is what you will see for the first while, however hard the machine is working. Nothing is missing and more threads is not the fix — it only raises your share of each block the pool finds.</p>
+<p>Watch the ledger instead of the wallet:</p>
+<p>    https://pool.wamcoin.org</p>
+<p>And if you change your payout address, your share history starts again from nothing. Whatever the old address had earned stays owed to that address.</p>
+<p>Written down on 6 September, after somebody mined for an hour, read <code>0.00000000</code>, and reasonably concluded something was broken.</p>
 <h2 id="back-up-the-wallet">Back up the wallet</h2>
 <pre><code>./wam-cli -testnet -rpcwallet=mine backupwallet /path/you/choose/backup.dat</code></pre>
 <p>It prints nothing on success. Check the file exists and has a size — that is the whole confirmation.</p>
