@@ -65,6 +65,7 @@ is the day it is needed.
 | 5 Sep | **Cutting v0.1.7 and installing it** | **the release notes were the commit message, not the tag** — a wrapped `MANDATORY:` in prose made the announcer post UPDATE REQUIRED for a release that changes nothing; the four commands in `RELEASING.md` needed `gh`, which is not on the machine holding the key, and signed `SHA256SUMS` unread; **`install_release.sh` checked the checksums and never the signature**; `check_docs_version.py` audited `site/index.html`, the one page with no download instruction, and skipped the three that have eleven; the release page told readers to run `sha256sum -c` alone | `git cat-file tag`, MANDATORY only as the first line, and the mirror of the consensus check; `sign_release.sh`; the installer now calls `verify_release.sh`; `scripts/lib/docversion.py` |
 | 5 Sep | **Restore a backup, end to end** | nothing in the backup; **the node restart lost block 5783** — the pool read "Loading wallet…" as a rejection and threw a valid block away | `jobManager` retries only where no daemon answered |
 | 5 Sep | **A stress test run by someone outside the project** — Sparks60 | **difficulty reached the floor for the first time**: it fell to 0.00024414, the same value as block 1, and stopped. DGW spent its entire 3× range on one drop and we had never seen it reach the bottom. **And our own first account of it was wrong** | the floor and what it costs are written down below; the summary was corrected in the same channel |
+| 6 Sep | **A stranger verifies a release, unprompted** — Sparks60 again | **three faults in our own published instructions**, none of them his: it never said to download the release, only to clone and verify; the corrected form still assumed the clone sat beside the downloads, and his was at `/root/wam-coin` while his files were in `/root/Downloads`; and the failure message said "download it from the release page" without saying which of four files | the instruction has no clone in it now — five downloads and one command, wherever the reader is standing; the message prints the commands with the version filled in |
 
 Five in one evening, in a phase that had been rehearsed once already. That is
 the number to watch.
@@ -136,6 +137,39 @@ costs a line of text ends up costing a repository. The order:
 
 If step 2 or 3 does not come out clean, nothing is pushed and the 24 stay.
 They cost the system nothing where they are.
+
+### 6 September: the day's rehearsal was performed by somebody else
+
+The schedule said *a stranger follows START_HERE from nothing: download,
+verify, sync, mine*. Nobody here ran it. Sparks60 did, without being asked,
+and it failed three times before it worked — every time because of what we
+had written, and never because of anything he did.
+
+Then it passed:
+
+<!-- wam:quote-begin -->
+    ok    signed by the key published in SECURITY.md
+    ok    1 file(s) match the signed list, byte for byte
+
+    this is the WAM release, unmodified since it was signed
+<!-- wam:quote-end -->
+
+That is the first time anyone outside this project has verified a WAM release
+and been told the truth by the tooling. On 4 September the same script told a
+first-time reader that a perfectly good release was forged. This morning the
+instructions around it were incomplete in two more ways.
+
+"1 file(s)" is correct and worth explaining rather than leaving to be
+noticed: he downloaded the node package and not the miner, and the check
+reports what it actually verified instead of implying it checked everything.
+A count that could not be less than the number of files listed would be a
+count that means nothing.
+
+The rule this keeps proving, in a new place each time: **a check is only
+tested from where its audience stands.** We had tested verify_release.sh from
+a clean directory with an empty keyring — and with the files already
+downloaded and the repository already cloned, because the person testing it
+had just built them both.
 
 ## Still open
 
