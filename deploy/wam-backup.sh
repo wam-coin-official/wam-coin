@@ -64,9 +64,52 @@ NETWORK="${WAM_NETWORK:-testnet}"
 DEST="${WAM_BACKUP_DIR:-/root/backups}"
 PASSFILE="${WAM_BACKUP_PASSFILE:-/root/.wam-backup-pass}"
 KEEP="${WAM_BACKUP_KEEP:-14}"
-DATADIR="${WAM_DATADIR:-/root/.wam}"
+# The datadir follows the network, so a unit only has to say which network.
+#
+# It used to default to /root/.wam whatever the network was, which is the
+# testnet node's directory. A mainnet backup started with only WAM_NETWORK set
+# would have read the testnet chain, encrypted it, named it mainnet, and
+# reported success -- an archive that says one thing and holds another, which
+# is worse than no archive because it stops anybody looking for the real one.
+#
+# The names come from the node units themselves: wamd uses /root/.wam and
+# wamd-mainnet uses /root/.wam-mainnet. Read off the running hosts rather
+# than assumed, on 7 September.
+case "$NETWORK" in
+    mainnet) DATADIR="${WAM_DATADIR:-/root/.wam-mainnet}" ;;
+    *)       DATADIR="${WAM_DATADIR:-/root/.wam}" ;;
+esac
 
 STAMP="$(date -u +%Y%m%d-%H%M%S)"
+
+# The archive says which chain it holds, and each chain keeps its own set.
+#
+# Every archive was called wam-backup-<stamp>.tar.gz.gpg, with nothing in the
+# name to say which network it came from, and both networks write to the same
+# directory. Turning on mainnet backups would then have done two silent things:
+# an operator holding a set of archives could not tell which chain any of them
+# belonged to without decrypting it, and the rotation below -- which counts
+# every wam-backup-*.gpg and keeps the newest fourteen -- would have kept about
+# seven of each. Seven days of mainnet retention where fourteen was intended,
+# discovered on the day it was needed.
+#
+# LEGACY: archives written before 7 September 2026 carry no network in the
+# name, and every one of them is testnet, because mainnet has never run. The
+# testnet glob matches both forms so nothing already on disk is orphaned or
+# double-counted; they age out within KEEP days and the ambiguity ends by
+# itself, well before mainnet has anything to lose.
+PREFIX="wam-backup-$NETWORK-"
+case "$NETWORK" in
+    testnet) SET_GLOB="$DEST/wam-backup-testnet-*.tar.gz.gpg $DEST/wam-backup-2*.tar.gz.gpg" ;;
+    *)       SET_GLOB="$DEST/$PREFIX*.tar.gz.gpg" ;;
+esac
+
+# Only names that exist, newest first. A glob that matches nothing expands to
+# itself, and `ls` on a literal `*` prints an error and a wrong count.
+this_networks_archives() {
+    # shellcheck disable=SC2086
+    ls -1t $SET_GLOB 2>/dev/null || true
+}
 RED=$'\033[31m'; GRN=$'\033[32m'; YEL=$'\033[33m'; OFF=$'\033[0m'
 
 ok()   { printf '  %sok%s    %s\n'  "$GRN" "$OFF" "$*"; }
@@ -203,7 +246,7 @@ verify_archive() {
 mkdir -p "$DEST"; chmod 700 "$DEST"
 
 if [ "${1:-}" = "--verify" ] || [ "${1:-}" = "--verify-all" ]; then
-    ALL="$(ls -1t "$DEST"/wam-backup-*.tar.gz.gpg 2>/dev/null)"
+    ALL="$(this_networks_archives)"
     [ -n "$ALL" ] || die "no backup found in $DEST"
 
     # --verify checks the newest in full. But an archive that stops opening
@@ -396,7 +439,7 @@ give back to you.
 EOF
 
 # --- encrypt ---------------------------------------------------------------
-OUT="$DEST/wam-backup-$STAMP.tar.gz.gpg"
+OUT="$DEST/$PREFIX$STAMP.tar.gz.gpg"
 if tar cz -C "$STAGE" --exclude='./tmp.*' . \
      | gpg --quiet --batch --yes --symmetric --cipher-algo AES256 \
            --passphrase-file "$PASSFILE" --output "$OUT" 2>/dev/null; then
@@ -414,10 +457,10 @@ if ! verify_archive "$OUT"; then
 fi
 
 # --- rotate ----------------------------------------------------------------
-COUNT="$(ls -1 "$DEST"/wam-backup-*.tar.gz.gpg 2>/dev/null | wc -l)"
+COUNT="$(this_networks_archives | wc -l)"
 if [ "$COUNT" -gt "$KEEP" ]; then
-    ls -1t "$DEST"/wam-backup-*.tar.gz.gpg | tail -n +$((KEEP + 1)) | xargs -r rm -f
-    ok "rotated, keeping the newest $KEEP of $COUNT"
+    this_networks_archives | tail -n +$((KEEP + 1)) | xargs -r rm -f
+    ok "rotated, keeping the newest $KEEP of $COUNT $NETWORK archive(s)"
 fi
 
 printf '\n  %s%s%s\n' "$GRN" "$(basename "$OUT")" "$OFF"

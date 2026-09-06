@@ -1,0 +1,96 @@
+# ===========================================================================
+#  wam-backup@.service -- one instance per network
+# ===========================================================================
+#
+#      systemctl enable --now wam-backup@testnet.timer
+#      systemctl enable --now wam-backup@mainnet.timer     # on 15 September
+#
+#  WHY A TEMPLATE
+#
+#  This was a single unit with Environment=WAM_NETWORK=testnet compiled into
+#  it and the mainnet line commented out beside it. docs/LAUNCH_DAY.md carried
+#  the consequence as an open item: "the nightly backup runs with testnet
+#  defaults, so the mainnet pool wallet is not in it", to be solved by writing
+#  a second unit on the day.
+#
+#  The mainnet pool wallet is the one that holds miners' money. Writing the
+#  unit that protects it at two in the morning, on the one night nobody has
+#  spare attention, is the worst available time. So it is a template now, like
+#  wam-electrumx@ and wam-reorg-watch@ already were, and launch day is one
+#  enable.
+#
+#  WHAT %i IS
+#
+#  The network: testnet or mainnet. wam-backup.sh derives everything else from
+#  it -- the datadir, the archive name and which set of archives the rotation
+#  counts -- so this file states the network once and nothing else has to
+#  agree with it.
+#
+#  NO Wants=
+#
+#  The original had Wants=wamd.service, and a template cannot name the right
+#  node: the testnet node is wamd.service and the mainnet one is
+#  wamd-mainnet.service. Both are in After= (which only orders and starts
+#  nothing) and neither is wanted, because a backup taken while the node is
+#  down should refuse and say so -- the comment below that this unit already
+#  carried -- and OnFailure now makes that refusal loud instead of silent.
+# ===========================================================================
+
+[Unit]
+Description=WAM Coin encrypted backup, %i (wallets, share ledger, config)
+Documentation=https://github.com/wam-coin-official/wam-coin/blob/main/deploy/wam-backup.sh
+
+# Wants, not Requires: if the node is down the script refuses to take a
+# wallet copy and says why, which is the correct outcome and should be
+# visible in the journal rather than skipped silently.
+After=wamd.service wamd-mainnet.service redis-server.service
+
+# If this unit fails, say so. A timer stays active however often the
+# service under it fails, and every panel here was reading the timer:
+# wam-backup failed nightly from 23 August and looked fine, and
+# wam-reorg-watch failed from 03:11 UTC on 1 September and looked fine.
+# Both were found by a person going and looking.
+OnFailure=wam-alert@%n.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/wam-backup.sh
+
+Environment=WAM_NETWORK=%i
+
+# wam-cli finds the node's cookie and config under $HOME/.wam. systemd sets
+# no HOME for a service that names no User=, so it looked in /.wam and
+# reported "Could not locate RPC credentials" -- the second half of the same
+# outage, and invisible until the first half was fixed.
+Environment=HOME=/root
+
+# Loopback only. See the header for what this replaced and why.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressDeny=any
+IPAddressAllow=localhost
+
+NoNewPrivileges=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+
+# PrivateTmp is deliberately NOT set here.
+#
+# wamd runs with PrivateTmp=yes, so it already has a /tmp of its own. If this
+# service had one too, the two namespaces would differ and backupwallet would
+# fail with SQLite error 14, "cannot open file" -- which reads exactly like a
+# corrupt wallet and is not one. The script stages next to its destination
+# under /root for the same reason; this line exists so nobody adds the
+# directive back as a tidy-up and spends an evening on it.
+
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target
