@@ -84,10 +84,10 @@ if [ -z "$BINARY" ]; then
     done
 fi
 [ -n "$BINARY" ] && [ -x "$BINARY" ] || {
-    printf 'no wamd found -- pass --binary\n' >&2; exit 3; }
+    printf 'no wamd found -- pass --binary\n' >&2; exit 2; }
 CLI="$(dirname "$BINARY")/wam-cli"
 [ -x "$CLI" ] || CLI="$(command -v wam-cli 2>/dev/null)"
-[ -n "$CLI" ] && [ -x "$CLI" ] || { printf 'no wam-cli beside %s\n' "$BINARY" >&2; exit 3; }
+[ -n "$CLI" ] && [ -x "$CLI" ] || { printf 'no wam-cli beside %s\n' "$BINARY" >&2; exit 2; }
 
 echo "=================================================================="
 echo " Can a node with nothing reach this chain?"
@@ -128,7 +128,7 @@ RPCPORT=0
 for p in $(seq 39557 39599); do
     (exec 3<>/dev/tcp/127.0.0.1/$p) 2>/dev/null || { RPCPORT=$p; break; }
 done
-[ "$RPCPORT" != 0 ] || { echo "no free port"; rm -rf "$DD"; exit 3; }
+[ "$RPCPORT" != 0 ] || { echo "no free port"; rm -rf "$DD"; exit 2; }
 
 cleanup() {
     "$CLI" $NETFLAG -datadir="$DD" -rpcport="$RPCPORT" -rpcuser=f -rpcpassword=f stop >/dev/null 2>&1

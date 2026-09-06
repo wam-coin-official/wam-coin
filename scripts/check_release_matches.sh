@@ -68,7 +68,7 @@ ok()   { printf '  %sok%s     %s\n' "$GRN" "$OFF" "$*"; }
 bad()  { printf '  %sFAIL%s   %s\n' "$RED" "$OFF" "$*"; FAIL=$((FAIL + 1)); }
 warn() { printf '  %swarn%s   %s\n' "$YLW" "$OFF" "$*"; }
 
-command -v curl >/dev/null 2>&1 || { echo 'curl is required' >&2; exit 3; }
+command -v curl >/dev/null 2>&1 || { echo 'curl is required' >&2; exit 2; }
 
 echo "=================================================================="
 echo " Does the published download match this source?"

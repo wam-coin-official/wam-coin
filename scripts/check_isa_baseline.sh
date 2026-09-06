@@ -47,7 +47,7 @@ set -uo pipefail
 [ $# -ge 1 ] || { printf 'usage: %s FILE [FILE...]\n' "${0##*/}" >&2; exit 2; }
 
 command -v objdump >/dev/null 2>&1 || {
-    printf 'objdump is required: apt-get install -y binutils\n' >&2; exit 3; }
+    printf 'objdump is required: apt-get install -y binutils\n' >&2; exit 2; }
 
 GRN=$'\033[32m'; RED=$'\033[31m'; YLW=$'\033[33m'; OFF=$'\033[0m'
 FAIL=0

@@ -70,7 +70,7 @@ command -v dig >/dev/null 2>&1 || {
     fi
     printf 'dig is not installed here and no host with one could be reached.\n' >&2
     printf 'Locally:  sudo apt-get install -y dnsutils\n' >&2
-    exit 3
+    exit 2
 }
 
 # x9 = NODE_NETWORK (1) | NODE_WITNESS (8). This is what Core asks for; if

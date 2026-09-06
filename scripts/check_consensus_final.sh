@@ -54,7 +54,7 @@ ok()    { printf '  %sok%s      %s\n' "$GRN" "$OFF" "$*"; }
 block() { printf '  %sBLOCKS%s  %s\n' "$RED" "$OFF" "$*"; BLOCKING=$((BLOCKING + 1)); }
 note()  { printf '  %snote%s    %s\n' "$YLW" "$OFF" "$*"; }
 
-[ -f "$CHAINPARAMS" ] || { echo "no $CHAINPARAMS" >&2; exit 3; }
+[ -f "$CHAINPARAMS" ] || { echo "no $CHAINPARAMS" >&2; exit 2; }
 
 echo "=================================================================="
 echo " Is every consensus input final?"
