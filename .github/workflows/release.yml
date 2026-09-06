@@ -301,6 +301,7 @@ jobs:
                     | awk -v m="$mandatory" '!d && $0 == m { d = 1; next } { print }')"
           fi
 
+          BASE="https://github.com/wam-coin-official/wam-coin/releases"
           notes="$(mktemp)"
           {
             if [ -n "$mandatory" ]; then
@@ -329,6 +330,15 @@ jobs:
             echo "Verify before running:"
             echo
             echo '```'
+            # The download step is part of the instruction.
+            #
+            # Without it an outside tester followed exactly what this prints,
+            # in an empty directory, and got "SHA256SUMS is not here" -- with
+            # nothing wrong on his side. Whoever wrote these two lines already
+            # had the files in front of him.
+            echo "cd ~/Downloads"
+            echo "curl -LO $BASE/download/$VERSION/SHA256SUMS"
+            echo "curl -LO $BASE/download/$VERSION/SHA256SUMS.asc"
             echo "git clone https://github.com/wam-coin-official/wam-coin"
             echo "bash wam-coin/scripts/verify_release.sh ~/Downloads"
             echo '```'

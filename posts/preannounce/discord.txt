@@ -45,6 +45,9 @@ Download the release, SHA256SUMS and SHA256SUMS.asc into one directory.
 The checker and the key come from the repository — deliberately a different
 place from the binary:
 ```
+cd ~/Downloads
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS.asc
 git clone https://github.com/wam-coin-official/wam-coin
 bash wam-coin/scripts/verify_release.sh ~/Downloads
 ```

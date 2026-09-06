@@ -82,7 +82,40 @@ command -v gpg >/dev/null 2>&1 || {
     bad "gpg is not installed. On Debian or Ubuntu: sudo apt install gnupg"
     echo; exit 2; }
 
-[ -f SHA256SUMS ] || { bad "SHA256SUMS is not here. Download it from the release page."; echo; exit 2; }
+# "Download it from the release page" is true, and it is not help.
+#
+# On 6 September 2026 an outside tester followed the two commands this project
+# publishes -- clone, then verify -- and got exactly that line. He had done
+# nothing wrong. The instruction never told him to fetch the release first,
+# because whoever wrote it already had the files sitting in front of him. So a
+# stranger was sent to a page to work out which of four files to take, at the
+# moment he was still deciding whether this software could be trusted.
+#
+# The message carries the commands now. The version is read from the checkout
+# he has just cloned, so they are commands and not a template.
+if [ ! -f SHA256SUMS ]; then
+    bad "SHA256SUMS is not in $(pwd) -- nothing has been downloaded yet"
+    V="$(sed -n 's/^WAM_CLIENT_VERSION *= *"\([0-9.]*\)".*/\1/p' \
+         "${SELF_DIR:-.}/patch_upstream.py" 2>/dev/null | head -1)"
+    B="https://github.com/wam-coin-official/wam-coin/releases"
+    say ""
+    say "Fetch the release into this directory first:"
+    say ""
+    if [ -n "$V" ]; then
+        say "    cd $(pwd)"
+        say "    curl -LO $B/download/v$V/SHA256SUMS"
+        say "    curl -LO $B/download/v$V/SHA256SUMS.asc"
+        say "    curl -LO $B/download/v$V/wam-coin-v$V-x86_64-linux-gnu.tar.gz"
+    else
+        say "    $B"
+        say ""
+        say "Take SHA256SUMS, SHA256SUMS.asc and the package you want."
+    fi
+    say ""
+    say "Then run this again. SHA256SUMS.asc is the one that matters: it is the"
+    say "signature, and without it nothing here can be proved."
+    echo; exit 2
+fi
 [ -f SHA256SUMS.asc ] || {
     bad "SHA256SUMS.asc is not here -- that file IS the proof."
     say "A release without it cannot be checked. Do not run the binaries."

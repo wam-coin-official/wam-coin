@@ -59,6 +59,9 @@ The checker and the key come from the repository, deliberately a different
 place from the binary:
 
 ```
+cd ~/Downloads
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS.asc
 git clone https://github.com/wam-coin-official/wam-coin
 bash wam-coin/scripts/verify_release.sh ~/Downloads
 ```
@@ -153,6 +156,9 @@ https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.6
 يأتيان من المستودع — من مكانٍ غير مكان الملفّ التنفيذيّ، وهذا مقصود:
 
 ```
+cd ~/Downloads
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS.asc
 git clone https://github.com/wam-coin-official/wam-coin
 bash wam-coin/scripts/verify_release.sh ~/Downloads
 ```

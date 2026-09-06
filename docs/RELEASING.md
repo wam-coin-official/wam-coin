@@ -119,6 +119,9 @@ Then check it as a stranger would — clean directory, empty keyring, nothing
 but what the announcement says to fetch:
 
 ```
+cd ~/Downloads
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS.asc
 git clone https://github.com/wam-coin-official/wam-coin
 bash wam-coin/scripts/verify_release.sh ~/Downloads
 ```
