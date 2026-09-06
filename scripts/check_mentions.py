@@ -1,0 +1,196 @@
+#!/usr/bin/env python3
+# Copyright (c) 2026 The WAM Coin developers
+# Distributed under the MIT software license, see COPYING.
+#
+# ===========================================================================
+#  check_mentions.py -- can a check here be fired by text that merely
+#                       mentions what it looks for?
+# ===========================================================================
+#
+#      python3 scripts/check_mentions.py
+#
+#  WHY THIS EXISTS
+#
+#  A check that matches text cannot tell use from mention. A file documenting
+#  a rule contains the words of the rule, and the check enforcing the rule
+#  finds them. Between 5 and 6 September 2026 that happened four times:
+#
+#    - release.yml hoisted a `MANDATORY:` line out of a commit message that
+#      was *explaining the MANDATORY convention*, and every channel was told
+#      a release changing nothing was UPDATE REQUIRED.
+#
+#    - set_version.py rewrote a version inside a quotation whose whole point
+#      was naming the old version, producing a path that never existed.
+#
+#    - check_consensus_final.sh flagged the comment explaining why
+#      placeholders had been removed. That was answered by narrowing the
+#      pattern, which moved the blind spot instead of closing it.
+#
+#    - a guard refusing to install a systemd unit that still passed
+#      -rpcpassword matched the comment describing the flag it no longer
+#      passes, and so refused to install the fix.
+#
+#  Four sites, four separate repairs, and the fifth was going to be somewhere
+#  nobody had looked. The fault was never in those checks. It was that a
+#  writer had no way to say "this text is a quotation", so every check had to
+#  guess, and each guessed differently.
+#
+#  scripts/lib/quoted.py and its shell twin are that way. This file is what
+#  keeps them from becoming another thing three scripts use and the fourth
+#  does not: any check that reads tracked files and matches patterns in them
+#  must honour the marks, or be listed below with a reason a person wrote.
+#
+#  WHAT IT DOES NOT DO
+#
+#  Prove a check is correct. It proves each scanner has been *considered* --
+#  that somebody decided, and left the decision where the next person finds
+#  it. The behaviour itself is proved in each check, by planting the marker
+#  quoted and unquoted and watching it pass and fail.
+# ===========================================================================
+
+import pathlib
+import re
+import subprocess
+import sys
+
+REPO = pathlib.Path(__file__).resolve().parent.parent
+
+GRN, RED, YLW, BLD, OFF = "\033[32m", "\033[31m", "\033[33m", "\033[1m", "\033[0m"
+
+# Reading tracked files, rather than asking a running system.
+READS_FILES = re.compile(
+    r"git\s+grep|git\s+ls-files|read_text\(|rglob\(|glob\.glob\(|grep\s+-r")
+
+# Matching text, rather than parsing a number out of an API.
+MATCHES_TEXT = re.compile(r"re\.compile\(|re\.search\(|re\.finditer\(|grep\s+-")
+
+HONOURS = re.compile(r"import quoted\b|lib/quoted\.(py|sh)|quoted\.strip_quoted"
+                     r"|quoted\.quoted_lines|unquoted\b|docversion")
+
+# Scanners that do not need the marks, each with the reason. A name here is a
+# decision somebody made, not a name somebody forgot to remove: if the reason
+# no longer holds, the entry is wrong and this file is where it is found.
+EXEMPT = {
+    "scripts/check_mentions.py":
+        "it matches the names of checks, not the contents of documents",
+    "scripts/check_post_text.py":
+        "it reads announcement drafts, which are the text itself -- there is "
+        "no code in them for a quotation to be part of",
+    "scripts/check_channels.py":
+        "CHANNELS.txt is a signed list of accounts; a quotation mark inside it "
+        "would change the bytes the signature covers",
+    "scripts/build_pages.py":
+        "it renders documents into pages -- it enforces no rule, so there is "
+        "nothing for a quotation to be wrongly accused of",
+    "scripts/rebrand_qt.py":
+        "a transformer over upstream Qt resources, not a check",
+    "scripts/rename_binaries.py":
+        "a transformer over upstream source. It carries _LEAVE_ALONE, which is "
+        "this same distinction for C++: include paths and makefile variables "
+        "are mentions of a name, not uses of it, and half its tests assert "
+        "what it must not change",
+    "scripts/prepare_listing_pr.sh":
+        "it generates a pull request from the chain's own values; it reports "
+        "nothing about our documents",
+    "scripts/preflight.sh":
+        "it checks file modes through git ls-files -s, not the contents",
+    "scripts/test/test_exec_bits.sh":
+        "executable bits, not text",
+    "scripts/test/test_line_endings.sh":
+        "line endings, not text -- and a quotation mark would be a line to "
+        "check like any other",
+}
+
+
+def tracked(pattern):
+    out = subprocess.run(["git", "ls-files", pattern], cwd=str(REPO),
+                         capture_output=True, text=True).stdout.split()
+    return sorted(out)
+
+
+def main():
+    print(f"\n{BLD}every text-scanning check honours the quotation marks{OFF}")
+
+    lib = REPO / "scripts" / "lib" / "quoted.py"
+    if not lib.exists():
+        print(f"  {RED}FAIL{OFF}  scripts/lib/quoted.py is missing -- "
+              f"the convention has no definition")
+        print()
+        return 1
+
+    scanners, missing, exempted = [], [], []
+    for rel in tracked("scripts/*"):
+        if not rel.endswith((".py", ".sh")):
+            continue
+        try:
+            text = (REPO / rel).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if not (READS_FILES.search(text) and MATCHES_TEXT.search(text)):
+            continue
+        scanners.append(rel)
+        if rel in EXEMPT:
+            exempted.append(rel)
+        elif not HONOURS.search(text):
+            missing.append(rel)
+
+    if not scanners:
+        print(f"  {RED}FAIL{OFF}  no scanning check was found at all -- "
+              f"this proves nothing")
+        print()
+        return 1
+
+    print(f"  {GRN}ok{OFF}    {len(scanners)} check(s) read tracked files and "
+          f"match text in them")
+
+    for rel in exempted:
+        print(f"  {YLW}exempt{OFF}  {rel}")
+        print(f"          {EXEMPT[rel]}")
+
+    if missing:
+        print(f"  {RED}FAIL{OFF}  {len(missing)} of them can be fired by text "
+              f"that only mentions what they look for")
+        for rel in missing:
+            print(f"          {rel}")
+        print()
+        print("        Either honour the marks --")
+        print("            scripts/lib/quoted.py    (python)")
+        print("            scripts/lib/quoted.sh    (shell)")
+        print("        -- or add the file to EXEMPT in this script with the")
+        print("        reason it does not need them. Narrowing the pattern")
+        print("        instead moves the blind spot; it has been tried.")
+        print()
+        return 1
+
+    print(f"  {GRN}ok{OFF}    the rest honour them")
+
+    # The marks have to work, not merely be imported.
+    sys.path.insert(0, str(REPO / "scripts" / "lib"))
+    import quoted
+    sample = ("live TODO here\n"
+              "# wam:quote-begin\n"
+              "quoted TODO here\n"
+              "# wam:quote-end\n"
+              "another live TODO\n"
+              "a TODO on one line only   # wam:quote-line\n")
+    got = [n for n, l in quoted.unquoted_lines(sample) if "TODO" in l]
+    if got != [1, 5]:
+        print(f"  {RED}FAIL{OFF}  quoted.py does not exempt what it claims: "
+              f"live TODO lines came back as {got}, expected [1, 5]")
+        print()
+        return 1
+    stripped = quoted.strip_quoted(sample)
+    if len(stripped.splitlines()) != len(sample.splitlines()):
+        print(f"  {RED}FAIL{OFF}  strip_quoted changed the line count, so every "
+              f"line number a check reports would be wrong")
+        print()
+        return 1
+    print(f"  {GRN}ok{OFF}    the marks exempt what they say and keep line numbers")
+
+    print()
+    print(f"  {GRN}{BLD}mention cannot be mistaken for use{OFF}\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

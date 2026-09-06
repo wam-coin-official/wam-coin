@@ -102,36 +102,21 @@ PAGE_GLOBS = ["site/*.html", "site/*/*.html"]
 # unchanged." A regular expression cannot tell an instruction from a
 # quotation, so the author says which, in the file, where it can be seen:
 #
-#     <!-- keep-version -->
+#     <!-- wam:quote-begin -->
 #         ExecStart=/home/grgo/wam-v0.1.4/wam-coin-v0.1.4/bin/wamd
-#     <!-- /keep-version -->
+#     <!-- wam:quote-end -->
 #
 # The auditor honours the same marks, from this same module, or it would
-# report a frozen v0.1.4 as a dead download link -- a check objecting to
+# report a quoted v0.1.4 as a dead download link -- a check objecting to
 # correct text, which is how people learn to ignore checks.
 #
-# It is the same shape as today's other fix: prose about a rule must not be
-# able to invoke the rule.
-FREEZE_OPEN = re.compile(r"<!--\s*keep-version\s*-->")
-FREEZE_CLOSE = re.compile(r"<!--\s*/\s*keep-version\s*-->")
+# The marks are the project-wide ones in scripts/lib/quoted.py, not a
+# convention private to this module. This exact fault appeared in three
+# unrelated checks within one day, and three private conventions is how it
+# appears in a fourth.
+import quoted
 
-
-def frozen_lines(text):
-    """Indices of lines the author has marked as deliberate history."""
-    frozen = set()
-    on = False
-    for i, line in enumerate(text.splitlines()):
-        if FREEZE_OPEN.search(line):
-            on = True
-            frozen.add(i)
-            continue
-        if FREEZE_CLOSE.search(line):
-            on = False
-            frozen.add(i)
-            continue
-        if on:
-            frozen.add(i)
-    return frozen
+frozen_lines = quoted.quoted_lines
 
 
 def instructed_versions(text):

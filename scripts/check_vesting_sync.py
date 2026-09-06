@@ -41,6 +41,23 @@ import pathlib
 import re
 import sys
 
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parent / "lib"))
+import quoted  # noqa: E402
+
+def _read(p, **kw):
+    """Read a file with the author's quotations blanked.
+
+    Line numbers survive the blanking, so anything this check reports still
+    points where it says. See scripts/lib/quoted.py: a check that matches text
+    cannot tell use from mention, and four checks here were fired by text that
+    merely mentioned what they look for, within one day.
+    """
+    kw.setdefault("encoding", "utf-8")
+    kw.setdefault("errors", "replace")
+    return quoted.strip_quoted(_pathlib.Path(p).read_text(**kw))
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 # CLTV reads a value below this as a block height rather than a Unix time. A
@@ -68,7 +85,7 @@ def strip_comments(text: str) -> str:
 def read_table(path: pathlib.Path, pattern: str) -> list[int]:
     if not path.exists():
         raise SystemExit(f"missing file: {path}")
-    body = path.read_text(encoding="utf-8")
+    body = _read(path)
     m = re.search(pattern, body, re.S)
     if not m:
         raise SystemExit(f"could not find the unlock table in {path}")

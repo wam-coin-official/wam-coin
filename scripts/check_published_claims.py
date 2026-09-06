@@ -45,6 +45,23 @@ import pathlib
 import re
 import sys
 
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parent / "lib"))
+import quoted  # noqa: E402
+
+def _read(p, **kw):
+    """Read a file with the author's quotations blanked.
+
+    Line numbers survive the blanking, so anything this check reports still
+    points where it says. See scripts/lib/quoted.py: a check that matches text
+    cannot tell use from mention, and four checks here were fired by text that
+    merely mentioned what they look for, within one day.
+    """
+    kw.setdefault("encoding", "utf-8")
+    kw.setdefault("errors", "replace")
+    return quoted.strip_quoted(_pathlib.Path(p).read_text(**kw))
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 HDR = ROOT / "src" / "wam" / "wam-params.h"
 
@@ -63,7 +80,7 @@ EXCLUDE_DIRS = ("build/", "node_modules/", ".git/", "depends/", "src/")
 
 def authority() -> dict:
     """Read the constants the network actually enforces."""
-    text = HDR.read_text(encoding="utf-8")
+    text = _read(HDR)
 
     def const(name, cast=int):
         m = re.search(rf"{name}\s*=\s*([^;]+);", text)
@@ -150,7 +167,7 @@ def main() -> int:
     launch_day = "2026-09-15"
 
     for rel in files():
-        text = (ROOT / rel).read_text(encoding="utf-8", errors="replace")
+        text = _read(ROOT / rel)
         for i, line in enumerate(text.splitlines(), 1):
             # A line that talks about a tranche, an unlock or 400,000 coins and
             # also carries a date.
@@ -182,7 +199,7 @@ def main() -> int:
          "no tranche is spendable at launch"),
     ]
     for rel in files():
-        text = (ROOT / rel).read_text(encoding="utf-8", errors="replace")
+        text = _read(ROOT / rel)
         for i, line in enumerate(text.splitlines(), 1):
             for pat, truth in FORBIDDEN:
                 if re.search(pat, line, re.I):
@@ -236,7 +253,7 @@ def main() -> int:
         (r"tranche[^|\n]{0,20}?([\d,']{6,8})\s*WAM",     a["tranche_amount"], "tranche amount"),
     ]
     for rel in files():
-        text = (ROOT / rel).read_text(encoding="utf-8", errors="replace")
+        text = _read(ROOT / rel)
         for i, line in enumerate(text.splitlines(), 1):
             for pat, want, label in CLAIMS:
                 if want is None:

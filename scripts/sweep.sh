@@ -109,6 +109,7 @@ run "repository self-agreement"  bash scripts/audit_repo.sh
 # The backlog stays until a change that rewrites history anyway; this only
 # guarantees the backlog does not grow.
 run "no assistant attribution"   "$PY" scripts/check_attribution.py
+run "mention is not use"         "$PY" scripts/check_mentions.py
 
 # The listing entry repeats constants that live in src/wam. Hand-written
 # copies drift, and this one is read by software rather than by a person: a

@@ -31,6 +31,44 @@ set -uo pipefail
 # Microsoft Store stub that runs nothing and exits 49.
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 . "$SCRIPTS_DIR/lib/python.sh"
+. "$SCRIPTS_DIR/lib/quoted.sh"
+
+# Files carrying $1, ignoring lines the author marked as quotation.
+#
+# grep finds the candidates; the marks decide. Two lines of this script used
+# to end `grep -vE "$EXCLUDE|audit_repo"` -- excluding this file by name,
+# because an auditor searching for forbidden strings necessarily contains
+# them. That worked for exactly one file and blinded the audit to it: a
+# genuinely stale hash pasted into this script would never have been seen.
+# Worse, any other file that documented what the audit forbids failed it for
+# saying so.
+# It also asks git what is in the repository, rather than asking the disk.
+#
+# Check 1 above learned this on 2026-08-31: "asking the filesystem instead of
+# git is how this check passed on the machine that happens to hold the ignored
+# file and failed on every clean checkout". Check 2 never learned it, and on
+# 6 September it reported two superseded genesis hashes in ops/state.json --
+# an untracked, gitignored runtime file that had captured the error output of
+# a broken intermediate run of this very script. A finding about nothing, in a
+# file no clone contains, which is the same fault in the other direction.
+#
+# An audit of the repository reads what the repository has.
+files_matching() {
+    local pat="$1"; shift
+    local f out=""
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        git check-ignore -q "$f" 2>/dev/null && continue
+        git ls-files --error-unmatch "$f" >/dev/null 2>&1 || continue
+        if unquoted "$f" 2>/dev/null | grep -qiE "$pat"; then
+            out="$out$f
+"
+        fi
+    done <<EOF
+$(grep -rliE "$pat" "$@" 2>/dev/null | grep -vE "$EXCLUDE" || true)
+EOF
+    printf '%s' "$out"
+}
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
@@ -97,6 +135,13 @@ done
 step "2. no superseded genesis hash survives"
 
 # Every hash this project has ever asserted and then replaced.
+#
+# Marked as quotation, because naming them is how they are forbidden. This
+# used to be handled by excluding this whole file from the search by name,
+# which also meant a genuinely stale hash pasted anywhere else in this script
+# would never have been found. Now only the list is exempt, and the rest of
+# the file is searched like every other.
+# wam:quote-begin
 DEAD_HASHES=(
     b66685143044db0a   # testnet, before the reserve was locked
     2b1469b34052506a   # its merkle root
@@ -105,9 +150,10 @@ DEAD_HASHES=(
     51e7dd7b7b6e4684   # its merkle root
     52a818ac926d30d8   # mainnet merkle, first tranche unlocked
 )
+# wam:quote-end
 DEAD=0
 for h in "${DEAD_HASHES[@]}"; do
-    HITS=$(grep -rl "$h" "${SEARCH[@]}" . 2>/dev/null | grep -vE "$EXCLUDE|audit_repo" || true)
+    HITS=$(files_matching "$h" "${SEARCH[@]}" .)
     [ -n "$HITS" ] && { fail "superseded hash $h still in: $(echo $HITS | tr '\n' ' ')"; DEAD=$((DEAD + 1)); }
 done
 [ "$DEAD" = 0 ] && ok "no superseded genesis hash anywhere"
@@ -149,7 +195,7 @@ step "5. retired components are not referenced"
 
 RETIRED=0
 for dir in telegram; do
-    HITS=$(grep -rl "$dir/" "${SEARCH[@]}" . 2>/dev/null | grep -vE "$EXCLUDE|audit_repo" || true)
+    HITS=$(files_matching "$dir/" "${SEARCH[@]}" .)
     [ -n "$HITS" ] && { fail "retired '$dir/' referenced in: $(echo $HITS | tr '\n' ' ')"; RETIRED=$((RETIRED + 1)); }
 done
 [ "$RETIRED" = 0 ] && ok "no references to retired directories"

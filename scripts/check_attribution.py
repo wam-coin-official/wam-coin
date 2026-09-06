@@ -31,9 +31,14 @@ fails. There is no reason for a new one to exist.
 Exit 0 clean, 1 a new commit carries it, 2 the check could not run.
 """
 
+import pathlib
 import re
 import subprocess
 import sys
+
+REPO = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO / "scripts" / "lib"))
+import quoted  # noqa: E402  -- needs the path above
 
 # HEAD on 4 September 2026, when the instruction was recorded. Everything
 # reachable from here is the backlog to be removed later; anything after it
@@ -99,8 +104,32 @@ def main():
     tracked = git("grep", "-l", "-i", "-E",
                   "co-authored-by: *claude|generated with .?claude code|claude\\.ai/code")
     if tracked:
-        names = [n for n in tracked.splitlines()
-                 if n.strip() and not n.startswith("scripts/check_attribution.py")]
+        # git grep finds candidates; the quotation marks decide.
+        #
+        # This used to exclude one path by name -- its own -- because this
+        # file necessarily contains the strings it forbids. That worked for
+        # exactly one file and blinded the check to that file completely: an
+        # attribution marker added here would never have been seen. And any
+        # other file that documented the rule failed the check for saying so.
+        #
+        # A check for a forbidden string, in a repository that has to write
+        # the string down in order to forbid it, cannot work on the raw text.
+        # scripts/lib/quoted.py is where a writer says "this is a quotation",
+        # and it is the same convention set_version.py and the release
+        # workflow now use, so there is one thing to learn and one thing to
+        # grep for when reviewing.
+        names = []
+        for n in tracked.splitlines():
+            n = n.strip()
+            if not n:
+                continue
+            try:
+                body = (REPO / n).read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                names.append(n)          # unreadable is not innocent
+                continue
+            if RX.search(quoted.strip_quoted(body)):
+                names.append(n)
         if names:
             print(f"  {RED}FAIL{OFF}  {len(names)} tracked file(s) carry an "
                   f"attribution marker")

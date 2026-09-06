@@ -34,6 +34,7 @@ set -uo pipefail
 # Microsoft Store stub that runs nothing and exits 49.
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 . "$SCRIPTS_DIR/lib/python.sh"
+. "$SCRIPTS_DIR/lib/quoted.sh"
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$HERE"
@@ -119,13 +120,31 @@ printf '\n%sunfinished work in the consensus sources%s\n' "$BLD" "$OFF"
 # Only src/wam/ -- upstream's own TODOs are not ours to answer, and counting
 # them would bury the ones that are.
 #
-# Work tags only. This once also matched the words PLACEHOLDER and "temporary",
-# and its first run flagged the comment header that *explains* why placeholders
-# were removed -- prose about a solved problem, reported as the problem. A
-# placeholder value is caught above by decoding the address, which is the check
-# that cannot be fooled by someone writing about one.
-MARKS="$(grep -rnE '\b(TODO|FIXME|XXX)\b' src/wam/ 2>/dev/null \
-    | grep -viE '\.wam-orig' || true)"
+# Work tags only. This once also matched PLACEHOLDER and "temporary", and its
+# first run flagged the comment header that *explains* why placeholders were
+# removed -- prose about a solved problem, reported as the problem.
+#
+# That was answered by narrowing the pattern, which is a patch: it moved the
+# blind spot rather than closing it, and left TODO/FIXME/XXX able to fire on a
+# comment that merely says "no TODO markers remain in this file". The same
+# fault then turned up in the release workflow, in set_version.py and in a
+# unit-install guard, all within a day.
+#
+# So it honours the project's quotation marks now, like every other check that
+# matches text: scripts/lib/quoted.sh, the shell twin of quoted.py. A file is
+# listed by grep and then read with its quotations blanked, and line numbers
+# survive the blanking so what is reported is still where it is.
+MARKS=""
+while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    case "$f" in *.wam-orig*) continue ;; esac
+    hits="$(unquoted "$f" | grep -nE '\b(TODO|FIXME|XXX)\b' || true)"
+    [ -n "$hits" ] && MARKS="${MARKS}$(printf '%s\n' "$hits" | sed "s|^|$f:|")
+"
+done <<EOF
+$(grep -rlE '\b(TODO|FIXME|XXX)\b' src/wam/ 2>/dev/null || true)
+EOF
+MARKS="$(printf '%s' "$MARKS" | grep -v '^$' || true)"
 if [ -z "$MARKS" ]; then
     ok "nothing in src/wam/ is marked unfinished"
 else

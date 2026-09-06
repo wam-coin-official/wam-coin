@@ -27,6 +27,23 @@ import pathlib
 import re
 import sys
 
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parent / "lib"))
+import quoted  # noqa: E402
+
+def _read(p, **kw):
+    """Read a file with the author's quotations blanked.
+
+    Line numbers survive the blanking, so anything this check reports still
+    points where it says. See scripts/lib/quoted.py: a check that matches text
+    cannot tell use from mention, and four checks here were fired by text that
+    merely mentioned what they look for, within one day.
+    """
+    kw.setdefault("encoding", "utf-8")
+    kw.setdefault("errors", "replace")
+    return quoted.strip_quoted(_pathlib.Path(p).read_text(**kw))
+
 RED = "\033[31m"; GRN = "\033[32m"; YEL = "\033[33m"; BLD = "\033[1m"; OFF = "\033[0m"
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
@@ -44,8 +61,8 @@ def main():
     entry = json.loads((KOMODO / "coin-entry.json").read_text(encoding="utf-8"))
     if isinstance(entry, list):
         entry = entry[0]
-    cp = (REPO / "src/wam/chainparams.cpp").read_text(encoding="utf-8")
-    hdr = (REPO / "src/wam/wam-params.h").read_text(encoding="utf-8")
+    cp = _read(REPO / "src/wam/chainparams.cpp")
+    hdr = _read(REPO / "src/wam/wam-params.h")
 
     # Only the mainnet section. Testnet repeats every one of these constants
     # with different values, and a check that reads the wrong section passes
