@@ -13,7 +13,7 @@ but a chain client inside their node.
 | [Block DX](blockdx/) | PR to `blocknetdx/blockchain-configuration-files`: 2 confs + manifest | **open, and being worked on** [#197](https://github.com/blocknetdx/blockchain-configuration-files/pull/197) |
 | [Haveno](haveno/) | PR to `haveno-dex/haveno`: asset class, test, service entry | closed [#2528](https://github.com/haveno-dex/haveno/pull/2528) — needs a market price first |
 | [BasicSwap DEX](basicswap/) | PR to `basicswap/basicswap`: a Python interface package | closed [#701](https://github.com/basicswap/basicswap/pull/701) — *"mainnet is scheduled for 2026-09-15"*, resubmit after |
-| [Bisq](bisq/) | PR to `bisq-network/bisq`: asset class, test, service entry | closed [#8030](https://github.com/bisq-network/bisq/pull/8030) — they add no new altcoins |
+| [Bisq](bisq/) | PR to `bisq-network/bisq`: asset class, test, service entry | closed [#8030](https://github.com/bisq-network/bisq/pull/8030) — **closed on a mistaken identity**, corrected and resent |
 | [Maya Protocol](maya/) | a node chain client in Go, not a listing | months, and theirs to want |
 
 And one that is not a venue at all but blocks three of them:
@@ -34,7 +34,20 @@ policy or timing; **not one has been about the code**:
 - **SatoshiLabs merged ours.** They are the only party that examined the
   parameters themselves, and coin type 5718349 with prefixes `wam` / `twam`
   / `wamrt` is now in the registry every hardware wallet derives from.
-- **Bisq** add no new altcoins at all. Nothing to do with WAM.
+- **Bisq closed ours on a mistaken identity, and it has been corrected and
+  resent.** They found the *other* WAM — the gaming token — and answered that
+  they do not add a **second fork of a coin they already list**, and that they
+  could not find ours. That is not the same sentence as "we add no new
+  altcoins", and this file said the second one for a week.
+
+  It is the search problem arriving somewhere it costs money. Searching
+  `wamcoin` returns a gaming token, a Nigerian dairy and a Maldivian waste
+  company before it returns this project; `wamcoin.org` is not in the first
+  three pages. That was a marketing annoyance until a reviewer deciding
+  whether to list the coin looked it up, found somebody else's, and closed
+  the request. Every future submission should name the genesis hash and the
+  repository in its first paragraph, because the coin's own name is not
+  currently enough to identify it.
 - **Haveno** answered *"we only consider coins with market traction /
   price"* — a sequencing rule. They are where a coin arrives, not where it
   starts.

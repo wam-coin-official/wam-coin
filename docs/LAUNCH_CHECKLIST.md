@@ -161,8 +161,12 @@ memory. Nothing on launch day said to keep it.
       the day mainnet starts; the day there is something to point at. Written
       here so that waiting is a decision rather than a thing forgotten.
 
-Bisq is deliberately not on this list. They add no new altcoins at all, and
-re-asking a policy answer is how a project becomes the one that keeps asking.
+- [ ] **Bisq** — [#8030](https://github.com/bisq-network/bisq/pull/8030) was
+      closed on a mistaken identity: they found the *other* WAM, the gaming
+      token, and answered that they do not add a second fork of a coin they
+      already list, and that they could not find ours. It has been corrected
+      and resent. Chase the answer, and lead with the genesis hash and the
+      repository rather than the name.
 
 ## Ongoing
 
