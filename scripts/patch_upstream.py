@@ -875,6 +875,13 @@ def build_changes() -> list[Change]:
                 replacement='return std::make_unique<CBaseChainParams>("testnet3", 19554);',
             ),
             Edit(
+                file="src/init.cpp",
+                description="the testnet3 deprecation warning is not true of WAM",
+                marker="WAM's test network is its own chain",
+                anchor='LogInfo("Warning: Support for testnet3 is deprecated and will be removed in an upcoming release. Consider switching to testnet4.\\n");',
+                replacement="// Removed: upstream warns that Bitcoin's testnet3 is going away.\n        // WAM's test network is its own chain and nobody is removing it.\n        // On 6 September 2026 that warning was the first line an outside\n        // tester read on his first run, telling him the network he had\n        // just joined was deprecated. It is not.",
+            ),
+            Edit(
                 file="src/chainparamsbase.cpp",
                 description="testnet4 RPC 48332 -> 49554",
                 marker='CBaseChainParams>("testnet4", 49554)',
