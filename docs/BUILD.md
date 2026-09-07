@@ -120,6 +120,18 @@ flag since August; this page did not, so anybody following it got a heavier
 binary than the release — and on a distribution whose package list here
 installed `zeromq-devel`, configure found ZMQ and linked it without a word.
 
+That last sentence is measured, not predicted. On 7 September somebody
+followed this page on Fedora 44 with the old line, and his binary was asked
+what it links:
+
+    ldd build/wam-core/src/wamd | grep -cE 'zmq|krb5|gssapi'
+    4
+
+libzmq and three Kerberos libraries, none of which the release depends on. It
+built with no errors and runs perfectly on his machine, because Fedora has
+them — which is the whole failure mode: it works for whoever built it and dies
+for whoever receives it.
+
 Expect 10–40 minutes. Peak memory is roughly 1.5 GB per compile job — on a machine with
 4 GB, use `make -j2` rather than `-j$(nproc)`.
 
