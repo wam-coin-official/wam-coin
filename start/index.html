@@ -111,6 +111,13 @@ cd wam-coin-v0.1.7/bin
 <p>To watch it in another terminal:</p>
 <pre><code>./wam-cli -testnet getblockcount</code></pre>
 <p>That prints how many blocks you have. It should climb until it matches what <a href="https://explorer.wamcoin.org">explorer.wamcoin.org</a> shows.</p>
+<blockquote><p><strong>The first minute looks like nothing is happening. It is not broken.</strong></p>
+<p><code>getblockcount</code> stays at <strong>0</strong> for roughly the first minute while the node builds the RandomX verification tables it needs before it can check a single block. Nothing is downloaded in that time and nothing is wrong. Then the count starts climbing and does not stop.</p>
+<p>A full sync from nothing takes <strong>about ten minutes</strong>. That figure is measured — 3,624 blocks in 298 seconds, from an empty directory, on 7 September 2026 — on a server, so give an older laptop longer; the limit is your processor, not your connection.</p>
+<p>This paragraph exists because somebody started a node on 7 September, waited <strong>three minutes and fifty-two seconds</strong>, and left. Nothing had gone wrong: he had the first 4,000 block headers and was downloading blocks when he quit. He had no way of knowing that, because this page did not tell him.</p>
+<p>To see that it is working rather than guess:</p>
+<pre><code>./wam-cli -testnet getblockchaininfo | grep -E '"blocks"|verificationprogress'</code></pre>
+<p><code>verificationprogress</code> goes from 0 to 1. It moves even while the block count is still 0, which is the answer to "is it stuck?"</p></blockquote>
 <blockquote><p><strong>Why <code>-testnet</code>?</strong> Because the real network has not launched yet. See <a href="#7-two-things-you-must-know">section 7</a>.</p></blockquote>
 <hr>
 <h2 id="4-make-yourself-an-address">4. Make yourself an address</h2>
@@ -153,7 +160,7 @@ ls ~/.wam/testnet3/wallets/              # what exists on disk
 <hr>
 <h2 id="8-when-something-goes-wrong">8. When something goes wrong</h2>
 <p><strong>The node prints errors and stops.</strong> Read the last line before it stopped; it usually says exactly what it needs. If it mentions an address already in use, another copy is already running.</p>
-<p><strong><code>getblockcount</code> says 0 and stays there.</strong> Your node found no one to talk to. Check that your internet works, and wait two minutes — it retries by itself.</p>
+<p><strong><code>getblockcount</code> says 0 and stays there.</strong> <strong>For the first minute this is normal and means nothing is wrong.</strong> The node is building its RandomX verification tables and has not started on blocks yet; <code>verificationprogress</code> in <code>getblockchaininfo</code> moves during that time even though the count does not. If it is still 0 after two or three minutes, your node found no one to talk to — check that your internet works; it retries by itself. This entry used to name the second cause only, and sent a reader to check a connection that was fine.</p>
 <p><strong>The miner says "cannot connect".</strong> Check the pool address for typing mistakes. Some networks block unusual ports; try from a different connection.</p>
 <p><strong>The miner runs but <code>accepted</code> stays at 0.</strong> Usually the wrong address format. It must start with <code>twam1</code> on the test network — a mainnet address will be refused.</p>
 <p><strong>Everything looks fine and I have never found a block.</strong> That is normal. One machine among many finds one rarely; that is what the pool is for, and your share of what the pool finds is paid to your address anyway.</p>
