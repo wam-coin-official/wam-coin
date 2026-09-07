@@ -275,8 +275,16 @@ else
         # underneath as a separate top-level command with its exit status
         # discarded. run() now refuses an empty command, and
         # test_sweep_calls.sh refuses the syntax that caused it.
+        #
+        # --host, because the machine this sweep is usually run from has no
+        # wamd on its PATH, and without one the check cannot start. It runs on
+        # the second node and syncs from the first, so the node being built
+        # from nothing and the node it learns the chain from are different
+        # machines -- which is the only arrangement that answers the question.
+        FRESH_HOST=""; for v in $NODES; do [ "$v" != "$1" ] && { FRESH_HOST="$v"; break; }; done
         run "a new node can sync from genesis" \
-            bash scripts/check_fresh_sync.sh --network testnet --peer "$1" --timeout 300
+            bash scripts/check_fresh_sync.sh --network testnet --peer "$1" \
+                 --timeout 300 ${FRESH_HOST:+--host "$FRESH_HOST"}
         # Each node is probed from the next one round-robin, so every host is
         # examined from a machine that is not itself.
         i=0

@@ -56,6 +56,20 @@ import urllib.request
 RED = "\033[31m"; GRN = "\033[32m"; YEL = "\033[33m"; BLD = "\033[1m"; OFF = "\033[0m"
 _fails = []
 
+# Questions that could not be put, as distinct from answers that were bad.
+#
+# GitHub allows 60 unauthenticated API calls an hour per address. This check
+# and check_docs_version.py both read it, and on 2026-09-07 a poll loop of my
+# own used the hour's allowance up -- so the sweep printed
+#
+#   the project presents itself as a real one   FAIL
+#         cannot read the repository: HTTP Error 403: rate limit exceeded
+#
+# on a repository that was fine. That line is the reddest on the launch panel
+# and it says a stranger would see nothing. Reporting a rate limit as a
+# finding about the project is how a person learns to scroll past red.
+_unreachable = []
+
 # Terms someone actually types when looking for a coin like this. The repo
 # description existed and contained none of them, which is why it was
 # invisible: GitHub search matches the description.
@@ -69,10 +83,24 @@ def warn(m): print(f"  {YEL}!!{OFF}    {m}")
 def head(m): print(f"\n{BLD}{m}{OFF}")
 
 
+class CouldNotAsk(Exception):
+    """The question never reached the server, or the server refused to answer
+    it for reasons that have nothing to do with this project."""
+
+
 def get(url, timeout=25, as_json=False):
     req = urllib.request.Request(url, headers={"User-Agent": "wam-first-impression"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        raw = r.read()
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            raw = r.read()
+    except urllib.error.HTTPError as e:
+        # 403 and 429 from api.github.com are the rate limit, not a verdict on
+        # the repository. 404 IS a finding -- it means the name is wrong or the
+        # repository is not public -- so it is left to the caller.
+        if e.code in (403, 429) and "api.github.com" in url:
+            raise CouldNotAsk(f"GitHub rate limit ({e.code}) -- "
+                              f"60 unauthenticated calls an hour") from e
+        raise
     return json.loads(raw) if as_json else raw.decode("utf-8", "replace")
 
 
@@ -80,6 +108,11 @@ def check_repo(repo):
     head(f"the repository, as GitHub shows it: {repo}")
     try:
         d = get(f"https://api.github.com/repos/{repo}", as_json=True)
+    except CouldNotAsk as e:
+        warn(f"the repository was not examined: {e}. That is not the same as "
+             f"it looking bad.")
+        _unreachable.append(str(e))
+        return
     except Exception as e:
         bad(f"cannot read the repository: {e}")
         return
@@ -206,6 +239,16 @@ def main():
               "  and answered: \"I do not see any project related to WAM.\" The\n"
               "  links were in the pull request. This is what he saw instead.\n")
         return 1
+    if _unreachable:
+        # 2, this project's convention for "the check could not run". Not 0,
+        # which would say a stranger sees a healthy project when the part that
+        # decides that was never read.
+        print(f"  {YEL}nothing bad was found, but {len(_unreachable)} question(s) "
+              f"could not be put{OFF}")
+        for u in _unreachable:
+            print(f"    {u}")
+        print()
+        return 2
     print(f"  {GRN}the project presents itself as a real one{OFF}\n")
     return 0
 

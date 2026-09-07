@@ -43,6 +43,7 @@ import json
 import pathlib
 import re
 import sys
+import urllib.error
 import urllib.request
 
 RED = "\033[31m"; GRN = "\033[32m"; YEL = "\033[33m"; BLD = "\033[1m"; OFF = "\033[0m"
@@ -101,6 +102,23 @@ def main():
     print(f"\n{BLD}the version the instructions tell people to download{OFF}")
     try:
         rels, newest = releases()
+    except urllib.error.HTTPError as e:
+        if e.code in (403, 429):
+            # The rate limit, not a fact about our releases. GitHub allows 60
+            # unauthenticated calls an hour per address, and this check is one
+            # of two here that spend them. Reported as 1 it put "the
+            # documented version still exists  FAIL" on the launch panel about
+            # documentation that was correct.
+            #
+            # 2 is this project's code for "the check could not run".
+            warn(f"GitHub rate limit ({e.code}) -- the documented versions were "
+                 f"NOT compared against the releases. 60 unauthenticated calls "
+                 f"an hour; this is not a pass.")
+            print()
+            return 2
+        bad(f"could not read the releases from GitHub: {e}")
+        print()
+        return 1
     except Exception as e:
         bad(f"could not read the releases from GitHub: {e}")
         print()

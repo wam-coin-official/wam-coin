@@ -59,10 +59,37 @@ while [ $# -gt 0 ]; do
         --peer)    PEER="${2:?--peer needs a value}";       shift 2 ;;
         --binary)  BINARY="${2:?--binary needs a value}";   shift 2 ;;
         --timeout) WAIT="${2:?--timeout needs a value}";    shift 2 ;;
+        --host)    RUNHOST="${2:?--host needs a value}";    shift 2 ;;
         -h|--help) sed -n '5,45p' "$0"; exit 0 ;;
         *) printf 'unknown option: %s\n' "$1" >&2; exit 2 ;;
     esac
 done
+
+# --host: ask a machine that has the software.
+#
+# This check needs a wamd to start, and the machine the sweep is run from --
+# a Windows laptop with the node inside WSL -- has none on its PATH. So the
+# most important check here, the one asking whether a stranger can validate
+# this chain from genesis, reported "no wamd found" and could never run where
+# it was being called from. It had also been silently commented out of the
+# sweep, so nobody saw even that.
+#
+# Nothing is copied: /opt/wam on both servers is this same repository at
+# origin/main, and check_deployed_code.sh in this sweep is what makes that
+# true rather than assumed.
+RUNHOST="${RUNHOST:-}"
+if [ -n "$RUNHOST" ]; then
+    REMOTE="cd /opt/wam && bash scripts/check_fresh_sync.sh --network '$NETWORK' --timeout '$WAIT'"
+    # Only when one was given: an empty --peer would be rejected by the copy
+    # at the other end, and the failure would read as a network fault.
+    [ -n "$PEER" ] && REMOTE="$REMOTE --peer '$PEER'"
+    if [ "$PEER" = "$RUNHOST" ]; then
+        printf 'refusing to sync %s from itself -- name a different peer\n' \
+            "$RUNHOST" >&2
+        exit 2
+    fi
+    exec ssh -o ConnectTimeout=15 -o BatchMode=yes "root@$RUNHOST" "$REMOTE"
+fi
 
 case "$NETWORK" in
     mainnet) NETFLAG=""; DEFPORT=9555  ;;
