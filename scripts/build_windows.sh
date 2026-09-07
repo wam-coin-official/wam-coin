@@ -1,0 +1,275 @@
+#!/usr/bin/env bash
+# Copyright (c) 2026 The WAM Coin developers
+# Distributed under the MIT software license, see COPYING.
+#
+# ===========================================================================
+#  build_windows.sh -- cross-compile the node for Windows, from Linux
+# ===========================================================================
+#
+#      bash scripts/fetch-upstream.sh          # fetch and patch Core first
+#      bash scripts/build_windows.sh
+#
+#  WHY THIS EXISTS, AND WHAT IT IS NOT
+#
+#  Every release so far is x86_64-linux-gnu and nothing else. docs/ROADMAP.md
+#  §7 records why that was a mistake rather than an ordering: RandomX was
+#  chosen so an ordinary desktop competes, most ordinary desktops run Windows,
+#  and in a proof-of-work chain the miners ARE the security. Treating Windows
+#  as a convenience to be added once "users arrive" is incoherent -- there is
+#  no chain before they arrive.
+#
+#  This script is the measurement that turns "six days, maybe" into a fact.
+#  It is NOT part of release.yml and must not become part of it until it has
+#  produced a binary that syncs the test chain on a real Windows machine and
+#  reaches the same tip as Linux. Compiling is not the gate. Agreeing with
+#  Linux, block for block, is the gate.
+#
+#  WHAT MADE THIS SMALL
+#
+#  The thing to fear was RandomX: a custom proof-of-work linked into
+#  libbitcoinkernel usually means an autotools macro, a pkg-config file and a
+#  week of build-system work. It is two variables passed to configure --
+#  install.sh has done it that way since the beginning:
+#
+#      CPPFLAGS="-I<randomx>/src"  LIBS="<randomx>/build/librandomx.a -lpthread"
+#
+#  So the same two variables, pointed at a mingw-built librandomx.a, is the
+#  whole of the WAM-specific part. Everything else is upstream's own depends
+#  system, documented in build/wam-core/doc/build-windows.md.
+#
+#  ARCH=x86-64, NEVER native
+#
+#  Same reason as scripts/fetch-upstream.sh, and it is not theoretical here
+#  either. On 2026-08-20 a release went out carrying 746 AVX-512 instructions
+#  because the runner's CPU had them, and it died with SIGILL on an AMD EPYC
+#  that did not. RandomX detects AES-NI and the rest at RUNTIME; ARCH only
+#  decides what the compiler may assume unconditionally, and for a binary
+#  strangers run that has to be the baseline. A Windows binary makes this
+#  worse, not better: the audience is desktops of every age.
+# ===========================================================================
+
+set -uo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)"
+cd "$HERE"
+
+GRN=$'\033[32m'; RED=$'\033[31m'; YLW=$'\033[33m'; BLD=$'\033[1m'; OFF=$'\033[0m'
+
+log()  { printf '  %s\n' "$*"; }
+ok()   { printf '  %sok%s    %s\n' "$GRN" "$OFF" "$*"; }
+warn() { printf '  %s!!%s    %s\n' "$YLW" "$OFF" "$*"; }
+die()  { printf '\n  %sFAIL%s  %s\n\n' "$RED" "$OFF" "$*" >&2; exit 1; }
+
+HOST_TRIPLET=x86_64-w64-mingw32
+BUILD_DIR="${BUILD_DIR:-$HERE/build}"
+CORE_DIR="$BUILD_DIR/wam-core"
+RANDOMX_DIR="$BUILD_DIR/randomx"
+
+# A separate build directory, deliberately.
+#
+# fetch-upstream.sh builds a NATIVE librandomx.a into build/randomx/build, and
+# install.sh links the Linux node against it. Cross-compiling into the same
+# directory would overwrite a Linux archive with a Windows one and the next
+# native build would link it, fail at the last step, and blame the linker.
+WIN_RX_BUILD="$RANDOMX_DIR/build-win"
+
+JOBS="${JOBS:-$(nproc 2>/dev/null || echo 4)}"
+OUT_DIR="${OUT_DIR:-$HERE/out/windows}"
+
+echo
+echo "=================================================================="
+echo " ${BLD}cross-compiling the WAM node for Windows${OFF}  ($HOST_TRIPLET)"
+echo "=================================================================="
+echo
+
+# ---------------------------------------------------------------------------
+#  The toolchain, and the one flag that is not optional
+# ---------------------------------------------------------------------------
+#
+#  Ubuntu ships two mingw runtimes. The win32-threads one has no std::thread
+#  at all, and Bitcoin Core uses it everywhere, so the wrong alternative
+#  produces several hundred lines of "'thread' is not a member of 'std'" --
+#  which reads like a broken source tree and is a one-line toolchain setting.
+#  Upstream's doc/build-windows.md says to install the -posix package for
+#  exactly this reason.
+command -v "$HOST_TRIPLET-g++" >/dev/null \
+    || die "$HOST_TRIPLET-g++ is not installed. On Ubuntu:
+          sudo apt install g++-mingw-w64-x86-64-posix"
+
+THREAD_MODEL="$("$HOST_TRIPLET-g++" -v 2>&1 | sed -n 's/^Thread model: //p')"
+if [ "$THREAD_MODEL" != "posix" ]; then
+    die "$HOST_TRIPLET-g++ is using the '$THREAD_MODEL' thread model.
+          Core needs std::thread, which win32 threads do not provide. Select
+          the posix alternative:
+              sudo update-alternatives --set $HOST_TRIPLET-g++ /usr/bin/$HOST_TRIPLET-g++-posix
+              sudo update-alternatives --set $HOST_TRIPLET-gcc /usr/bin/$HOST_TRIPLET-gcc-posix"
+fi
+ok "$HOST_TRIPLET-g++ present, thread model posix"
+
+[ -d "$CORE_DIR" ] || die "$CORE_DIR is not here. Run scripts/fetch-upstream.sh first."
+[ -f "$CORE_DIR/configure.ac" ] || die "$CORE_DIR has no configure.ac -- an incomplete fetch"
+[ -d "$RANDOMX_DIR" ] || die "$RANDOMX_DIR is not here. Run scripts/fetch-upstream.sh first."
+ok "patched Core tree and RandomX source are present"
+
+command -v cmake >/dev/null || die "cmake is not installed (needed for RandomX)"
+
+# ---------------------------------------------------------------------------
+#  1. librandomx.a for Windows
+# ---------------------------------------------------------------------------
+printf '\n%s1. librandomx.a for Windows%s\n' "$BLD" "$OFF"
+
+if [ -f "$WIN_RX_BUILD/librandomx.a" ]; then
+    ok "already built at $WIN_RX_BUILD/librandomx.a"
+else
+    log "cmake, ARCH=x86-64 (never native -- see the header)"
+    cmake -S "$RANDOMX_DIR" -B "$WIN_RX_BUILD" \
+        -DCMAKE_SYSTEM_NAME=Windows \
+        -DCMAKE_C_COMPILER="$HOST_TRIPLET-gcc" \
+        -DCMAKE_CXX_COMPILER="$HOST_TRIPLET-g++" \
+        -DCMAKE_RC_COMPILER="$HOST_TRIPLET-windres" \
+        -DCMAKE_FIND_ROOT_PATH="/usr/$HOST_TRIPLET" \
+        -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER \
+        -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY \
+        -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DARCH=x86-64 \
+        >/dev/null || die "cmake could not configure RandomX for $HOST_TRIPLET"
+    cmake --build "$WIN_RX_BUILD" -j"$JOBS" >/dev/null \
+        || die "librandomx.a did not build for $HOST_TRIPLET -- rerun without >/dev/null to see why"
+fi
+[ -f "$WIN_RX_BUILD/librandomx.a" ] || die "librandomx.a was not produced"
+
+# An archive is not proof it is a WINDOWS archive. A silently-native build
+# here would fail hundreds of lines later, at the node's link step, with
+# undefined references that read like missing source files.
+RX_FMT="$(file -b "$WIN_RX_BUILD/librandomx.a" 2>/dev/null || echo unknown)"
+case "$RX_FMT" in
+    *"current ar archive"*|*archive*) ;;
+    *) warn "unexpected archive type: $RX_FMT" ;;
+esac
+FIRST_OBJ="$(ar t "$WIN_RX_BUILD/librandomx.a" 2>/dev/null | head -1)"
+if [ -n "$FIRST_OBJ" ]; then
+    ( cd "$WIN_RX_BUILD" && ar x librandomx.a "$FIRST_OBJ" 2>/dev/null )
+    OBJ_FMT="$(file -b "$WIN_RX_BUILD/$FIRST_OBJ" 2>/dev/null || echo unknown)"
+    rm -f "$WIN_RX_BUILD/$FIRST_OBJ"
+    case "$OBJ_FMT" in
+        *"for MS Windows"*|*PE32*|*COFF*)
+            ok "librandomx.a holds Windows objects ($OBJ_FMT)" ;;
+        *)
+            die "librandomx.a holds $OBJ_FMT -- this is a NATIVE build, not a
+          Windows one. The node would link it and fail with undefined
+          references far from here." ;;
+    esac
+fi
+
+# ---------------------------------------------------------------------------
+#  2. Core's dependencies for Windows
+# ---------------------------------------------------------------------------
+printf '\n%s2. depends for %s%s\n' "$BLD" "$HOST_TRIPLET" "$OFF"
+log "boost, libevent, sqlite3 -- 20 to 60 minutes the first time"
+
+# The same features the Linux node leaves out, for the same reasons
+# install.sh gives: nothing here uses ZMQ, and there is no GUI. Every package
+# not built is an hour not spent and a dependency a downloader does not need.
+DEPENDS_OPTS=(
+    "HOST=$HOST_TRIPLET"
+    "NO_QT=1"
+    "NO_ZMQ=1"
+    "NO_UPNP=1"
+    "NO_NATPMP=1"
+    "NO_USDT=1"
+)
+make -C "$CORE_DIR/depends" "${DEPENDS_OPTS[@]}" -j"$JOBS" \
+    || die "depends failed for $HOST_TRIPLET"
+
+CONFIG_SITE_PATH="$CORE_DIR/depends/$HOST_TRIPLET/share/config.site"
+[ -f "$CONFIG_SITE_PATH" ] || die "depends produced no config.site at $CONFIG_SITE_PATH"
+ok "depends built, config.site present"
+
+# ---------------------------------------------------------------------------
+#  3. configure and build the node
+# ---------------------------------------------------------------------------
+printf '\n%s3. the node%s\n' "$BLD" "$OFF"
+
+cd "$CORE_DIR"
+[ -f ./configure ] || ./autogen.sh >/dev/null || die "autogen.sh failed"
+
+# The whole of the WAM-specific part of this cross-build: the same two
+# variables install.sh passes natively, pointed at the Windows archive.
+RANDOMX_CFLAGS="-I$RANDOMX_DIR/src"
+RANDOMX_LIBS="$WIN_RX_BUILD/librandomx.a"
+
+log "configure --host=$HOST_TRIPLET"
+CONFIG_SITE="$CONFIG_SITE_PATH" ./configure \
+    --prefix=/ \
+    --without-gui \
+    --disable-zmq \
+    --disable-tests-fuzz-binary \
+    CPPFLAGS="$RANDOMX_CFLAGS" \
+    LIBS="$RANDOMX_LIBS" \
+    > "$BUILD_DIR/configure-windows.log" 2>&1 \
+    || die "configure failed. The last 30 lines:
+$(tail -30 "$BUILD_DIR/configure-windows.log" | sed 's/^/          /')
+          Full log: $BUILD_DIR/configure-windows.log
+          Core's own: $CORE_DIR/config.log"
+ok "configured"
+
+log "compiling with $JOBS jobs"
+make -j"$JOBS" > "$BUILD_DIR/make-windows.log" 2>&1 \
+    || die "the build failed. The last 40 lines:
+$(tail -40 "$BUILD_DIR/make-windows.log" | sed 's/^/          /')
+          Full log: $BUILD_DIR/make-windows.log"
+ok "compiled"
+
+# ---------------------------------------------------------------------------
+#  4. What came out, and whether it is actually for Windows
+# ---------------------------------------------------------------------------
+printf '\n%swhat came out%s\n' "$BLD" "$OFF"
+
+mkdir -p "$OUT_DIR"
+FOUND=0
+for exe in wamd wam-cli wam-tx wam-util wam-wallet \
+           bitcoind bitcoin-cli bitcoin-tx bitcoin-util bitcoin-wallet; do
+    for p in "src/$exe.exe" "src/$exe"; do
+        [ -f "$p" ] || continue
+        FMT="$(file -b "$p")"
+        case "$FMT" in
+            *"for MS Windows"*|*PE32*)
+                cp "$p" "$OUT_DIR/"
+                SZ="$(du -h "$p" | cut -f1)"
+                ok "$(basename "$p")  $SZ"
+                FOUND=$((FOUND + 1))
+                ;;
+            *)
+                die "$p is $FMT -- not a Windows executable. The build used the
+          host compiler somewhere and this binary would not run on Windows." ;;
+        esac
+        break
+    done
+done
+
+echo
+if [ "$FOUND" -eq 0 ]; then
+    die "no Windows executable was produced, and make reported success. Look
+          in $CORE_DIR/src for what was actually built."
+fi
+
+echo "=================================================================="
+printf ' %s%d Windows executable(s) in %s%s\n' "$GRN" "$FOUND" "$OUT_DIR" "$OFF"
+echo "=================================================================="
+echo
+echo "  ${BLD}This is not the gate.${OFF} Compiling proves the toolchain, not the"
+echo "  binary. Before any of this is published it has to sync the test chain"
+echo "  from genesis on a real Windows machine and reach the same tip hash"
+echo "  Linux reaches:"
+echo
+echo "      wamd.exe -testnet -datadir=C:\\wam-test"
+echo "      wam-cli.exe -testnet -datadir=C:\\wam-test getbestblockhash"
+echo
+echo "  and that must equal, at the same height:"
+echo
+echo "      wam-cli -testnet getbestblockhash        # on Linux"
+echo
+echo "  A Windows node that disagrees with Linux about one block is worse than"
+echo "  no Windows node: its owner mines onto a history nobody else has."
+echo

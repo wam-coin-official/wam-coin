@@ -52,6 +52,8 @@ command -v objdump >/dev/null 2>&1 || {
 GRN=$'\033[32m'; RED=$'\033[31m'; YLW=$'\033[33m'; OFF=$'\033[0m'
 FAIL=0
 CHECKED=0
+ARM=0
+UNREADABLE=0
 
 echo "=================================================================="
 echo " Instructions above the x86-64 baseline"
@@ -63,12 +65,53 @@ printf '  %s\n' "--------------------------------------------------------------"
 
 for f in "$@"; do
     [ -f "$f" ] || continue
-    file "$f" 2>/dev/null | grep -q 'ELF.*executable\|ELF.*shared object' || continue
+
+    # Every executable format this project can ship, not only ELF.
+    #
+    # This line used to be `grep -q 'ELF...' || continue`, and that was written
+    # when the only release was Linux. The moment a Windows or macOS binary
+    # joins a release, a silent `continue` removes the one guard that exists
+    # because a published node died with SIGILL on an AMD EPYC -- and removes
+    # it for the audience most likely to be running an old processor. A skip
+    # that reads as a pass is the exact shape of the fault it was written to
+    # prevent.
+    # -L follows symlinks. Without it `file` answers "symbolic link to ..."
+    # and the case below skips it -- so pointing this at an installed path,
+    # which is the obvious thing an operator does, reported "nothing was
+    # examined" for a binary sitting right there. /opt/wam-current-bin/wamd
+    # is a symlink on both servers.
+    DESC="$(file -bL "$f" 2>/dev/null || echo unknown)"
+    case "$DESC" in
+        *ELF*executable*|*ELF*shared\ object*|*"for MS Windows"*|*PE32*|*Mach-O*) ;;
+        *) continue ;;                 # scripts, tarballs, text: not our subject
+    esac
+
+    # arm64 is not an x86-64 question at all. Apple Silicon is the majority of
+    # Macs sold since 2020, so this will be a real row rather than a
+    # hypothetical one, and it must be visible: reporting an arm64 binary as
+    # "within the x86-64 baseline" would be a confident answer to a question
+    # nobody asked.
+    case "$DESC" in
+        *arm64*|*aarch64*|*"ARM64"*)
+            printf '  %-16s %-10s %-10s %sarm64 -- this check does not apply%s\n' \
+                "$(basename "$f")" "-" "-" "$YLW" "$OFF"
+            ARM=$((ARM + 1))
+            continue ;;
+    esac
+
     CHECKED=$((CHECKED + 1))
 
     D="$(objdump -d --no-show-raw-insn "$f" 2>/dev/null)"
     if [ -z "$D" ]; then
-        printf '  %-16s %s\n' "$(basename "$f")" "could not disassemble"
+        # Not `continue`. CHECKED has already been incremented, so continuing
+        # here counted an unreadable file towards "all N binaries stay within
+        # the baseline" -- a pass issued for a binary that was never read.
+        # True of a stripped ELF as much as of a Mach-O that GNU objdump
+        # cannot open.
+        printf '  %-16s %s%s%s\n' "$(basename "$f")" \
+            "$RED" "could not disassemble -- NOT examined" "$OFF"
+        UNREADABLE=$((UNREADABLE + 1))
+        CHECKED=$((CHECKED - 1))
         continue
     fi
 
@@ -91,13 +134,34 @@ done
 
 echo
 echo "=================================================================="
-if [ "$CHECKED" -eq 0 ]; then
-    printf ' %sno ELF binary was examined -- this proves nothing%s\n' "$RED" "$OFF"
+if [ "$UNREADABLE" -gt 0 ]; then
+    printf ' %s%d binary(ies) could not be disassembled -- this check did not run%s\n' \
+        "$RED" "$UNREADABLE" "$OFF"
+    echo
+    echo ' A pass cannot be issued for a file that was not read. GNU objdump'
+    echo ' cannot open Mach-O; use the LLVM one on a macOS runner:'
+    echo '     OBJDUMP=llvm-objdump  (or run this on the machine that built it)'
+    echo "=================================================================="
+    exit 2
+fi
+if [ "$CHECKED" -eq 0 ] && [ "$ARM" -eq 0 ]; then
+    printf ' %sno binary was examined -- this proves nothing%s\n' "$RED" "$OFF"
     echo "=================================================================="
     exit 1
 fi
+if [ "$CHECKED" -eq 0 ]; then
+    printf ' %s%d arm64 binary(ies) only -- nothing here was in this check'"'"'s scope%s\n' \
+        "$YLW" "$ARM" "$OFF"
+    echo
+    echo ' The x86-64 baseline says nothing about Apple Silicon. That question'
+    echo ' is real and is not this script: it needs its own floor.'
+    echo "=================================================================="
+    exit 2
+fi
 if [ "$FAIL" -eq 0 ]; then
-    printf ' %sall %d binaries stay within the baseline%s\n' "$GRN" "$CHECKED" "$OFF"
+    printf ' %sall %d x86-64 binaries stay within the baseline%s\n' "$GRN" "$CHECKED" "$OFF"
+    [ "$ARM" -gt 0 ] && printf ' %s%d arm64 binary(ies) were not examined by this check%s\n' \
+        "$YLW" "$ARM" "$OFF"
 else
     printf ' %s%d of %d carry AVX-512 -- do not publish%s\n' "$RED" "$FAIL" "$CHECKED" "$OFF"
     echo
