@@ -481,6 +481,67 @@ def build_changes() -> list[Change]:
         ),
             Edit(
                 file="src/pow.cpp",
+                description="PermittedDifficultyTransition encodes Bitcoin's retarget schedule",
+                marker="WAM_DGW_TRANSITION_PERMITTED",
+                anchor=("bool PermittedDifficultyTransition(const Consensus::Params& params, "
+                        "int64_t height, uint32_t old_nbits, uint32_t new_nbits)\n{"),
+                replacement=(
+                    "bool PermittedDifficultyTransition(const Consensus::Params& params, "
+                    "int64_t height, uint32_t old_nbits, uint32_t new_nbits)\n"
+                    "{\n"
+                    "    // WAM_DGW_TRANSITION_PERMITTED\n"
+                    "    //\n"
+                    "    // Upstream's rule is Bitcoin's retarget schedule written as an\n"
+                    "    // assertion: difficulty may move only at a multiple of 2016 blocks,\n"
+                    "    // and by at most 4x, and BETWEEN those points it may not change at\n"
+                    "    // all. Its final branch is `else if (old_nbits != new_nbits) return\n"
+                    "    // false;`.\n"
+                    "    //\n"
+                    "    // WAM retargets every block. So on this chain that branch is not a\n"
+                    "    // safety check, it is a guarantee of failure: the transition from\n"
+                    "    // block 0 to block 1 changes nBits and is rejected.\n"
+                    "    //\n"
+                    "    // It is reached only from headerssync.cpp, the anti-DoS presync\n"
+                    "    // path, and that path only runs when nMinimumChainWork is non-zero.\n"
+                    "    // v0.1.7 shipped it as zero on every network, which is the only\n"
+                    "    // reason no node has ever hit this. Setting the testnet value on\n"
+                    "    // 2026-09-07 turned it on, and the first binary built afterwards --\n"
+                    "    // the Windows cross-build -- connected to two peers, was sent 12,000\n"
+                    "    // headers, and accepted none of them:\n"
+                    "    //\n"
+                    "    //     Initial headers sync aborted with peer=0: invalid difficulty\n"
+                    "    //     transition at height=1 (presync phase)\n"
+                    "    //\n"
+                    "    // nMinimumChainWork has to be set on mainnet after launch -- that is\n"
+                    "    // what stops a new node being walked onto a cheaper history, and\n"
+                    "    // scripts/check_min_chain_work.py exists to make sure it happens. So\n"
+                    "    // this was a trap with a date on it, and the date was after launch.\n"
+                    "    //\n"
+                    "    // WHAT IS GIVEN UP, SAID PLAINLY\n"
+                    "    //\n"
+                    "    // Nothing about the work accounting. Total work comes from each\n"
+                    "    // header's nBits, and every header's RandomX proof still has to\n"
+                    "    // satisfy its own nBits, in this phase as in every other. A peer\n"
+                    "    // cannot claim work it has not done by lying about difficulty:\n"
+                    "    // easier nBits is less work, not more.\n"
+                    "    //\n"
+                    "    // What is given up is a bound on the SHAPE of a header chain a peer\n"
+                    "    // may offer during presync. A per-block bound cannot be substituted\n"
+                    "    // honestly: DGW's clamp is 3x around a 24-block weighted mean, not\n"
+                    "    // around the previous block, so `new within 3x of old` is not a\n"
+                    "    // property DGW guarantees -- and a check that rejects a VALID\n"
+                    "    // transition splits the chain, which is far worse than the bound it\n"
+                    "    // would add. Dash, whose DGWv3 this is, permits the transition for\n"
+                    "    // the same reason.\n"
+                    "    (void)height; (void)old_nbits; (void)new_nbits; (void)params;\n"
+                    "    return true;\n"
+                    "}\n\n"
+                    "[[maybe_unused]] static bool PermittedDifficultyTransitionUpstream("
+                    "const Consensus::Params& params, int64_t height, uint32_t old_nbits, "
+                    "uint32_t new_nbits)\n{"),
+            ),
+            Edit(
+                file="src/pow.cpp",
                 description="include wam/pow.h",
                 marker="#include <wam/pow.h>",
                 insert_after="#include <pow.h>\n",
