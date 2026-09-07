@@ -13,7 +13,7 @@ other distributions, for CI, and for anyone who wants to know what the installer
 sudo apt-get install -y \
     build-essential libtool autotools-dev automake pkg-config bsdmainutils \
     cmake curl git python3 \
-    libevent-dev libboost-dev libssl-dev libsqlite3-dev libzmq3-dev
+    libevent-dev libboost-dev libsqlite3-dev
 ```
 
 ### Fedora / RHEL 9
@@ -27,8 +27,21 @@ sudo dnf install -y \
 ### Arch
 
 ```bash
-sudo pacman -S base-devel cmake git python libevent boost openssl sqlite zeromq
+sudo pacman -S base-devel cmake git python libevent boost sqlite
 ```
+
+> **OpenSSL and ZMQ came off all three lists on 7 September.** OpenSSL because
+> Bitcoin Core v28 does not use it at all. ZMQ because the build disables it —
+> and that one was worse than clutter: with the development package installed,
+> `configure` finds ZMQ and links it unless `--disable-zmq` is passed, and §4
+> did not say to pass it. Measured on somebody's Fedora build with the old
+> line: four extra shared libraries, libzmq and three of Kerberos. Rebuilt
+> with the corrected line, none.
+>
+> Fedora's list was corrected first and Ubuntu's and Arch's were left carrying
+> the same fault for an hour — repairing the instance in front of you instead
+> of every instance, which is the mistake this project keeps making and the
+> reason so many checks here enumerate rather than name.
 
 For the pool, additionally: **Node.js ≥ 18** and **Redis**.
 
