@@ -67,6 +67,24 @@ run() {
     # failure of its own making on top of whatever the check actually said.
     local log="$LOGDIR/$(printf '%s' "$name" | tr -c 'A-Za-z0-9-' '_').log"
     printf '  %-34s ' "$name"
+
+    # A label with no command is a bug in this file, never a passing check.
+    #
+    # `"$@"` with nothing in it runs nothing and exits 0, so `run "label"` on
+    # its own printed ok and counted a pass. That is how "a new node can sync
+    # from genesis" stayed green for months: a comment placed after a
+    # backslash continuation commented the command out, and the harness
+    # reported success for the absence of it. The harness has to be the one
+    # thing that cannot do this.
+    if [ $# -eq 0 ]; then
+        printf '%sHARNESS BUG%s\n' "$RED" "$OFF"
+        printf '        run "%s" was called with no command. An empty command\n' "$name"
+        printf '        exits 0, so this would have been reported as a pass.\n'
+        printf '        Look for a comment after a "\\" continuation above.\n'
+        FAILED+=("$name -- run() was called with no command")
+        return
+    fi
+
     "$@" >"$log" 2>&1
     local rc=$?
     if [ $rc -eq 0 ]; then
@@ -137,6 +155,10 @@ run "executable bits in index"   bash scripts/test/test_exec_bits.sh
 # live USB, by one person -- sat in this repository that way.
 run "line endings are LF"        bash scripts/test/test_line_endings.sh
 run "embedded python parses"     bash scripts/test/test_embedded_python.sh
+# A comment after a "\" continuation commented out the command it was meant to
+# explain, in this very file, and the harness reported the missing command as
+# a pass. See the header of the test.
+run "no command hides behind a \\" bash scripts/test/test_sweep_calls.sh
 run "service hardening"          bash scripts/test/test_harden.sh
 
 # systemd sets no HOME for a service with no User=, so wam-cli looks in
@@ -237,13 +259,23 @@ else
         # height -- and the chain could not be validated from genesis by anyone
         # who did not already have it.
         set -- $NODES
+        # --timeout 300, not 120. A new node builds a RandomX verification
+        # context per seed epoch before it validates anything -- about twelve
+        # seconds each -- and only then starts on blocks. At 120 it regularly
+        # stopped watching during that phase. The check no longer calls that a
+        # failure, but a run that actually reaches the tip is a stronger
+        # answer than one that reports steady progress.
+        #
+        # This comment used to sit between `run ... \` and the command. A
+        # backslash continuation joins the next line, and the next line was a
+        # comment -- so everything after it was commented out, `run` was
+        # called with a label and NO command, and an empty command exits 0.
+        # The panel printed "a new node can sync from genesis  ok" for months
+        # without the sweep ever evaluating it, while the real script ran
+        # underneath as a separate top-level command with its exit status
+        # discarded. run() now refuses an empty command, and
+        # test_sweep_calls.sh refuses the syntax that caused it.
         run "a new node can sync from genesis" \
-            # 300, not 120. A new node builds a RandomX verification context
-            # per seed epoch before it validates anything -- about twelve
-            # seconds each -- and only then starts on blocks. At 120 it
-            # regularly stopped watching during that phase. The check no
-            # longer calls that a failure, but a run that actually reaches the
-            # tip is a stronger answer than one that reports steady progress.
             bash scripts/check_fresh_sync.sh --network testnet --peer "$1" --timeout 300
         # Each node is probed from the next one round-robin, so every host is
         # examined from a machine that is not itself.
