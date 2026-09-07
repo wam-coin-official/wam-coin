@@ -118,8 +118,14 @@ cd wam-coin-v0.1.7/bin
 <pre><code>./wam-cli -testnet getblockcount</code></pre>
 <p>That prints how many blocks you have. It should climb until it matches what <a href="https://explorer.wamcoin.org">explorer.wamcoin.org</a> shows.</p>
 <blockquote><p><strong>The first minute looks like nothing is happening. It is not broken.</strong></p>
-<p><code>getblockcount</code> stays at <strong>0</strong> for roughly the first minute while the node builds the RandomX verification tables it needs before it can check a single block. Nothing is downloaded in that time and nothing is wrong. Then the count starts climbing and does not stop.</p>
-<p>A full sync from nothing takes <strong>about ten minutes</strong>. That figure is measured — 3,624 blocks in 298 seconds, from an empty directory, on 7 September 2026 — on a server, so give an older laptop longer; the limit is your processor, not your connection.</p>
+<p><code>getblockcount</code> can sit at <strong>0</strong> for up to a minute while the node builds the RandomX verification tables it needs before it can check a single block. Nothing is downloaded in that time and nothing is wrong. Then the count starts climbing and does not stop.</p>
+<p><strong>How long the whole thing takes depends on your processor, and the spread is wide.</strong> Three cold starts measured on 7 September 2026, from empty directories:</p>
+<table><thead><tr><th></th><th>to the first block</th><th>whole chain</th></tr></thead><tbody>
+<tr><td>Linux release, ordinary desktop</td><td>2 seconds</td><td><strong>2m 51s</strong> (6,666 blocks)</td></tr>
+<tr><td>Linux release, loaded 6-core server</td><td>—</td><td>12 blocks/second</td></tr>
+<tr><td>Windows build, Windows 11 laptop</td><td>80 seconds</td><td>about 10 minutes</td></tr>
+</tbody></table>
+<p>So: two or three minutes on a good machine, ten on a slower one, and the limit is the processor rather than the connection — RandomX verification is the whole cost. The first of those rows was measured by somebody outside this project, on his own hardware, which is why it is first.</p>
 <p>This paragraph exists because somebody started a node on 7 September, waited <strong>three minutes and fifty-two seconds</strong>, and left. Nothing had gone wrong: he had the first 4,000 block headers and was downloading blocks when he quit. He had no way of knowing that, because this page did not tell him.</p>
 <p>To see that it is working rather than guess, watch the <strong>headers</strong>:</p>
 <p><strong>A restart looks the same, for the same reason.</strong> Measured on somebody else's machine on 7 September, from his log: <code>nBestHeight = 6643</code> at startup — already fully synced — and then 109 seconds of nothing before the first new block was processed. The line that ends the wait names the cause: <code>RandomX: initialising verification context for seed …</code>. The tables are built when the first block needs checking, not when the node starts, so a node you restart is quiet for a minute or two exactly like a new one.</p></blockquote>

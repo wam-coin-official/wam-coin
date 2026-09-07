@@ -151,15 +151,25 @@ That prints how many blocks you have. It should climb until it matches what
 
 > **The first minute looks like nothing is happening. It is not broken.**
 >
-> `getblockcount` stays at **0** for roughly the first minute while the node
-> builds the RandomX verification tables it needs before it can check a single
-> block. Nothing is downloaded in that time and nothing is wrong. Then the
-> count starts climbing and does not stop.
+> `getblockcount` can sit at **0** for up to a minute while the node builds
+> the RandomX verification tables it needs before it can check a single block.
+> Nothing is downloaded in that time and nothing is wrong. Then the count
+> starts climbing and does not stop.
 >
-> A full sync from nothing takes **about ten minutes**. That figure is
-> measured — 3,624 blocks in 298 seconds, from an empty directory, on
-> 7 September 2026 — on a server, so give an older laptop longer; the limit is
-> your processor, not your connection.
+> **How long the whole thing takes depends on your processor, and the spread
+> is wide.** Three cold starts measured on 7 September 2026, from empty
+> directories:
+>
+> | | to the first block | whole chain |
+> |---|---|---|
+> | Linux release, ordinary desktop | 2 seconds | **2m 51s** (6,666 blocks) |
+> | Linux release, loaded 6-core server | — | 12 blocks/second |
+> | Windows build, Windows 11 laptop | 80 seconds | about 10 minutes |
+>
+> So: two or three minutes on a good machine, ten on a slower one, and the
+> limit is the processor rather than the connection — RandomX verification is
+> the whole cost. The first of those rows was measured by somebody outside
+> this project, on his own hardware, which is why it is first.
 >
 > This paragraph exists because somebody started a node on 7 September, waited
 > **three minutes and fifty-two seconds**, and left. Nothing had gone wrong:
