@@ -69,6 +69,7 @@ That is all. No graphics card, no special hardware, no money to start.
 > it, and macOS follows it; §7 of [the roadmap](ROADMAP.md) gives the order
 > and the reason.
 
+
 ---
 
 ## 3. Run a node
@@ -158,6 +159,14 @@ That prints how many blocks you have. It should climb until it matches what
 > chain does not publish. It is not lying about your node; it is answering a
 > question nobody gave it the data for. The block count is the only progress
 > there is.
+>
+> **A restart looks the same, for the same reason.** Measured on somebody
+> else's machine on 7 September, from his log: `nBestHeight = 6643` at
+> startup — already fully synced — and then 109 seconds of nothing before
+> the first new block was processed. The line that ends the wait names the
+> cause: `RandomX: initialising verification context for seed …`. The tables
+> are built when the first block needs checking, not when the node starts, so
+> a node you restart is quiet for a minute or two exactly like a new one.
 
 > **Why `-testnet`?** Because the real network has not launched yet. See
 > [section 7](#7-two-things-you-must-know).
