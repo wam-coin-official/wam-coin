@@ -173,10 +173,22 @@ bash scripts/test/test_exec_bits.sh >/dev/null 2>&1 \
 # green line for a check that had not run. Both ends are fixed; the script now
 # refuses an argument it does not know and fails outright if it checked
 # nothing, and nothing here converts a non-zero status into a pass.
-bash scripts/check_dns_seeds.sh >/dev/null 2>&1
+DNS_OUT="$(bash scripts/check_dns_seeds.sh 2>&1)"
 case $? in
     0) ok "every DNS seed answers the prefixed query Core actually sends" ;;
-    2) bad "check_dns_seeds.sh rejected its argument -- this call is wrong" ;;
+    # 2 is this project's code for "the check could not run", and that is what
+    # check_dns_seeds.sh returns when it has no dig locally AND no host it is
+    # willing to borrow one from -- it refuses a host running different source,
+    # which is correct. This line used to read "rejected its argument -- this
+    # call is wrong", a meaning that was true when the script only used 2 for a
+    # usage error, and became a confident accusation against a call that is
+    # fine. It sent the reader to fix the wrong thing.
+    #
+    # The reason was also being discarded to /dev/null, so there was nothing to
+    # correct it with. It is printed now: whichever of the two situations it is,
+    # the script already says which.
+    2) unchecked "seeding was NOT checked -- this is not a pass. The check said:
+$(printf '%s\n' "$DNS_OUT" | grep -v '^[[:space:]]*$' | tail -2 | sed 's/^[[:space:]]*/           /')" ;;
     3) unchecked "dig is missing, so seeding was NOT checked -- this is not a
            pass:  sudo apt-get install -y dnsutils" ;;
     *) bad "a DNS seed does not answer x9.<name> -- new nodes find nobody,
