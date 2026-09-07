@@ -91,4 +91,29 @@ function loadConfig(file) {
     return cfg;
 }
 
-module.exports = { loadConfig };
+// Where the config lives, defined once because it was defined twice.
+//
+// announce.js fell back to '/etc/wam/announce.json', which is where the file
+// actually is on both servers. say.js fell back to
+// path.join(__dirname, 'announce.json') -- a file that has never existed.
+//
+// So the launch-night command in docs/LAUNCH_DAY.md step 21,
+//
+//     node bots/say.js --file posts/launch.txt --expect main
+//
+// failed on the host with "config not found", and it failed BEFORE reaching
+// the --expect check, so the guard that exists to stop the announcement going
+// out on the wrong chain never ran. Found on 7 September by rehearsing Phase F
+// -- which is the same reason Phase F exists: a dry run on 29 August produced
+// the launch announcement headed "TESTNET".
+//
+// Two siblings reading one file had two answers for where it is. Now there is
+// one answer and both ask for it.
+const DEFAULT_CONFIG = '/etc/wam/announce.json';
+
+/** The config path a command should use: flag, then environment, then default. */
+function resolveConfig(argConfig) {
+    return argConfig || process.env.WAM_ANNOUNCE_CONFIG || DEFAULT_CONFIG;
+}
+
+module.exports = { loadConfig, resolveConfig, DEFAULT_CONFIG };

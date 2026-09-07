@@ -70,7 +70,7 @@ const path = require('path');
 
 const { NodeRpc, latestRelease } = require('./lib/clients');
 const { buildSinks, TelegramSink } = require('./lib/sinks');
-const { loadConfig } = require('./lib/config');
+const { loadConfig, resolveConfig } = require('./lib/config');
 const { b, i, t, code, kbd, toTelegram, toDiscord, toPlain } = require('./lib/markup');
 
 const COIN = 100000000;
@@ -569,9 +569,7 @@ async function main() {
         return 0;
     }
 
-    const configFile = args.config
-        || process.env.WAM_ANNOUNCE_CONFIG
-        || '/etc/wam/announce.json';
+    const configFile = resolveConfig(args.config);
 
     const cfg = loadConfig(configFile);
     const stamp = () => new Date().toISOString().replace('T', ' ').slice(0, 19);

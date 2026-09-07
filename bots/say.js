@@ -45,7 +45,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { loadConfig } = require('./lib/config');
+const { loadConfig, resolveConfig } = require('./lib/config');
 const { buildSinks } = require('./lib/sinks');
 const { b, i, t, code, kbd, toTelegram, toDiscord, toPlain } = require('./lib/markup');
 const { NodeRpc } = require('./lib/clients');
@@ -119,8 +119,10 @@ async function main() {
         return 2;
     }
 
-    const configFile = args.config || process.env.WAM_ANNOUNCE_CONFIG ||
-        path.join(__dirname, 'announce.json');
+    // One definition, in lib/config.js. This used to fall back to a file
+    // beside this script that has never existed, so the launch-night command
+    // failed before the --expect guard could run.
+    const configFile = resolveConfig(args.config);
     const cfg = loadConfig(configFile);
 
     let message = render(fs.readFileSync(args.file, 'utf8'));
