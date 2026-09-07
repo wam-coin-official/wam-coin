@@ -1,0 +1,22 @@
+# Blocks the WAM test chain already has, height and hash.
+#
+# Read by scripts/test/test_platform_consensus.sh. The point is one
+# definition: a binary built for a new platform is asked to sync from genesis
+# and then to agree with these. If it disagrees about any of them it validated
+# something differently from the nodes that have been running since August,
+# and it must not be published no matter how cleanly it compiled.
+#
+# Taken from the France node on 2026-09-07 while it was at height 6533. These
+# are historical blocks, so they do not move -- unless the test chain is reset
+# a third time, which has happened twice and would make every line here stale
+# at once. The failure message says so, because "your binary is wrong" and
+# "this file is out of date" are different problems and look identical.
+#
+# Genesis and block 1 are the two that matter most and cost nothing: a wrong
+# genesis means the chainparams differ, and block 1 is where the treasury rule
+# is first enforced.
+#
+0     ce81c20a59a9586946d46177317658575b9d1c1fc07912b5488ab76202f59bcb
+1     b403ed867a6044fdbbd9834728ae07d845da7ba4225052e78eeee42e8521607b
+5000  4ed3254f34785ba9d4a7be808fa22b76462a83ac4c33bc0c54490becbca9eccd
+6000  d1db6b8a63c43fdd42fc3b9eed5638b270383151547f337f2649301b65ee3322

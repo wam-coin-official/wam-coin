@@ -106,6 +106,74 @@ if [ "$THREAD_MODEL" != "posix" ]; then
 fi
 ok "$HOST_TRIPLET-g++ present, thread model posix"
 
+# C++20, checked HERE rather than by configure forty minutes from now.
+#
+# Bitcoin Core v28 requires C++20. Ubuntu 22.04 ships mingw with GCC 10.3,
+# which does not have enough of it, and configure says so:
+#
+#   checking whether ... supports C++20 features with -std=c++20... no
+#   configure: error: *** A compiler with support for C++20 language features
+#                     is required.
+#
+# It says it AFTER depends has built boost, bdb, libevent and sqlite for
+# Windows -- about forty minutes of work that was never going to be used. The
+# first run of this on a 22.04 runner spent 211 seconds to learn one fact
+# about a compiler, and the fact was available in the first second.
+#
+# The build machine's distribution is not the release's problem here, which is
+# worth stating because it looks like it should be: the Linux release is built
+# on 22.04 deliberately, so its glibc runs on 22.04 and 24.04 alike. A
+# cross-compiled Windows binary links against Windows DLLs and carries no
+# glibc at all, so the host distribution leaves no trace in it.
+# The test is the one Core's own configure runs, not one of my choosing.
+#
+# The first version of this guard compiled a program using std::integral and
+# <concepts>, and GCC 10.3 accepted it -- so the guard passed and configure
+# failed anyway, four minutes later. Writing a plausible C++20 program is not
+# the same question as the one being asked.
+#
+# configure.ac line 123 is AX_CXX_COMPILE_STDCXX([20], [noext], [mandatory]),
+# and that macro's test body begins by rejecting anything whose __cplusplus is
+# below 202002L. GCC 10 with -std=c++20 reports 201709L, the pre-final value,
+# which is exactly why it is refused. So that is the test here, verbatim.
+#
+# And the version is compared against upstream's documented floor rather than
+# a number I decided: build/wam-core/doc/dependencies.md says GCC 11.1.
+CXX_VER="$("$HOST_TRIPLET-g++" -dumpversion 2>/dev/null || echo 0)"
+TESTDIR="$(mktemp -d)"
+cat > "$TESTDIR/c20.cpp" <<'CPP'
+#if __cplusplus < 202002L
+#error "__cplusplus is below 202002L -- this is what Core's configure refuses"
+#endif
+#include <version>
+#include <concepts>
+int main() { return 0; }
+CPP
+if ! "$HOST_TRIPLET-g++" -std=c++20 -c "$TESTDIR/c20.cpp" -o "$TESTDIR/c20.o" 2>"$TESTDIR/err"; then
+    rm -f "$TESTDIR/c20.o"
+    die "$HOST_TRIPLET-g++ is GCC $CXX_VER, and it does not have C++20.
+          build/wam-core/doc/dependencies.md gives the floor as GCC 11.1.
+
+          Bitcoin Core v28 requires C++20, so configure refuses -- but only
+          after depends has spent about forty minutes building boost, bdb,
+          libevent and sqlite for a compiler that cannot use them.
+
+          Ubuntu 22.04 ships mingw GCC 10.3. Build the Windows target on
+          24.04, which ships GCC 13:
+
+              runs-on: ubuntu-24.04        (in the workflow)
+              or a 24.04 machine locally
+
+          This does NOT affect the Linux release, which is built on 22.04 on
+          purpose so its glibc runs everywhere. A Windows binary carries no
+          glibc, so the host distribution leaves no trace in it.
+
+          The compiler said:
+$(sed 's/^/            /' "$TESTDIR/err" | head -6)"
+fi
+rm -rf "$TESTDIR"
+ok "$HOST_TRIPLET-g++ is GCC $CXX_VER and compiles C++20"
+
 [ -d "$CORE_DIR" ] || die "$CORE_DIR is not here. Run scripts/fetch-upstream.sh first."
 [ -f "$CORE_DIR/configure.ac" ] || die "$CORE_DIR has no configure.ac -- an incomplete fetch"
 [ -d "$RANDOMX_DIR" ] || die "$RANDOMX_DIR is not here. Run scripts/fetch-upstream.sh first."
