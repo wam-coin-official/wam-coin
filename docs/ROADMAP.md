@@ -241,6 +241,16 @@ is not built; `package_release.sh`, the checksum list and the signature have nev
 a second platform; and RandomX's own reference vectors have not been run on Windows, because
 that test binary is dynamically linked and wants the mingw runtime DLLs.
 
+**When a platform passes, the pages have to stop saying otherwise.** Asked for by the
+founder on 7 September: the moment a build passes the consensus gate, say so where readers
+are. Four beginner pages and the README currently tell every visitor the release is Linux
+and nothing else -- `docs/START_HERE.md`, `docs/START_HERE_AR.md`, `site/start/`,
+`site/start-ar/` -- and a proven Windows build that those pages still deny is worth nothing
+to the person reading them. The wording has to name all three routes plainly: **Windows,
+macOS, and WSL**, with WSL kept rather than dropped, because it is the tested path today
+and stays the answer for anyone who prefers it. Nothing goes on those pages before its
+gate is green, and nothing stays off them after.
+
 **What the exercise found matters more than the binary.** Building for a second platform
 surfaced three defects in a day, and one of them was launch-critical: setting
 `nMinimumChainWork` turns on Core's presync path, which enforces Bitcoin's retarget
