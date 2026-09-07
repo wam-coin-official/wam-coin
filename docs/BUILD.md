@@ -154,6 +154,68 @@ fake hash function would accept every share and pay out on work nobody did.
 
 ---
 
+## 8. Building for Windows
+
+There is no `.exe` in any release yet. This is how one is made, and anybody
+who runs it is doing something useful: a Windows binary this project has not
+verified on a second machine is a binary verified on one.
+
+**Ubuntu 24.04, not 22.04.** 22.04 ships mingw with GCC 10.3, Bitcoin Core v28
+requires C++20, and upstream's own `doc/dependencies.md` puts the floor at GCC
+11.1. On 22.04 the build spends forty minutes cross-compiling boost, bdb,
+libevent and sqlite and *then* configure refuses. `scripts/build_windows.sh`
+checks the compiler in its first second so that cannot happen again.
+
+On Windows, WSL is enough — in PowerShell as administrator:
+
+```
+wsl --install -d Ubuntu-24.04
+```
+
+Then inside it:
+
+```bash
+sudo apt update && sudo apt install -y build-essential libtool autotools-dev   automake pkg-config bsdmainutils cmake curl git python3 file   g++-mingw-w64-x86-64-posix
+sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
+sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
+
+git clone https://github.com/wam-coin-official/wam-coin.git ~/wam-coin
+cd ~/wam-coin
+bash scripts/fetch-upstream.sh
+bash scripts/build_windows.sh
+```
+
+The `-posix` package is not a preference. The win32-threads runtime has no
+`std::thread` at all and Core uses it everywhere, so the wrong alternative
+produces several hundred lines of `'thread' is not a member of 'std'`, which
+reads like a broken source tree and is a one-line toolchain setting.
+
+About forty minutes, most of it boost. Five executables land in
+`out/windows/`, unstripped and large; `x86_64-w64-mingw32-strip` takes `wamd`
+from 418 MB to 15 MB.
+
+### Then prove it agrees with the chain
+
+Compiling proves the toolchain. It does not prove the binary computes the same
+proof-of-work or enforces the same rules, and a node that gets either wrong
+does not fail loudly — it forks itself off and its owner mines onto a history
+nobody else has. Copy the two binaries to the Windows side and, from Git Bash
+**on Windows**:
+
+```bash
+bash scripts/test/test_platform_consensus.sh /c/where-you-put-them
+```
+
+It syncs the test chain from genesis over the real peer-to-peer protocol and
+then compares four blocks the Linux nodes have held since August: genesis,
+block 1 where the treasury rule is first enforced, 5000 and 6000. Anything
+other than four matches is a finding, and it matters more than a pass.
+
+It picks its own RPC port, because the default is not free on a machine that
+already runs a node — which is every machine anybody would test a build on.
+
+---
+
 ## Troubleshooting
 
 **`randomx.h: No such file or directory`**
