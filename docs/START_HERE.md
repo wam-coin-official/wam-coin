@@ -118,6 +118,32 @@ To watch it in another terminal:
 That prints how many blocks you have. It should climb until it matches what
 [explorer.wamcoin.org](https://explorer.wamcoin.org) shows.
 
+> **The first minute looks like nothing is happening. It is not broken.**
+>
+> `getblockcount` stays at **0** for roughly the first minute while the node
+> builds the RandomX verification tables it needs before it can check a single
+> block. Nothing is downloaded in that time and nothing is wrong. Then the
+> count starts climbing and does not stop.
+>
+> A full sync from nothing takes **about ten minutes**. That figure is
+> measured — 3,624 blocks in 298 seconds, from an empty directory, on
+> 7 September 2026 — on a server, so give an older laptop longer; the limit is
+> your processor, not your connection.
+>
+> This paragraph exists because somebody started a node on 7 September, waited
+> **three minutes and fifty-two seconds**, and left. Nothing had gone wrong:
+> he had the first 4,000 block headers and was downloading blocks when he
+> quit. He had no way of knowing that, because this page did not tell him.
+>
+> To see that it is working rather than guess:
+>
+> ```bash
+> ./wam-cli -testnet getblockchaininfo | grep -E '"blocks"|verificationprogress'
+> ```
+>
+> `verificationprogress` goes from 0 to 1. It moves even while the block count
+> is still 0, which is the answer to "is it stuck?"
+
 > **Why `-testnet`?** Because the real network has not launched yet. See
 > [section 7](#7-two-things-you-must-know).
 
@@ -260,8 +286,17 @@ Read the last line before it stopped; it usually says exactly what it needs. If
 it mentions an address already in use, another copy is already running.
 
 **`getblockcount` says 0 and stays there.**
-Your node found no one to talk to. Check that your internet works, and wait two
-minutes — it retries by itself.
+**For the first minute this is normal and means nothing is wrong.** The node
+is building its RandomX verification tables and has not started on blocks yet;
+`verificationprogress` in `getblockchaininfo` moves during that time even
+though the count does not.
+
+If it is still 0 after two or three minutes, your node found no one to talk
+to. Check that your internet works — it retries by itself.
+
+This entry used to name the second cause only, and sent a reader to check a
+connection that was fine. Somebody left after three minutes and fifty-two
+seconds on 7 September with a node that was working correctly.
 
 **The miner says "cannot connect".**
 Check the pool address for typing mistakes. Some networks block unusual ports;
