@@ -84,7 +84,12 @@ hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
 <h2 id="2-what-you-need">2. What you need</h2>
 <ul><li>A computer with Linux — a laptop is fine</li><li>About 2 GB of free memory and 5 GB of disk</li><li>An internet connection</li></ul>
 <p>That is all. No graphics card, no special hardware, no money to start.</p>
-<blockquote><p><strong>Windows or Mac?</strong> The current release is built for Linux. On Windows you can use WSL (Windows Subsystem for Linux), which gives you Linux inside Windows. Builds for Windows and macOS are planned but do not exist yet, and this page will not pretend otherwise.</p></blockquote>
+<blockquote><p><strong>Windows or Mac?</strong> The release is built for Linux and nothing else. There is no <code>.exe</code> and this page will not pretend there is one.</p>
+<p>On Windows 10 or 11 the way in is WSL, which gives you a real Linux inside Windows. In PowerShell as administrator, once:</p>
+<pre><code>wsl --install</code></pre>
+<p>Restart, open <strong>Ubuntu</strong> from the Start menu, and every command on this page works from there unchanged. The memory and disk above are what Linux needs inside WSL, not what Windows needs on top of it.</p>
+<p>This is not a workaround with a catch in it. The release is built on Ubuntu 22.04, and <code>wsl --install</code> on Windows 11 gives you Ubuntu 22.04 — the same distribution, so the system libraries the binary was linked against are the ones it finds.</p>
+<p>A native Windows build is the first thing after launch rather than before it; §7 of <a href="https://github.com/wam-coin-official/wam-coin/blob/main/docs/ROADMAP.md">the roadmap</a> gives the order and the reason. macOS follows it.</p></blockquote>
 <hr>
 <h2 id="3-run-a-node">3. Run a node</h2>
 <p>A node is a program that keeps a copy of the list and checks every payment on it. It runs quietly in the background. You do not need one to own WAM, but running one means you verify the rules yourself instead of trusting somebody else's answer.</p>

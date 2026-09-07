@@ -40,10 +40,28 @@ someone with one computer can take part, not only someone with a warehouse.
 
 That is all. No graphics card, no special hardware, no money to start.
 
-> **Windows or Mac?** The current release is built for Linux. On Windows you
-> can use WSL (Windows Subsystem for Linux), which gives you Linux inside
-> Windows. Builds for Windows and macOS are planned but do not exist yet, and
-> this page will not pretend otherwise.
+> **Windows or Mac?** The release is built for Linux and nothing else. There
+> is no `.exe` and this page will not pretend there is one.
+>
+> On Windows 10 or 11 the way in is WSL, which gives you a real Linux inside
+> Windows. In PowerShell as administrator, once:
+>
+> ```
+> wsl --install
+> ```
+>
+> Restart, open **Ubuntu** from the Start menu, and every command on this page
+> works from there unchanged. The memory and disk above are what Linux needs
+> inside WSL, not what Windows needs on top of it.
+>
+> This is not a workaround with a catch in it. The release is built on
+> Ubuntu 22.04, and `wsl --install` on Windows 11 gives you Ubuntu 22.04 — the
+> same distribution, so the system libraries the binary was linked against are
+> the ones it finds.
+>
+> A native Windows build is the first thing after launch rather than before
+> it; §7 of [the roadmap](ROADMAP.md) gives the order and the reason. macOS
+> follows it.
 
 ---
 

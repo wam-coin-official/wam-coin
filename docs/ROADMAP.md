@@ -206,6 +206,40 @@ is the only item on the common requirements list that WAM does not already have.
 is written for Bitcoin and WAM is RPC-compatible with it, so this is expected to be
 configuration rather than new code.
 
+### 7. Windows, and why it is a hashrate item rather than a convenience one
+
+Every release so far is `x86_64-linux-gnu` and nothing else. `docs/START_HERE.md` said
+builds for Windows and macOS were "planned", and until this line was written there was no
+plan anywhere for a reader to check — which is a promise with nothing behind it, and it
+is what prompted the question when it was finally asked out loud on 7 September.
+
+This belongs beside §2 rather than in a list of niceties. RandomX was chosen so that an
+ordinary desktop processor is competitive, and most ordinary desktop processors are inside
+Windows machines. The measured hashrate on 6 September was about 6 kH/s — less than one
+eight-thread desktop — and that, not the absence of a listing, is what a young chain dies
+of. Requiring WSL filters out most of the people the algorithm was chosen for.
+
+**Not before 15 September, and the reason is not the calendar.** The missing piece on
+Windows is the *address*, not the hasher: the only documented way to obtain one is
+`wam-cli getnewaddress`, so "Windows support" means cross-compiling the consensus binary,
+not the miner. `depends/hosts/mingw32.mk` is upstream's supported path and is already in
+the tree, but nobody here has ever run it, and a signed binary from a build path that has
+never been exercised is the one kind of release this project has spent three weeks making
+impossible. The freeze is 13 September. A signature that means something is worth more
+than a week's head start.
+
+**First thing after the chain is stable**, in this order, because each step unblocks the
+next:
+
+1. `wamd` and `wam-cli` for Windows through `depends` with `HOST=x86_64-w64-mingw32`.
+   This is what makes an address obtainable without WSL.
+2. `wam-miner.exe`. One `g++` invocation and one static RandomX library — the smallest
+   part of the work, and worthless before step 1.
+3. macOS, which has the same shape and a smaller audience.
+
+Until step 1 ships, WSL is the answer and the pages say so with the commands to do it,
+rather than the word "planned".
+
 ---
 
 ## Realistic timeline
