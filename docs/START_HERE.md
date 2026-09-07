@@ -126,6 +126,20 @@ cd wam-coin-v0.1.7/bin
 The window will fill with lines. That is the node introducing itself to other
 nodes and asking them for the list. Leave it running.
 
+> **The whole log is in a file, and you will want it before you want the
+> screen.** `-printtoconsole` puts the log on your terminal, and a terminal
+> keeps only the last few hundred lines — somebody trying to report a problem
+> on 7 September lost the start of his because of that. The node also writes
+> it, complete and from the first line, to
+>
+> ```
+> ~/.wam/testnet3/debug.log
+> ```
+>
+> Quote from that file, never from the screen. And if you would rather it ran
+> in the background, drop `-printtoconsole` and add `-daemon`: the log file is
+> written either way.
+
 To watch it in another terminal:
 
 ```bash

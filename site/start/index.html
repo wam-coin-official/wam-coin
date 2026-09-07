@@ -111,6 +111,9 @@ bash verify_release.sh .</code></pre>
 cd wam-coin-v0.1.7/bin
 ./wamd -testnet -printtoconsole</code></pre>
 <p>The window will fill with lines. That is the node introducing itself to other nodes and asking them for the list. Leave it running.</p>
+<blockquote><p><strong>The whole log is in a file, and you will want it before you want the screen.</strong> <code>-printtoconsole</code> puts the log on your terminal, and a terminal keeps only the last few hundred lines — somebody trying to report a problem on 7 September lost the start of his because of that. The node also writes it, complete and from the first line, to</p>
+<pre><code>~/.wam/testnet3/debug.log</code></pre>
+<p>Quote from that file, never from the screen. And if you would rather it ran in the background, drop <code>-printtoconsole</code> and add <code>-daemon</code>: the log file is written either way.</p></blockquote>
 <p>To watch it in another terminal:</p>
 <pre><code>./wam-cli -testnet getblockcount</code></pre>
 <p>That prints how many blocks you have. It should climb until it matches what <a href="https://explorer.wamcoin.org">explorer.wamcoin.org</a> shows.</p>
