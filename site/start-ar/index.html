@@ -104,6 +104,18 @@ bash verify_release.sh .</code></pre>
 <pre><code>tar -xzf wam-coin-v0.1.7-x86_64-linux-gnu.tar.gz
 cd wam-coin-v0.1.7/bin
 ./wamd -testnet -printtoconsole</code></pre>
+<blockquote><p><strong>وإن لم تبدأ، فالسببُ هذا في الغالب.</strong> التنزيلُ يحتاج أربعةَ أشياء من نظامك، ولا شيء غيرها:</p>
+<pre><code>libevent-2.1.so.7   libevent_core-2.1.so.7   libevent_pthreads-2.1.so.7
+libsqlite3.so.0</code></pre>
+<p>وأمرٌ واحد يقول لك هل هي عندك:</p>
+<pre><code>ldd ./wamd | grep "not found"</code></pre>
+<p>فالصمتُ يعني أنّك بخير. وإن طُبع شيء، فثبّته:</p>
+<table><tbody>
+<tr><td>دبيان وأوبونتو</td><td><code>sudo apt install libevent-2.1-7 libsqlite3-0</code></td></tr>
+<tr><td>فيدورا وRHEL</td><td><code>sudo dnf install libevent sqlite-libs</code></td></tr>
+<tr><td>آرتش</td><td><code>sudo pacman -S libevent sqlite</code></td></tr>
+</tbody></table>
+<p>وglibc ليس مما يُقلق: أعلى ما يطلبه الملفّ هو <code>GLIBC_2.34</code>، وglibc متوافقٌ للأعلى، فأيُّ توزيعةٍ أحدث تعمل. <strong>و<code>wam-miner</code> لا يحتاج شيئاً من هذا</strong> — إلّا libc وlibstdc++ — فإن تعثّرت العقدة على توزيعتك فالتعدينُ لا يتعثّر.</p></blockquote>
 <p>ستمتلئ النافذة بأسطر. هذه العقدة تُعرّف بنفسها لبقية العقد وتطلب منهم السجل. اتركها تعمل.</p>
 <blockquote><p><strong>والسجلُّ كلُّه في ملفّ، وستحتاجه قبل أن تحتاج الشاشة.</strong> <code>-printtoconsole</code> يضع السجلّ في طرفيّتك، والطرفيّةُ لا تحفظ إلّا آخر بضع مئاتٍ من السطور — وقد ضاعت بدايةُ سجلٍّ على أحدهم في ٧ سبتمبر لهذا السبب وهو يحاول الإبلاغ عن مشكلة. والعقدةُ تكتبه أيضاً، كاملاً ومن أوّل سطر، في</p>
 <pre><code>~/.wam/testnet3/debug.log</code></pre>

@@ -116,6 +116,32 @@ cd wam-coin-v0.1.7/bin
 ./wamd -testnet -printtoconsole
 ```
 
+> **وإن لم تبدأ، فالسببُ هذا في الغالب.** التنزيلُ يحتاج أربعةَ أشياء من
+> نظامك، ولا شيء غيرها:
+>
+> ```
+> libevent-2.1.so.7   libevent_core-2.1.so.7   libevent_pthreads-2.1.so.7
+> libsqlite3.so.0
+> ```
+>
+> وأمرٌ واحد يقول لك هل هي عندك:
+>
+> ```bash
+> ldd ./wamd | grep "not found"
+> ```
+>
+> فالصمتُ يعني أنّك بخير. وإن طُبع شيء، فثبّته:
+>
+> | | |
+> |---|---|
+> | دبيان وأوبونتو | `sudo apt install libevent-2.1-7 libsqlite3-0` |
+> | فيدورا وRHEL | `sudo dnf install libevent sqlite-libs` |
+> | آرتش | `sudo pacman -S libevent sqlite` |
+>
+> وglibc ليس مما يُقلق: أعلى ما يطلبه الملفّ هو `GLIBC_2.34`، وglibc متوافقٌ
+> للأعلى، فأيُّ توزيعةٍ أحدث تعمل. **و`wam-miner` لا يحتاج شيئاً من هذا** —
+> إلّا libc وlibstdc++ — فإن تعثّرت العقدة على توزيعتك فالتعدينُ لا يتعثّر.
+
 ستمتلئ النافذة بأسطر. هذه العقدة تُعرّف بنفسها لبقية العقد وتطلب منهم السجل.
 اتركها تعمل.
 

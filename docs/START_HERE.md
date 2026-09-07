@@ -123,6 +123,33 @@ cd wam-coin-v0.1.7/bin
 ./wamd -testnet -printtoconsole
 ```
 
+> **If it will not start, this is almost always why.** The download needs four
+> things from your system, and nothing else:
+>
+> ```
+> libevent-2.1.so.7   libevent_core-2.1.so.7   libevent_pthreads-2.1.so.7
+> libsqlite3.so.0
+> ```
+>
+> One command tells you whether you have them:
+>
+> ```bash
+> ldd ./wamd | grep "not found"
+> ```
+>
+> Silence means you are fine. If something prints, install it:
+>
+> | | |
+> |---|---|
+> | Debian, Ubuntu | `sudo apt install libevent-2.1-7 libsqlite3-0` |
+> | Fedora, RHEL | `sudo dnf install libevent sqlite-libs` |
+> | Arch | `sudo pacman -S libevent sqlite` |
+>
+> glibc is not something to worry about: the binary's highest requirement is
+> `GLIBC_2.34` and glibc is backward compatible, so any newer distribution
+> works. And **`wam-miner` needs none of this** — only libc and libstdc++ —
+> so if the node has trouble on your distribution, mining still will not.
+
 The window will fill with lines. That is the node introducing itself to other
 nodes and asking them for the list. Leave it running.
 
