@@ -85,9 +85,23 @@ INCLUDES="$INCLUDES -I$CORE/src/secp256k1/include -I$CORE/src/leveldb/include"
 INCLUDES="$INCLUDES -I$CORE/src/leveldb/helpers/memenv -I$CORE/src/crc32c/include"
 INCLUDES="$INCLUDES $DEP_INC"
 
+# RandomX's own headers.
+#
+# install.sh passes these to configure as CPPFLAGS=-I<randomx>/src, and without
+# them this cannot read the one file in the project that includes randomx.h.
+# The first run reported that as "clang rejects and GCC accepts" -- a confident
+# accusation about our code, caused by a missing -I in the checker.
+for d in "$HERE/build/randomx/src" "$HOME/wam/build/randomx/src"; do
+    if [ -d "$d" ]; then
+        INCLUDES="$INCLUDES -I$d"
+        break
+    fi
+done
+
 fails=0
 checked=0
 skipped=0
+unreadable=0
 
 # Our files only. Upstream's disagreements with clang are upstream's business
 # and would bury ours.
@@ -103,6 +117,14 @@ while IFS= read -r f; do
 
     if [ $rc -eq 0 ]; then
         printf '  %sok%s    %s\n' "$GRN" "$OFF" "$rel"
+    elif printf '%s' "$out" | grep -q 'file not found'; then
+        # Not a finding about our code. A header this check failed to put on
+        # the path says nothing about whether clang accepts what we wrote, and
+        # calling it a rejection sends the reader to the wrong file.
+        printf '  %s!!%s    %s -- a header is missing from this check, not the code\n' \
+            "$YLW" "$OFF" "$rel"
+        printf '%s\n' "$out" | grep -E 'file not found' | head -2 | sed 's/^/          /'
+        unreadable=$((unreadable + 1))
     else
         printf '  %sFAIL%s  %s\n' "$RED" "$OFF" "$rel"
         printf '%s\n' "$out" | grep -E 'error' | head -4 | sed 's/^/          /'
@@ -117,16 +139,23 @@ if [ "$checked" -eq 0 ]; then
     printf '  %sno translation unit was read -- this proves nothing%s\n\n' "$RED" "$OFF"
     exit 2
 fi
-if [ "$fails" -eq 0 ]; then
-    printf '  %s%d file(s) clang accepts%s' "$GRN" "$checked" "$OFF"
-    [ "$skipped" -gt 0 ] && printf ' (%d not in the built tree)' "$skipped"
-    printf '\n\n'
-    exit 0
+if [ "$fails" -gt 0 ]; then
+    printf '  %s%d file(s) clang rejects and GCC accepts%s\n' "$RED" "$fails" "$OFF"
+    echo
+    echo '  GCC choosing an overload where clang refuses to is not a clang'
+    echo '  problem. Upstream supports clang 16 and later, so this fails for'
+    echo '  anybody who builds with it -- and it is what the macOS build fails'
+    echo '  on.'
+    echo
+    exit 1
 fi
-printf '  %s%d file(s) clang rejects and GCC accepts%s\n' "$RED" "$fails" "$OFF"
-echo
-echo '  GCC choosing an overload where clang refuses to is not a clang problem.'
-echo '  Upstream supports clang 16 and later, so this fails for anybody who'
-echo '  builds with it -- and it is what the macOS build fails on.'
-echo
-exit 1
+if [ "$unreadable" -gt 0 ]; then
+    printf '  %s%d file(s) clang accepts, %d it could not be shown%s\n' \
+        "$YLW" "$checked" "$unreadable" "$OFF"
+    printf '  A file this check cannot compile has not been approved by it.\n\n'
+    exit 2
+fi
+printf '  %s%d file(s) clang accepts%s' "$GRN" "$checked" "$OFF"
+[ "$skipped" -gt 0 ] && printf ' (%d not in the built tree)' "$skipped"
+printf '\n\n'
+exit 0
