@@ -43,8 +43,29 @@ echo "###b";  ls -t /root/backups/*.gpg 2>/dev/null | head -1 | xargs -r stat -c
 echo "###a";  ls /var/lib/wam-reorg/ALARM-* 2>/dev/null | wc -l
 echo "###v";  [ -f /etc/update-motd.d/98-wam-version ] && echo behind || echo current
 echo "###x"
+# The backup timers are DISCOVERED, not named.
+#
+# This list said `wam-backup.timer`, and on 7 September the backup became a
+# template with one instance per network, so that unit was disabled in favour
+# of wam-backup@testnet.timer. The panel went red with
+#
+#     wam-backup.timer - inactive
+#
+# on both hosts, about a backup that had run successfully at 03:27 that
+# morning. check_backups.py had the same fault and was fixed the same day;
+# this file was the second copy of the question and nobody had asked it here.
+#
+# Writing the new name in would only move the fault to 15 September, when
+# wam-backup@mainnet.timer is enabled and this list would not know it exists.
+# So whatever backup timers the machine has are what gets reported. The
+# template itself -- wam-backup@.timer -- is not an instance and cannot be
+# active, so it is excluded or it would report as a permanent failure.
+BACKUP_TIMERS="$(systemctl list-units --type=timer --all --no-legend 'wam-backup*' 2>/dev/null \
+    | awk '{print $1}' | grep -v '^wam-backup@\.timer$' | tr '\n' ' ')"
+[ -n "$BACKUP_TIMERS" ] || BACKUP_TIMERS="wam-backup.timer"
+
 for u in wamd wam-electrumx@testnet wam-pool wam-dashboard wam-announce \
-         wam-miner wam-backup.timer wam-reorg-watch@testnet.timer \
+         wam-miner $BACKUP_TIMERS wam-reorg-watch@testnet.timer \
          wam-version-watch.timer wamd-mainnet wam-electrumx@mainnet; do
     # is-active prints "inactive" and exits non-zero, so capture first and
     # decide after -- the obvious `|| echo unknown` yields both words.
