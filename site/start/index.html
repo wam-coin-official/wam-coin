@@ -82,14 +82,17 @@ hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
 <p><strong>What makes WAM different from Bitcoin:</strong> Bitcoin mining now needs specialised machines that cost thousands. WAM uses an algorithm called <em>RandomX</em> that runs best on the ordinary processor already in your laptop. The point is that someone with one computer can take part, not only someone with a warehouse.</p>
 <hr>
 <h2 id="2-what-you-need">2. What you need</h2>
-<ul><li>A computer with Linux — a laptop is fine</li><li>About 2 GB of free memory and 5 GB of disk</li><li>An internet connection</li></ul>
+<ul><li>A computer with Linux, or Windows with WSL — a laptop is fine</li><li>About 2 GB of free memory and 5 GB of disk</li><li>An internet connection</li></ul>
 <p>That is all. No graphics card, no special hardware, no money to start.</p>
-<blockquote><p><strong>Windows or Mac?</strong> The release is built for Linux and nothing else. There is no <code>.exe</code> and this page will not pretend there is one.</p>
+<blockquote><p><strong>Windows or Mac?</strong> The <strong>downloads</strong> are Linux only. There is no <code>.exe</code> and no <code>.dmg</code> on the release page, and this page will not pretend otherwise.</p>
+<p>The software itself runs on both, and that is measured rather than hoped. On 7 September 2026 a Windows build and a macOS build on Apple Silicon each synced the test chain from genesis, over the real peer-to-peer network, and agreed with the Linux nodes at heights 0, 1, 5,000 and 6,000 — block 1 included, which is where the treasury rule is first enforced. Neither is a signed download yet: the packaging and the signature have never covered a second platform, and a binary you cannot verify is one you should not run, including one from us. That work comes after launch.</p>
+<p>So there are three routes today, and the first is the easy one.</p>
 <p>On Windows 10 or 11 the way in is WSL, which gives you a real Linux inside Windows. In PowerShell as administrator, once:</p>
 <pre><code>wsl --install</code></pre>
 <p>Restart, open <strong>Ubuntu</strong> from the Start menu, and every command on this page works from there unchanged. The memory and disk above are what Linux needs inside WSL, not what Windows needs on top of it.</p>
 <p>This is not a workaround with a catch in it. The release is built on Ubuntu 22.04, and <code>wsl --install</code> on Windows 11 gives you Ubuntu 22.04 — the same distribution, so the system libraries the binary was linked against are the ones it finds.</p>
-<p><strong>On a Mac there is no equivalent yet, and WSL does not exist there.</strong> If your Mac has an Apple chip the gap is wider than it looks: our binary is x86_64 and that processor is ARM, so even a Linux container would be emulating it — fine for reading, useless for mining. Until a macOS build lands, the way in is a Linux machine or the cheapest VPS you can rent.</p>
+<p><strong>Building it yourself</strong>, on Windows or on a Mac, is the other two routes. <a href="https://github.com/wam-coin-official/wam-coin/blob/main/docs/BUILD.md#8-building-for-windows">BUILD.md §8</a> is the Windows one: about forty minutes, and it needs Ubuntu 24.04 rather than 22.04, for a reason that page gives. On macOS the same repository builds natively — Apple Silicon is the one that has been proven; an Intel Mac has not been tried yet.</p>
+<p><strong>Do not run a Linux binary on an Apple chip through a container.</strong> Our download is x86_64 and that processor is ARM, so it would be emulated: readable, and useless for mining.</p>
 <p>A native Windows build is the first thing after launch rather than before it, and macOS follows it; §7 of <a href="https://github.com/wam-coin-official/wam-coin/blob/main/docs/ROADMAP.md">the roadmap</a> gives the order and the reason.</p>
 <hr>
 <h2 id="3-run-a-node">3. Run a node</h2>

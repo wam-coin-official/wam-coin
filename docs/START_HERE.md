@@ -34,14 +34,25 @@ someone with one computer can take part, not only someone with a warehouse.
 
 ## 2. What you need
 
-- A computer with Linux — a laptop is fine
+- A computer with Linux, or Windows with WSL — a laptop is fine
 - About 2 GB of free memory and 5 GB of disk
 - An internet connection
 
 That is all. No graphics card, no special hardware, no money to start.
 
-> **Windows or Mac?** The release is built for Linux and nothing else. There
-> is no `.exe` and this page will not pretend there is one.
+> **Windows or Mac?** The **downloads** are Linux only. There is no `.exe` and
+> no `.dmg` on the release page, and this page will not pretend otherwise.
+>
+> The software itself runs on both, and that is measured rather than hoped. On
+> 7 September 2026 a Windows build and a macOS build on Apple Silicon each
+> synced the test chain from genesis, over the real peer-to-peer network, and
+> agreed with the Linux nodes at heights 0, 1, 5,000 and 6,000 — block 1
+> included, which is where the treasury rule is first enforced. Neither is a
+> signed download yet: the packaging and the signature have never covered a
+> second platform, and a binary you cannot verify is one you should not run,
+> including one from us. That work comes after launch.
+>
+> So there are three routes today, and the first is the easy one.
 >
 > On Windows 10 or 11 the way in is WSL, which gives you a real Linux inside
 > Windows. In PowerShell as administrator, once:
@@ -59,11 +70,16 @@ That is all. No graphics card, no special hardware, no money to start.
 > same distribution, so the system libraries the binary was linked against are
 > the ones it finds.
 >
-> **On a Mac there is no equivalent yet, and WSL does not exist there.** If
-> your Mac has an Apple chip the gap is wider than it looks: our binary is
-> x86_64 and that processor is ARM, so even a Linux container would be
-> emulating it — fine for reading, useless for mining. Until a macOS build
-> lands, the way in is a Linux machine or the cheapest VPS you can rent.
+> **Building it yourself**, on Windows or on a Mac, is the other two routes.
+> [BUILD.md §8](BUILD.md#8-building-for-windows) is the Windows one: about
+> forty minutes, and it needs Ubuntu 24.04 rather than 22.04, for a reason
+> that page gives. On macOS the same repository builds natively — Apple
+> Silicon is the one that has been proven; an Intel Mac has not been tried
+> yet.
+>
+> **Do not run a Linux binary on an Apple chip through a container.** Our
+> download is x86_64 and that processor is ARM, so it would be emulated:
+> readable, and useless for mining.
 >
 > A native Windows build is the first thing after launch rather than before
 > it, and macOS follows it; §7 of [the roadmap](ROADMAP.md) gives the order
