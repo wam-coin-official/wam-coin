@@ -73,62 +73,137 @@ def rsh(host, cmd, timeout=45):
     return rc, out.strip()
 
 
-def check(host, max_age_hours, backup_dir):
-    print(f"\n{BLD}{host}{OFF}")
+def archive_glob(network):
+    """The archives belonging to one network, and only that network.
 
-    rc, timer = rsh(host, "systemctl is-active wam-backup.timer")
-    if rc == UNREACHABLE:
-        warn(f"could not ask whether the timer is armed ({timer}). "
-             f"That is not the same as it being off.")
-    elif rc == 0 and timer == "active":
-        ok("the timer is armed")
-    else:
-        bad(f"wam-backup.timer is {timer or 'unreadable'} -- nothing will run")
+    Mirrors deploy/wam-backup.sh, which owns this decision: every archive
+    written before 2026-09-07 carries no network in its name and every one of
+    them is testnet, because mainnet had never run. The testnet glob matches
+    both forms so nothing on disk is orphaned; mainnet's matches only its own.
+    """
+    if network == "testnet":
+        return f"wam-backup-testnet-*.tar.gz.gpg wam-backup-2*.tar.gz.gpg"
+    return f"wam-backup-{network}-*.tar.gz.gpg"
+
+
+def check_instance(host, network, timer, max_age_hours, backup_dir):
+    """One network's timer, its last run, and its own newest archive."""
+    service = timer.replace(".timer", ".service")
 
     # The result of the last run, not whether it is running now: this is a
     # oneshot, so it is inactive almost always and that says nothing.
-    rc, result = rsh(host, "systemctl show wam-backup.service -p Result --value")
+    rc, result = rsh(host, f"systemctl show {service} -p Result --value")
     if rc == UNREACHABLE:
-        warn(f"could not ask how the last run ended ({result})")
+        warn(f"{network}: could not ask how the last run ended ({result})")
     elif rc == 0 and result == "success":
-        ok("the last run succeeded")
+        ok(f"{network}: the last run succeeded")
     elif rc == 0 and result in ("", "unknown"):
-        warn("the service has not run yet on this host")
+        warn(f"{network}: the service has not run yet on this host")
     else:
         rc2, why = rsh(
             host,
-            "journalctl -u wam-backup.service -n 40 --no-pager 2>/dev/null "
+            f"journalctl -u {service} -n 40 --no-pager 2>/dev/null "
             "| grep -iE 'FAIL|error' | tail -1")
-        bad(f"the last run ended '{result}'" + (f" -- {why.strip()}" if why.strip() else ""))
+        bad(f"{network}: the last run ended '{result}'"
+            + (f" -- {why.strip()}" if why.strip() else ""))
 
-    # The evidence. Age of the newest archive, in whole hours.
+    # The evidence, per network.
+    #
+    # This used to be `ls -t <dir>/*.gpg | head -1` -- the newest archive of
+    # any network. Both networks write to the same directory, so from
+    # 15 September that would have answered about testnet's fresh archive
+    # while mainnet's had not been written for a week, and reported "there is
+    # something to restore from" about the wallet that holds miners' money.
+    # The subject of this check is exactly that wallet.
     rc, out = rsh(
         host,
-        f"f=$(ls -t {backup_dir}/*.gpg 2>/dev/null | head -1); "
-        f"[ -n \"$f\" ] && echo \"$(( ( $(date +%s) - $(stat -c %Y \"$f\") ) / 3600 )) "
-        f"$(basename \"$f\")\" || echo NONE")
+        f"cd {backup_dir} 2>/dev/null || exit 9; "
+        f"f=$(ls -t {archive_glob(network)} 2>/dev/null | head -1); "
+        f"[ -n \"$f\" ] && echo \"$(( ( $(date +%s) - $(stat -c %Y \"$f\") ) / 3600 )) $f\" "
+        f"|| echo NONE")
 
     if rc == UNREACHABLE:
-        warn(f"could not look for an archive ({out}). Whether one exists is "
-             f"unknown, which is not the same as none existing.")
+        warn(f"{network}: could not look for an archive ({out}). Whether one "
+             f"exists is unknown, which is not the same as none existing.")
         return
     if rc != 0 or out == "NONE" or not out:
-        bad(f"no archive at all in {backup_dir} -- there is nothing to restore from")
+        bad(f"{network}: no archive of its own in {backup_dir} -- there is "
+            f"nothing to restore this network from")
         return
 
     try:
         hours = int(out.split()[0])
         name = out.split()[1]
     except (ValueError, IndexError):
-        bad(f"could not read the newest archive: {out}")
+        bad(f"{network}: could not read the newest archive: {out}")
         return
 
     if hours <= max_age_hours:
-        ok(f"newest archive is {hours}h old -- {name}")
+        ok(f"{network}: newest archive is {hours}h old -- {name}")
     else:
         days = hours / 24
-        bad(f"the newest archive is {hours}h old ({days:.1f} days) -- {name}. "
-            f"Everything since then exists in one copy, on one machine.")
+        bad(f"{network}: the newest archive is {hours}h old ({days:.1f} days) "
+            f"-- {name}. Everything since then exists in one copy, on one "
+            f"machine.")
+
+
+def check(host, max_age_hours, backup_dir):
+    print(f"\n{BLD}{host}{OFF}")
+
+    # The units are DISCOVERED, not named here.
+    #
+    # This asked `systemctl is-active wam-backup.timer` -- one hardcoded name.
+    # On 2026-09-07 the backup became a template with one instance per network
+    # and that timer was disabled, so this reported "nothing will run" about a
+    # backup that had just run successfully on both hosts. A false red teaches
+    # a person to stop reading red, and then the true one arrives among the
+    # noise.
+    #
+    # Hardcoding the new name would only move the fault: enabling
+    # wam-backup@mainnet.timer on 15 September has to be covered by this check
+    # on the day, without anybody remembering to edit it. So the question is
+    # "which backup timers does this machine have", and the answer decides
+    # what is examined.
+    rc, out = rsh(
+        host,
+        "systemctl list-units --type=timer --all --no-legend 'wam-backup*' "
+        "2>/dev/null | awk '{print $1, $3}'")
+    if rc == UNREACHABLE:
+        warn(f"could not ask which backup timers exist ({out}). That is not "
+             f"the same as there being none.")
+        return
+
+    timers = {}
+    for line in (out or "").splitlines():
+        parts = line.split()
+        if len(parts) < 2 or not parts[0].endswith(".timer"):
+            continue
+        # The template itself is not an instance and cannot be active.
+        if parts[0] == "wam-backup@.timer":
+            continue
+        timers[parts[0]] = parts[1]
+
+    active = {t: s for t, s in timers.items() if s == "active"}
+
+    if not active:
+        bad(f"no backup timer is active on this host -- nothing will run "
+            f"(found: {', '.join(f'{t}={s}' for t, s in timers.items()) or 'none at all'})")
+        return
+
+    for timer in sorted(active):
+        network = "testnet"
+        if "@" in timer:
+            network = timer.split("@", 1)[1].rsplit(".timer", 1)[0]
+        ok(f"{network}: the timer is armed ({timer})")
+        check_instance(host, network, timer, max_age_hours, backup_dir)
+
+    # Both the old single unit and a template instance being armed would take
+    # two backups a night of the same data under two different names, and the
+    # rotation counts them together. Worth saying out loud rather than
+    # discovering it as a disk filling up.
+    if "wam-backup.timer" in active and any("@" in t for t in active):
+        warn("the pre-template wam-backup.timer is armed as well as an "
+             "instance -- both will run tonight")
 
 
 def main():
