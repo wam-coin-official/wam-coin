@@ -170,6 +170,7 @@ def main():
 
     canon_text = CANON.read_text(encoding="utf-8")
     bad = 0
+    could_not_ask = 0
 
     # ---- 1. one list, not two ---------------------------------------
     if canon_text != MIRROR.read_text(encoding="utf-8"):
@@ -215,6 +216,7 @@ def main():
         print(f"  {YLW}skipped{OFF}  reachability (--offline)")
     else:
         dead = []
+        unreachable = []
         # Fetch what the file actually WROTE, never the normalised form.
         # The first version fetched the lowercased identity and reported
         # wamcoin.org/CHANNELS.txt dead: the host is case-sensitive, the
@@ -237,7 +239,24 @@ def main():
                 if e.code in (404, 410):
                     dead.append((u, f"HTTP {e.code}"))
             except (urllib.error.URLError, socket.timeout, OSError) as e:
-                dead.append((u, str(getattr(e, "reason", e))[:60]))
+                # NOT dead. A timeout, a DNS failure or a reset connection
+                # means the question never arrived -- it says nothing about
+                # whether the channel exists.
+                #
+                # These went into the same list as a 404, so on 7 September
+                # one slow request put
+                #
+                #   the channel list names all of us   FAIL
+                #         1 listed channel(s) do not answer
+                #
+                # on the launch panel, under a heading that reads "the
+                # canonical list is not canonical" -- which a person takes to
+                # mean somebody can squat one of our names. The same request
+                # answered normally a minute later. This project has been here
+                # before, in check_bots.py, where a single timed-out request
+                # on a Libyan connection reported that announcements to a
+                # healthy channel were silently going nowhere.
+                unreachable.append((u, str(getattr(e, "reason", e))[:60]))
 
         if dead:
             print(f"  {RED}FAIL{OFF}  {len(dead)} listed channel(s) do not answer")
@@ -246,6 +265,12 @@ def main():
             for u, why in dead:
                 print(f"          {u}  --  {why}")
             bad += 1
+        elif unreachable:
+            print(f"  {YLW}!!{OFF}    {len(unreachable)} listed channel(s) could not "
+                  f"be reached -- not the same as dead")
+            for u, why in unreachable:
+                print(f"          {u}  --  {why}")
+            could_not_ask += len(unreachable)
         else:
             print(f"  {GRN}ok{OFF}    every listed channel answers")
 
@@ -254,6 +279,16 @@ def main():
         print(f"  {RED}{BLD}the canonical list is not canonical{OFF}")
         print()
         return 1
+    if could_not_ask:
+        # 2, this project's code for "the check could not run". Not 1, which
+        # would say the list is wrong; not 0, which would say every channel
+        # was confirmed alive when some were never asked.
+        print(f"  {YLW}the list is consistent, but {could_not_ask} channel(s) "
+              f"were not reached{OFF}")
+        print(f"  Nothing here says they are dead. Run it again on a better "
+              f"connection\n  before treating it as a finding.")
+        print()
+        return 2
     print(f"  {GRN}{BLD}the list names everything that is ours, and nothing "
           f"dead{OFF}")
     print()
