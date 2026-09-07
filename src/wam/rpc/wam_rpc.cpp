@@ -329,7 +329,39 @@ static RPCHelpMan getemissionschedule()
         "cumulative supply at its end.\n"
         "\nThis is the machine-readable form of the table in WHITEPAPER.md.\n",
         {},
-        RPCResult{RPCResult::Type::ARR, "", "", {{RPCResult::Type::OBJ, "", "", {}}}},
+        // The nine fields are named here rather than left as an empty object.
+        //
+        // This was `{{RPCResult::Type::OBJ, "", "", {}}}`, and clang refuses it:
+        //
+        //   error: type 'const char[1]' cannot be narrowed to 'bool' in
+        //          initializer list [-Wc++11-narrowing]
+        //
+        // RPCResult has an overload taking (Type, key_name, bool optional,
+        // description, ...) and another taking (Type, key_name, description,
+        // inner, ...). Four arguments fit both, so "" is a candidate for the
+        // bool, and clang reports the narrowing instead of choosing. GCC picks
+        // the intended overload silently, which is why this compiled on Linux
+        // and on the Windows cross-build -- both GCC -- and failed on the first
+        // machine that used clang. Upstream supports clang 16 and later, so
+        // anybody building WAM with it on Linux would have hit this too.
+        //
+        // Declaring the fields removes the ambiguity by having something real
+        // to put in `inner`, and it is what the help text is for: the previous
+        // form told a caller that getemissionschedule returns an array of
+        // objects and nothing whatever about them.
+        RPCResult{RPCResult::Type::ARR, "", "The halving schedule, one entry per epoch", {
+            {RPCResult::Type::OBJ, "", "", {
+                {RPCResult::Type::NUM, "epoch", "0 for the first epoch, counting up"},
+                {RPCResult::Type::NUM, "first_height", "first block height in this epoch"},
+                {RPCResult::Type::NUM, "last_height", "last block height in this epoch"},
+                {RPCResult::Type::STR_AMOUNT, "subsidy", "block subsidy in this epoch"},
+                {RPCResult::Type::STR_AMOUNT, "miner_subsidy", "the miner's share, after the treasury fee"},
+                {RPCResult::Type::STR_AMOUNT, "treasury_subsidy", "the treasury's share of each block"},
+                {RPCResult::Type::BOOL, "treasury_active", "whether the 5% fee still applies in this epoch"},
+                {RPCResult::Type::STR_AMOUNT, "epoch_total", "total issued across the whole epoch"},
+                {RPCResult::Type::STR_AMOUNT, "cumulative_supply", "supply at the end of this epoch, premine included"},
+            }},
+        }},
         RPCExamples{HelpExampleCli("getemissionschedule", "")},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
