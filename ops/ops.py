@@ -83,10 +83,36 @@ HOSTS = [
 # collector reports what it finds rather than what it hoped to find.
 SERVICES = [
     "wamd", "wam-electrumx@testnet", "wam-pool", "wam-dashboard",
-    "wam-announce", "wam-miner", "wam-backup.timer",
+    "wam-announce", "wam-miner",
     "wam-reorg-watch@testnet.timer", "wam-version-watch.timer",
     "wamd-mainnet", "wam-electrumx@mainnet",
 ]
+
+# The backup timers are not in that list, because their names are not knowable
+# from here.
+#
+# This list said "wam-backup.timer". On 7 September the backup became a
+# template with one instance per network, that unit was disabled in favour of
+# wam-backup@testnet.timer, and this panel went red on both hosts --
+#
+#     wam-backup.timer - inactive
+#
+# about a backup that had run successfully at 03:27 that morning.
+#
+# That was the THIRD copy of the same hardcoded name. check_backups.py had it,
+# scripts/wam-facts.sh had it, and this file had it, and fixing the first two
+# left the red on the only one the founder actually looks at. Three files
+# answering "which units matter" independently is the fault; each of them
+# discovering the answer is what stops it recurring.
+#
+# Writing the new name in would move the fault to 15 September, when
+# wam-backup@mainnet.timer is enabled and this list would not know it exists.
+# The template itself is excluded: wam-backup@.timer is not an instance and
+# can never be active, so it would report as a permanent failure.
+BACKUP_TIMER_DISCOVERY = (
+    "systemctl list-units --type=timer --all --no-legend 'wam-backup*' 2>/dev/null"
+    " | awk '{print $1}' | grep -v '^wam-backup@[.]timer$'"
+)
 
 _state = {"generated": 0, "hosts": {}, "checks": {}, "errors": []}
 _lock = threading.Lock()
@@ -153,7 +179,7 @@ echo "###height"; /opt/wam-current-bin/wam-cli -testnet getblockcount 2>/dev/nul
 echo "###tip"; /opt/wam-current-bin/wam-cli -testnet getbestblockhash 2>/dev/null
 echo "###peers"; /opt/wam-current-bin/wam-cli -testnet getconnectioncount 2>/dev/null
 echo "###services"
-for u in %s; do
+for u in %s $(%s); do
   # is-active prints "inactive" AND exits non-zero, so the obvious
   # `$(... || echo unknown)` yields "inactive unknown" on one line and the
   # field split reads the wrong word. Capture first, then decide.
@@ -190,7 +216,7 @@ m=json.load(open('/var/lib/wam-login-watch/maintenance.json'))
 left=int(float(m.get('until',0))-time.time())
 print('%%d %%s'%%(left,m.get('reason','?')) if left>0 else '')" 2>/dev/null
 echo "###end"
-""" % " ".join(SERVICES)
+""" % (" ".join(SERVICES), BACKUP_TIMER_DISCOVERY)
 
     rc, out = rsh(ip, script, timeout=60)
     now = int(time.time())
