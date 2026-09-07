@@ -219,14 +219,36 @@ Windows machines. The measured hashrate on 6 September was about 6 kH/s — less
 eight-thread desktop — and that, not the absence of a listing, is what a young chain dies
 of. Requiring WSL filters out most of the people the algorithm was chosen for.
 
-**Not before 15 September, and the reason is not the calendar.** The missing piece on
-Windows is the *address*, not the hasher: the only documented way to obtain one is
-`wam-cli getnewaddress`, so "Windows support" means cross-compiling the consensus binary,
-not the miner. `depends/hosts/mingw32.mk` is upstream's supported path and is already in
-the tree, but nobody here has ever run it, and a signed binary from a build path that has
-never been exercised is the one kind of release this project has spent three weeks making
-impossible. The freeze is 13 September. A signature that means something is worth more
-than a week's head start.
+**Status, 7 September, measured.** The reason given here on the morning of the 7th was
+that nobody had ever run the cross-build, so a signed binary would come from an
+unexercised path. That reason is now void, and the sentence it justified has to be
+re-argued on facts rather than left standing:
+
+    ok    synced to height 6029 from genesis, over the real network
+    ok    height 0 matches      ok    height 1 matches
+    ok    height 5000 matches   ok    height 6000 matches
+    every one of 4 blocks matches the running chain
+
+A native `wamd.exe` -- 15 MB, `PE32+ x86-64` -- synced the test chain from genesis over
+the real peer-to-peer protocol on Windows 11 and agreed with the Linux nodes block for
+block, including block 1 where the treasury rule is first enforced. `check_isa_baseline.sh`
+reads PE now and reports no AVX-512.
+
+What that proves is narrow and worth stating exactly: RandomX cross-compiles for Windows
+and computes the same proof-of-work, `depends` builds Core's dependencies for mingw, and
+the consensus rules behave identically. It does not prove a release. Still open: the miner
+is not built; `package_release.sh`, the checksum list and the signature have never covered
+a second platform; and RandomX's own reference vectors have not been run on Windows, because
+that test binary is dynamically linked and wants the mingw runtime DLLs.
+
+**What the exercise found matters more than the binary.** Building for a second platform
+surfaced three defects in a day, and one of them was launch-critical: setting
+`nMinimumChainWork` turns on Core's presync path, which enforces Bitcoin's retarget
+schedule, which DarkGravityWave violates at height 1 -- so no new node could sync. Every
+published release carries zero there, so the live network was never affected; but
+`check_min_chain_work.py` instructs setting it on mainnet after launch, which would have
+stopped every newcomer syncing, in the weeks when newcomers are the entire point. That
+was a trap with a date on it, and the date was after the 15th.
 
 **First thing after the chain is stable**, in this order, because each step unblocks the
 next:

@@ -70,8 +70,33 @@ is the day it is needed.
 
 | 7 Sep | **Phases A→D**, and Phase D's one open item | **the nightly backup could not have covered the mainnet pool wallet, in three ways and two of them silent**: the datadir defaulted to `/root/.wam` whatever the network, so a mainnet run would have encrypted the *testnet* chain and reported success; the archive name carried no network; and rotation counted both networks' archives against one `KEEP=14`, so each would have kept about seven. Also: `START_HERE` promises Windows and macOS builds are "planned" and nothing anywhere is the plan | `wam-backup@.service`/`@.timer`, one instance per network, migrated on both hosts; `ROADMAP.md` §7 |
 
+| 7 Sep | **Build the node for Windows and macOS** — asked for by the founder, against my own judgement that it should wait | **`nMinimumChainWork` stops every new node syncing.** Setting it turns on Core's presync path, which enforces Bitcoin's 2016-block retarget rule, which DarkGravityWave violates at height 1: `invalid difficulty transition at height=1 (presync phase)`. Published releases carry zero, so the live network was never affected — but `check_min_chain_work.py` instructs setting it on mainnet **after launch**. Also: macOS was built against Homebrew's boost, which is newer than Core v28 accepts; three separate files hardcoded `wam-backup.timer` and I fixed two, leaving the panel red in the only one that is looked at; and the consensus gate assumed a free RPC port and a POSIX path, either of which would have failed the Windows runner | `PermittedDifficultyTransition` patched; macOS moved to `depends`; the unit lists discover; the gate picks a free port and converts the path. **Windows then synced 6,029 blocks from genesis and matched all four known blocks** |
+
 Five in one evening, in a phase that had been rehearsed once already. That is
 the number to watch.
+
+### 7 September: the value of building for a platform we were not going to ship
+
+The founder asked for Windows and macOS and I argued for waiting. He was
+right, and not for the reason either of us gave.
+
+The argument was about audience: RandomX was chosen so an ordinary desktop
+competes, and most ordinary desktops are Windows. That argument stands. But
+what the exercise actually bought was a **defect that no amount of reading
+would have found**, because it only appears in a binary built from current
+main, and every binary this project has ever published predates the change
+that causes it.
+
+Four days of rehearsals had not found it. A full sweep does not find it: the
+checks all pass, because they run against the deployed v0.1.7 binaries, which
+carry `nMinimumChainWork = 0` and never enter the path. It would have been
+found on 15 September or shortly after, by newcomers who could not sync and
+had no way to say why.
+
+The lesson is not "build for more platforms". It is that **a check running
+against yesterday's binary cannot see today's source**, and this project's
+sweep is entirely of that kind. That gap is now the most valuable thing on
+this page and it does not have an answer yet.
 
 The last one was not found by a rehearsal on the schedule. It was found by
 writing the announcement and refusing to publish a command without running it
