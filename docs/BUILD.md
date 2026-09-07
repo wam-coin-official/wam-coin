@@ -21,7 +21,7 @@ sudo apt-get install -y \
 ```bash
 sudo dnf install -y \
     gcc-c++ libtool make autoconf automake cmake git python3 \
-    libevent-devel boost-devel openssl-devel sqlite-devel zeromq-devel
+    libevent-devel boost-devel sqlite-devel
 ```
 
 ### Arch
@@ -97,10 +97,28 @@ failed run leaves the tree usable.
 cd build/wam-core
 ./autogen.sh
 ./configure --without-gui \
+    --disable-zmq \
+    --disable-tests-fuzz-binary \
     CPPFLAGS="-I$PWD/../randomx/src" \
     LIBS="$PWD/../randomx/build/librandomx.a -lpthread"
 make -j"$(nproc)"
 ```
+
+**`--disable-zmq` is not a size optimisation, and leaving it out is how this
+page was wrong until 7 September.** ZMQ is a notification interface nothing in
+this project uses — no reference in `src/wam`, the pool, the explorer or the
+bot — and linking it drags in twelve shared libraries, including the whole of
+Kerberos, that whoever runs the binary must then already have. A node built
+with it, copied to a clean machine, dies with
+
+```
+error while loading shared libraries: libevent_pthreads-2.1.so.7
+```
+
+which no user can read as "install one package". `install.sh` has passed the
+flag since August; this page did not, so anybody following it got a heavier
+binary than the release — and on a distribution whose package list here
+installed `zeromq-devel`, configure found ZMQ and linked it without a word.
 
 Expect 10–40 minutes. Peak memory is roughly 1.5 GB per compile job — on a machine with
 4 GB, use `make -j2` rather than `-j$(nproc)`.
