@@ -89,7 +89,8 @@ hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
 <pre><code>wsl --install</code></pre>
 <p>Restart, open <strong>Ubuntu</strong> from the Start menu, and every command on this page works from there unchanged. The memory and disk above are what Linux needs inside WSL, not what Windows needs on top of it.</p>
 <p>This is not a workaround with a catch in it. The release is built on Ubuntu 22.04, and <code>wsl --install</code> on Windows 11 gives you Ubuntu 22.04 — the same distribution, so the system libraries the binary was linked against are the ones it finds.</p>
-<p>A native Windows build is the first thing after launch rather than before it; §7 of <a href="https://github.com/wam-coin-official/wam-coin/blob/main/docs/ROADMAP.md">the roadmap</a> gives the order and the reason. macOS follows it.</p></blockquote>
+<p><strong>On a Mac there is no equivalent yet, and WSL does not exist there.</strong> If your Mac has an Apple chip the gap is wider than it looks: our binary is x86_64 and that processor is ARM, so even a Linux container would be emulating it — fine for reading, useless for mining. Until a macOS build lands, the way in is a Linux machine or the cheapest VPS you can rent.</p>
+<p>A native Windows build is the first thing after launch rather than before it, and macOS follows it; §7 of <a href="https://github.com/wam-coin-official/wam-coin/blob/main/docs/ROADMAP.md">the roadmap</a> gives the order and the reason.</p></blockquote>
 <hr>
 <h2 id="3-run-a-node">3. Run a node</h2>
 <p>A node is a program that keeps a copy of the list and checks every payment on it. It runs quietly in the background. You do not need one to own WAM, but running one means you verify the rules yourself instead of trusting somebody else's answer.</p>

@@ -59,9 +59,15 @@ That is all. No graphics card, no special hardware, no money to start.
 > same distribution, so the system libraries the binary was linked against are
 > the ones it finds.
 >
+> **On a Mac there is no equivalent yet, and WSL does not exist there.** If
+> your Mac has an Apple chip the gap is wider than it looks: our binary is
+> x86_64 and that processor is ARM, so even a Linux container would be
+> emulating it — fine for reading, useless for mining. Until a macOS build
+> lands, the way in is a Linux machine or the cheapest VPS you can rent.
+>
 > A native Windows build is the first thing after launch rather than before
-> it; §7 of [the roadmap](ROADMAP.md) gives the order and the reason. macOS
-> follows it.
+> it, and macOS follows it; §7 of [the roadmap](ROADMAP.md) gives the order
+> and the reason.
 
 ---
 
