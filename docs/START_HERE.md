@@ -135,14 +135,29 @@ That prints how many blocks you have. It should climb until it matches what
 > he had the first 4,000 block headers and was downloading blocks when he
 > quit. He had no way of knowing that, because this page did not tell him.
 >
-> To see that it is working rather than guess:
+> To see that it is working rather than guess, watch the **headers**:
 >
 > ```bash
-> ./wam-cli -testnet getblockchaininfo | grep -E '"blocks"|verificationprogress'
+> ./wam-cli -testnet getblockchaininfo | grep -E '"blocks"|"headers"'
 > ```
 >
-> `verificationprogress` goes from 0 to 1. It moves even while the block count
-> is still 0, which is the answer to "is it stuck?"
+> Measured on a cold start, 7 September: `headers` reached 6,000 within eight
+> seconds of the node starting, while `blocks` was still 0 and stayed 0 until
+> the 88th second. Headers are cheap and arrive at once; blocks are what
+> RandomX has to verify, and that is what the wait is.
+>
+> So `headers` climbing to roughly what
+> [explorer.wamcoin.org](https://explorer.wamcoin.org) shows means your node
+> found the network and knows where the tip is. If `headers` is still 0 after
+> a minute, that is the real problem, and it is a connection problem rather
+> than a slow one.
+>
+> **Ignore `verificationprogress`.** Bitcoin Core reports it and every guide
+> about other coins tells you to watch it. On WAM it reads `1` at every height
+> including zero, because it is estimated from a transaction-rate figure this
+> chain does not publish. It is not lying about your node; it is answering a
+> question nobody gave it the data for. The block count is the only progress
+> there is.
 
 > **Why `-testnet`?** Because the real network has not launched yet. See
 > [section 7](#7-two-things-you-must-know).
@@ -288,8 +303,9 @@ it mentions an address already in use, another copy is already running.
 **`getblockcount` says 0 and stays there.**
 **For the first minute this is normal and means nothing is wrong.** The node
 is building its RandomX verification tables and has not started on blocks yet;
-`verificationprogress` in `getblockchaininfo` moves during that time even
-though the count does not.
+`headers` in `getblockchaininfo` already reads the full chain height during
+that time, and it is the field to watch: `verificationprogress` reads 1 on WAM at every height and tells you
+nothing.
 
 If it is still 0 after two or three minutes, your node found no one to talk
 to. Check that your internet works — it retries by itself.
