@@ -16,7 +16,7 @@
    discord        https://discord.gg/Gxvmrjy9Qb
    bitcointalk    https://bitcointalk.org/index.php?topic=5591218.0
    youtube        https://www.youtube.com/@WAMcoin-l1z
-   reddit         https://www.reddit.com/user/WAMCoinCore/   (held, not used)
+   reddit         https://www.reddit.com/user/WAMCoinCore/   (ours, see below)
    email          wam.coin.official@proton.me
 
  And the three services the network itself runs:
@@ -36,11 +36,18 @@
  presale, no airdrop, no token sale, no wallet app. If you have found one
  of those and it says WAM, it is not us.
 
- The Reddit account is marked "held, not used" because that is what it is.
- It was registered early so that nobody else could take the name, and
- nothing has ever been posted from it. If you see a post there, either we
- have started using it and said so here first, or somebody else has the
- account -- and this file is how you tell those apart.
+ The Reddit account is ours, registered on 10 August 2026 so that nobody
+ else could take the name. One post was made from it, carrying links to
+ these same channels. Reddit removed it and applied a temporary spam
+ restriction: a new account posting external links is what that filter is
+ for. So the page looks empty, and that is Reddit's filtering of a new
+ account rather than any sign the account is not ours.
+
+ The same three identities are also linked as verified connections on the
+ founder's Discord profile -- github.com/wam-coin-official,
+ reddit.com/user/WAMCoinCore and x.com/WAMCoinCore. Discord verified each
+ of those by sign-in, not by being told, which makes it a second way to
+ check this file that does not depend on this file.
 
 
  WHAT NOBODY OFFICIAL WILL EVER DO

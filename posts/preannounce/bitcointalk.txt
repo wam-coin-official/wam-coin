@@ -227,8 +227,9 @@ discord     https://discord.gg/Gxvmrjy9Qb
 [/code]
 
 There are no others. No second Telegram, no "support" account. The Reddit
-account @WAMCoinCore is ours and is held rather than used -- nothing has ever
-been posted from it.
+account u/WAMCoinCore is ours. One post was made from it and Reddit removed it
+under a temporary spam restriction -- a new account posting external links --
+so the page looks empty.
 Nobody official will ever message you first, ask for a seed phrase, or offer
 you an allocation.
 
