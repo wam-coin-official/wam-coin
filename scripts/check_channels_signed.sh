@@ -173,6 +173,20 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
         cout="$(gpg --homedir "$C/h" --status-fd 1 --verify "$C/s" "$C/f" 2>/dev/null)"
         if printf '%s' "$cout" | grep -q "GOODSIG"; then
             ok "and it verifies against the committed bytes, which is what a clone gets"
+        elif ! cmp -s "$C/s" "$SIG"; then
+            # The commonest reason, and it has an easy answer: signed a moment
+            # ago and not committed yet. Distinguished from the byte-mismatch
+            # below because the remedy is completely different, and a check
+            # that gives the frightening explanation for the harmless case
+            # teaches its reader to stop believing it.
+            bad "the signature on disk is newer than the one in the repository"
+            say ""
+            say "A clone still gets the old signature, so it still gets BAD"
+            say "signature. Commit the new one:"
+            say ""
+            say "    git add $SIG $MSIG && git commit -m \"channels: re-sign\""
+            say ""
+            fails=$((fails + 1))
         else
             bad "the COMMITTED pair does not verify -- a clone of this repository gets BAD signature"
             say ""
@@ -180,8 +194,9 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
             say "  on disk    $(wc -c < "$FILE" | tr -d ' ') bytes"
             say ""
             say "If those two numbers differ, the file was signed before git"
-            say "normalised its line endings. Make the working copy LF, then"
-            say "sign the LF bytes:"
+            say "normalised its line endings -- .gitattributes says eol=lf, so"
+            say "a file written with CRLF is a different file once added. Make"
+            say "the working copy LF, then sign the LF bytes:"
             say ""
             say "    sed -i 's/\\r\$//' $FILE $MFILE"
             say "    bash scripts/sign_channels.sh"
