@@ -73,9 +73,12 @@ That is all. No graphics card, no special hardware, no money to start.
 > **Building it yourself**, on Windows or on a Mac, is the other two routes.
 > [BUILD.md §8](BUILD.md#8-building-for-windows) is the Windows one: about
 > forty minutes, and it needs Ubuntu 24.04 rather than 22.04, for a reason
-> that page gives. On macOS the same repository builds natively — Apple
-> Silicon is the one that has been proven; an Intel Mac has not been tried
-> yet.
+> that page gives. [BUILD.md §9](BUILD.md#9-building-on-macos) is the Mac one:
+> the same repository builds natively, in about twenty minutes, and it takes
+> boost from `depends/` rather than Homebrew for a reason that page gives too.
+> Apple Silicon is the one that has been proven; an Intel Mac has not been
+> tried yet, so if you have one, that run is worth more to this project than
+> a second Apple Silicon one.
 >
 > **Do not run a Linux binary on an Apple chip through a container.** Our
 > download is x86_64 and that processor is ARM, so it would be emulated:

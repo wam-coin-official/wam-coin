@@ -78,13 +78,15 @@ hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
 <pre><code>sudo apt-get install -y \
     build-essential libtool autotools-dev automake pkg-config bsdmainutils \
     cmake curl git python3 \
-    libevent-dev libboost-dev libssl-dev libsqlite3-dev libzmq3-dev</code></pre>
+    libevent-dev libboost-dev libsqlite3-dev</code></pre>
 <h3 id="fedora-rhel-9">Fedora / RHEL 9</h3>
 <pre><code>sudo dnf install -y \
     gcc-c++ libtool make autoconf automake cmake git python3 \
-    libevent-devel boost-devel openssl-devel sqlite-devel zeromq-devel</code></pre>
+    libevent-devel boost-devel sqlite-devel</code></pre>
 <h3 id="arch">Arch</h3>
-<pre><code>sudo pacman -S base-devel cmake git python libevent boost openssl sqlite zeromq</code></pre>
+<pre><code>sudo pacman -S base-devel cmake git python libevent boost sqlite</code></pre>
+<blockquote><p><strong>OpenSSL and ZMQ came off all three lists on 7 September.</strong> OpenSSL because Bitcoin Core v28 does not use it at all. ZMQ because the build disables it — and that one was worse than clutter: with the development package installed, <code>configure</code> finds ZMQ and links it unless <code>--disable-zmq</code> is passed, and §4 did not say to pass it. Measured on somebody's Fedora build with the old line: four extra shared libraries, libzmq and three of Kerberos. Rebuilt with the corrected line, none.</p>
+<p>Fedora's list was corrected first and Ubuntu's and Arch's were left carrying the same fault for an hour — repairing the instance in front of you instead of every instance, which is the mistake this project keeps making and the reason so many checks here enumerate rather than name.</p></blockquote>
 <p>For the pool, additionally: <strong>Node.js ≥ 18</strong> and <strong>Redis</strong>.</p>
 <p>Then run the installer with <code>--skip-deps</code>.</p>
 <hr>
@@ -113,9 +115,17 @@ python3 scripts/patch_upstream.py --tree build/wam-core --repo . --check</code><
 <pre><code>cd build/wam-core
 ./autogen.sh
 ./configure --without-gui \
+    --disable-zmq \
+    --disable-tests-fuzz-binary \
     CPPFLAGS="-I$PWD/../randomx/src" \
     LIBS="$PWD/../randomx/build/librandomx.a -lpthread"
 make -j"$(nproc)"</code></pre>
+<p><strong><code>--disable-zmq</code> is not a size optimisation, and leaving it out is how this page was wrong until 7 September.</strong> ZMQ is a notification interface nothing in this project uses — no reference in <code>src/wam</code>, the pool, the explorer or the bot — and linking it drags in twelve shared libraries, including the whole of Kerberos, that whoever runs the binary must then already have. A node built with it, copied to a clean machine, dies with</p>
+<pre><code>error while loading shared libraries: libevent_pthreads-2.1.so.7</code></pre>
+<p>which no user can read as "install one package". <code>install.sh</code> has passed the flag since August; this page did not, so anybody following it got a heavier binary than the release — and on a distribution whose package list here installed <code>zeromq-devel</code>, configure found ZMQ and linked it without a word.</p>
+<p>That last sentence is measured, not predicted. On 7 September somebody followed this page on Fedora 44 with the old line, and his binary was asked what it links:</p>
+<p>    ldd build/wam-core/src/wamd | grep -cE 'zmq|krb5|gssapi'     4</p>
+<p>libzmq and three Kerberos libraries, none of which the release depends on. It built with no errors and runs perfectly on his machine, because Fedora has them — which is the whole failure mode: it works for whoever built it and dies for whoever receives it.</p>
 <p>Expect 10–40 minutes. Peak memory is roughly 1.5 GB per compile job — on a machine with 4 GB, use <code>make -j2</code> rather than <code>-j$(nproc)</code>.</p>
 <hr>
 <h2 id="5-test">5. Test</h2>
@@ -138,6 +148,48 @@ RANDOMX_INCLUDE="$PWD/../../build/randomx/src" \
 RANDOMX_LIB="$PWD/../../build/randomx/build/librandomx.a" \
     npx node-gyp rebuild</code></pre>
 <p>There is deliberately <strong>no pure-JavaScript fallback</strong>. A pool that silently degraded to a fake hash function would accept every share and pay out on work nobody did.</p>
+<hr>
+<h2 id="8-building-for-windows">8. Building for Windows</h2>
+<p>There is no <code>.exe</code> in any release yet. This is how one is made, and anybody who runs it is doing something useful: a Windows binary this project has not verified on a second machine is a binary verified on one.</p>
+<p><strong>Ubuntu 24.04, not 22.04.</strong> 22.04 ships mingw with GCC 10.3, Bitcoin Core v28 requires C++20, and upstream's own <code>doc/dependencies.md</code> puts the floor at GCC 11.1. On 22.04 the build spends forty minutes cross-compiling boost, bdb, libevent and sqlite and <em>then</em> configure refuses. <code>scripts/build_windows.sh</code> checks the compiler in its first second so that cannot happen again.</p>
+<p>On Windows, WSL is enough — in PowerShell as administrator:</p>
+<pre><code>wsl --install -d Ubuntu-24.04</code></pre>
+<p>Then inside it:</p>
+<pre><code>sudo apt update &amp;&amp; sudo apt install -y build-essential libtool autotools-dev   automake pkg-config bsdmainutils cmake curl git python3 file   g++-mingw-w64-x86-64-posix
+sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
+sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
+
+git clone https://github.com/wam-coin-official/wam-coin.git ~/wam-coin
+cd ~/wam-coin
+bash scripts/fetch-upstream.sh
+bash scripts/build_windows.sh</code></pre>
+<p>The <code>-posix</code> package is not a preference. The win32-threads runtime has no <code>std::thread</code> at all and Core uses it everywhere, so the wrong alternative produces several hundred lines of <code>'thread' is not a member of 'std'</code>, which reads like a broken source tree and is a one-line toolchain setting.</p>
+<p>About forty minutes, most of it boost. Five executables land in <code>out/windows/</code>, unstripped and large; <code>x86_64-w64-mingw32-strip</code> takes <code>wamd</code> from 418 MB to 15 MB.</p>
+<h3 id="then-prove-it-agrees-with-the-chain">Then prove it agrees with the chain</h3>
+<p>Compiling proves the toolchain. It does not prove the binary computes the same proof-of-work or enforces the same rules, and a node that gets either wrong does not fail loudly — it forks itself off and its owner mines onto a history nobody else has. Copy the two binaries to the Windows side and, from Git Bash <strong>on Windows</strong>:</p>
+<pre><code>bash scripts/test/test_platform_consensus.sh /c/where-you-put-them</code></pre>
+<p>It syncs the test chain from genesis over the real peer-to-peer protocol and then compares four blocks the Linux nodes have held since August: genesis, block 1 where the treasury rule is first enforced, 5000 and 6000. Anything other than four matches is a finding, and it matters more than a pass.</p>
+<p>It picks its own RPC port, because the default is not free on a machine that already runs a node — which is every machine anybody would test a build on.</p>
+<hr>
+<h2 id="9-building-on-macos">9. Building on macOS</h2>
+<p>There is no <code>.dmg</code> either. This one is a native build, not a cross-compile, so it must run on the Mac itself — <code>scripts/build_macos.sh</code> checks <code>uname -s</code> and stops immediately anywhere else rather than failing forty minutes later.</p>
+<p>Xcode's command line tools, and five things from Homebrew:</p>
+<pre><code>xcode-select --install
+brew install cmake autoconf automake libtool pkg-config
+
+git clone https://github.com/wam-coin-official/wam-coin.git ~/wam-coin
+cd ~/wam-coin
+bash scripts/fetch-upstream.sh
+bash scripts/build_macos.sh</code></pre>
+<p><strong>Boost, libevent and sqlite deliberately do not come from Homebrew.</strong> The first version of this used them and it failed: Homebrew installs the <em>newest</em> boost, and Bitcoin Core v28 does not build against it. Worse than failing, it would have made the result depend on whatever Homebrew shipped that week, so two people building the same commit on the same day could get different binaries. They come from <code>depends/</code>, which is upstream's own answer and already how the Windows build here works:</p>
+<pre><code>make -C depends HOST=$(uname -m)-apple-darwin NO_QT=1 NO_ZMQ=1 NO_UPNP=1 NO_NATPMP=1 NO_USDT=1</code></pre>
+<p>The script does this for you. No SDK question arises — <code>depends/README.md</code> lists the macOS SDK under <em>cross</em>-compiling, and this is not that.</p>
+<p>On an Intel Mac RandomX is configured with <code>-DARCH=x86-64</code>; on Apple Silicon that flag is not passed at all. It must never be <code>native</code>, on any platform: a binary tuned to the machine that built it computes proof-of-work that machine agrees with and can disagree with everyone else's.</p>
+<p>About twenty minutes on Apple Silicon — CI measured 739 seconds for the build and 279 more to sync the test chain. The binaries land in <code>out/macos-$(uname -m)/</code>, and each is checked with <code>file -bL</code> to be genuinely Mach-O before it is kept.</p>
+<p><strong>Two test suites run before anything is kept</strong>, and a failure in either deletes nothing but refuses to leave you a binary: RandomX's own reference vectors, then <code>wam_monetary_tests</code> and <code>wam_devfee_tests</code>. The monetary schedule and the 5% treasury rule are precisely what a different compiler on a different architecture could get quietly wrong, and a node that gets either wrong does not crash — it forks itself off at block 1.</p>
+<p>Then the same proof the Windows section ends with, and for the same reason:</p>
+<pre><code>bash scripts/test/test_platform_consensus.sh out/macos-$(uname -m)</code></pre>
+<p><strong>Apple Silicon is the one that has been proven.</strong> An Intel Mac has not been built or synced by anyone yet, so if you have one, that run is worth more to this project than a second arm64 one.</p>
 <hr>
 <h2 id="troubleshooting">Troubleshooting</h2>
 <p><strong><code>randomx.h: No such file or directory</code></strong> <code>CPPFLAGS</code> is not pointing at <code>build/randomx/src</code>. That directory is the include root, not <code>build/randomx</code>.</p>

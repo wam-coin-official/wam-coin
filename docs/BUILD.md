@@ -259,6 +259,68 @@ already runs a node — which is every machine anybody would test a build on.
 
 ---
 
+## 9. Building on macOS
+
+There is no `.dmg` either. This one is a native build, not a cross-compile, so
+it must run on the Mac itself — `scripts/build_macos.sh` checks `uname -s` and
+stops immediately anywhere else rather than failing forty minutes later.
+
+Xcode's command line tools, and five things from Homebrew:
+
+```bash
+xcode-select --install
+brew install cmake autoconf automake libtool pkg-config
+
+git clone https://github.com/wam-coin-official/wam-coin.git ~/wam-coin
+cd ~/wam-coin
+bash scripts/fetch-upstream.sh
+bash scripts/build_macos.sh
+```
+
+**Boost, libevent and sqlite deliberately do not come from Homebrew.** The
+first version of this used them and it failed: Homebrew installs the *newest*
+boost, and Bitcoin Core v28 does not build against it. Worse than failing, it
+would have made the result depend on whatever Homebrew shipped that week, so
+two people building the same commit on the same day could get different
+binaries. They come from `depends/`, which is upstream's own answer and
+already how the Windows build here works:
+
+```
+make -C depends HOST=$(uname -m)-apple-darwin NO_QT=1 NO_ZMQ=1 NO_UPNP=1 NO_NATPMP=1 NO_USDT=1
+```
+
+The script does this for you. No SDK question arises — `depends/README.md`
+lists the macOS SDK under *cross*-compiling, and this is not that.
+
+On an Intel Mac RandomX is configured with `-DARCH=x86-64`; on Apple Silicon
+that flag is not passed at all. It must never be `native`, on any platform:
+a binary tuned to the machine that built it computes proof-of-work that
+machine agrees with and can disagree with everyone else's.
+
+About twenty minutes on Apple Silicon — CI measured 739 seconds for the build
+and 279 more to sync the test chain. The binaries land in
+`out/macos-$(uname -m)/`, and each is checked with `file -bL` to be genuinely
+Mach-O before it is kept.
+
+**Two test suites run before anything is kept**, and a failure in either
+deletes nothing but refuses to leave you a binary: RandomX's own reference
+vectors, then `wam_monetary_tests` and `wam_devfee_tests`. The monetary
+schedule and the 5% treasury rule are precisely what a different compiler on a
+different architecture could get quietly wrong, and a node that gets either
+wrong does not crash — it forks itself off at block 1.
+
+Then the same proof the Windows section ends with, and for the same reason:
+
+```bash
+bash scripts/test/test_platform_consensus.sh out/macos-$(uname -m)
+```
+
+**Apple Silicon is the one that has been proven.** An Intel Mac has not been
+built or synced by anyone yet, so if you have one, that run is worth more to
+this project than a second arm64 one.
+
+---
+
 ## Troubleshooting
 
 **`randomx.h: No such file or directory`**

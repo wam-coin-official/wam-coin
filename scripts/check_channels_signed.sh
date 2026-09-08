@@ -148,6 +148,54 @@ else
     fails=$((fails + 1))
 fi
 
+# ---- and against what somebody who CLONES the repository gets --------------
+#
+# This is the check that was missing, and its absence produced a green tick on
+# 8 September while the committed pair was BADSIG.
+#
+# The working tree is not what the public receives. .gitattributes says
+# `* text=auto eol=lf`, so a file written with CRLF -- which is what an editor
+# on Windows does -- is silently normalised to LF when it is added. The file
+# that was signed and the file that was committed then differ by 142 bytes,
+# both are correct on their own terms, and the signature covers only one of
+# them. Everything above passed, because everything above read the copy on
+# this disk.
+#
+# So: verify the bytes git actually holds, with the signature git actually
+# holds. That pair is what `git clone` hands a stranger, and CHANNELS.txt
+# tells that stranger to check it.
+if git rev-parse --git-dir >/dev/null 2>&1; then
+    C="$(mktemp -d)" || { warn "cannot create a temporary directory"; echo; exit 2; }
+    cclean() { gpgconf --homedir "$C/h" --kill all >/dev/null 2>&1; rm -rf "$C"; }
+    if git show "HEAD:$FILE" > "$C/f" 2>/dev/null && git show "HEAD:$SIG" > "$C/s" 2>/dev/null; then
+        mkdir -p "$C/h"; chmod 700 "$C/h"
+        gpg --homedir "$C/h" --batch --quiet --import SIGNING-KEY.asc 2>/dev/null
+        cout="$(gpg --homedir "$C/h" --status-fd 1 --verify "$C/s" "$C/f" 2>/dev/null)"
+        if printf '%s' "$cout" | grep -q "GOODSIG"; then
+            ok "and it verifies against the committed bytes, which is what a clone gets"
+        else
+            bad "the COMMITTED pair does not verify -- a clone of this repository gets BAD signature"
+            say ""
+            say "  committed  $(wc -c < "$C/f" | tr -d ' ') bytes"
+            say "  on disk    $(wc -c < "$FILE" | tr -d ' ') bytes"
+            say ""
+            say "If those two numbers differ, the file was signed before git"
+            say "normalised its line endings. Make the working copy LF, then"
+            say "sign the LF bytes:"
+            say ""
+            say "    sed -i 's/\\r\$//' $FILE $MFILE"
+            say "    bash scripts/sign_channels.sh"
+            say ""
+            fails=$((fails + 1))
+        fi
+    else
+        warn "CHANNELS.txt or its signature is not committed yet -- only the working copy was checked"
+    fi
+    cclean
+else
+    warn "not a git repository -- only the working copy was checked"
+fi
+
 echo
 if [ "$fails" -gt 0 ]; then
     printf '  %s%d problem(s)%s\n\n' "$RED" "$fails" "$OFF"

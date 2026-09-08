@@ -117,13 +117,21 @@ while IFS= read -r f; do
 
     if [ $rc -eq 0 ]; then
         printf '  %sok%s    %s\n' "$GRN" "$OFF" "$rel"
-    elif printf '%s' "$out" | grep -q 'file not found'; then
+    elif printf '%s' "$out" | grep -qE 'fatal error:.*file not found'; then
         # Not a finding about our code. A header this check failed to put on
         # the path says nothing about whether clang accepts what we wrote, and
         # calling it a rejection sends the reader to the wrong file.
+        #
+        # Anchored on "fatal error:" and not on the phrase alone. clang echoes
+        # the offending source line inside its diagnostics, so a .cpp holding
+        # the string "file not found" anywhere -- a log message, a comment on
+        # the echoed line -- would have been read as a missing header, which
+        # downgrades a real rejection to "the check could not run" and hides
+        # it. The same distinction the sweep's own mention-versus-use check
+        # exists to make, in the one place here that matches text.
         printf '  %s!!%s    %s -- a header is missing from this check, not the code\n' \
             "$YLW" "$OFF" "$rel"
-        printf '%s\n' "$out" | grep -E 'file not found' | head -2 | sed 's/^/          /'
+        printf '%s\n' "$out" | grep -E 'fatal error:.*file not found' | head -2 | sed 's/^/          /'
         unreadable=$((unreadable + 1))
     else
         printf '  %sFAIL%s  %s\n' "$RED" "$OFF" "$rel"

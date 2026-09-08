@@ -131,6 +131,26 @@ every 600s ──▶ balances &gt;= minimumPayoutWam ──▶ sendmany ──�
 <p>RandomX hashrates span four orders of magnitude — a phone at 200 H/s and a 64-core server at 30 kH/s can be on the same pool — so three ports with different starting difficulties are provided. Miners that never submit are also rescued by an idle check every 30 seconds.</p>
 <p>Share difficulty uses the <strong>RandomX diff-1 convention</strong> (<code>2^256 / 2^32</code>), not Bitcoin's. Using Bitcoin's constant would inflate every hashrate figure by ~4.3 billion.</p>
 <hr>
+<h2 id="the-randomx-seed-for-a-pool-that-is-not-this-one">The RandomX seed, for a pool that is not this one</h2>
+<p>Everything else in this document assumes you are deploying the pool in <code>pool/</code>, which already implements this. If you are adding WAM to pool software of your own, <strong>this section is the part that will cost you a day</strong>, and it is the only part where WAM differs from a Monero-style RandomX chain in a way your code has to know about.</p>
+<p>The seed is the hash of a <strong>past</strong> block, not of the tip:</p>
+<pre><code>if height &lt;= lag:  seed_height = 0
+else:              seed_height = floor((height - lag) / epoch) * epoch
+
+seed = the hash of the block at seed_height</code></pre>
+<p>That first line is not decoration. Without it the arithmetic goes negative for the first <code>lag</code> blocks of a chain, and mainnet's first 64 blocks are exactly where a launch-day pool starts.</p>
+<table><tr><th></th><th>epoch</th><th>lag</th></tr><tr><td>mainnet</td><td>2048 blocks (~2.8 days)</td><td>64</td></tr><tr><td>testnet</td><td>256 blocks (~8 hours)</td><td>16</td></tr><tr><td>regtest</td><td>64 blocks</td><td>4</td></tr></table>
+<p><strong>Epoch 0 is not a block hash.</strong> Before the first rotation the key is the fixed string <code>WAM/RandomX/epoch-0/2026</code>. A pool that starts from genesis and computes a block hash for epoch 0 will reject every share on the chain's first 2048 blocks, and mainnet spends its first three days there.</p>
+<p>The node will tell you what it expects, at any height, and this is the authority — not this table:</p>
+<pre><code>wam-cli getrandomxinfo</code></pre>
+<pre><code>height, seed_height, seed_hash, bootstrap, epoch_blocks, epoch_lag,
+blocks_until_rotation, memory_bytes</code></pre>
+<p><code>bootstrap: true</code> means epoch 0 — the string key. <code>blocks_until_rotation</code> is what a pool schedules its next seed build against.</p>
+<p><code>pool/lib/randomxSeed.js</code> is the reference implementation, about eighty lines, and <code>pool/test/</code> exercises it across rotations. Reading it is faster than reading this section.</p>
+<p>Announce the seed to miners over stratum as <code>mining.set_seedhash</code>, and when it disagrees with <code>getrandomxinfo</code> you have found your bug rather than ours — see Troubleshooting.</p>
+<blockquote><p><strong>Test across a rotation before mainnet, not after.</strong> Testnet rotates every 256 blocks, so a rotation arrives in about eight hours; mainnet takes 2.8 days. A seed implementation that has never crossed a boundary is untested in the one respect that matters, and launch day is a bad time to find that out — every miner rebuilds at once and a pool that computes the new key wrongly rejects all of them.</p>
+<p>This section exists because a pool operator asked for it on 8 September and the page had nothing: it described how to <em>run</em> our pool through a rotation and never said how the seed is derived, because whoever it was written for already had our code.</p></blockquote>
+<hr>
 <h2 id="randomx-memory">RandomX memory</h2>
 <table><tr><th>Mode</th><th>Memory</th><th>Use</th></tr><tr><td>light (<code>randomxFullMemory: false</code>)</td><td>~256 MiB per live seed</td><td><strong>correct for a verifying pool</strong></td></tr><tr><td>full (<code>true</code>)</td><td>~2.1 GiB per live seed</td><td>only if this process also mines</td></tr></table>
 <p>Two seeds are kept alive at once. That is not a tuning knob: around an epoch boundary the pool validates shares from the new epoch while stragglers from the old one are still arriving, and holding exactly those two keeps memory bounded without thrashing.</p>

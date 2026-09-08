@@ -101,6 +101,13 @@ EXEMPT = {
     "scripts/test/test_line_endings.sh":
         "line endings, not text -- and a quotation mark would be a line to "
         "check like any other",
+    "scripts/test/test_clang.sh":
+        "it matches the compiler's own diagnostics, not any tracked document. "
+        "There is no prose here for a quotation to protect -- clang wrote the "
+        "text it reads. The one false-positive path that did exist was real "
+        "and is closed in the script itself: a .cpp holding the string \"file "
+        "not found\" could appear in an echoed source line and be read as a "
+        "missing header, so the match is anchored on \"fatal error:\"",
 }
 
 
