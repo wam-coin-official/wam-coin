@@ -132,6 +132,75 @@ Using Bitcoin's constant would inflate every hashrate figure by ~4.3 billion.
 
 ---
 
+## The RandomX seed, for a pool that is not this one
+
+Everything else in this document assumes you are deploying the pool in `pool/`,
+which already implements this. If you are adding WAM to pool software of your
+own, **this section is the part that will cost you a day**, and it is the only
+part where WAM differs from a Monero-style RandomX chain in a way your code has
+to know about.
+
+The seed is the hash of a **past** block, not of the tip:
+
+```
+if height <= lag:  seed_height = 0
+else:              seed_height = floor((height - lag) / epoch) * epoch
+
+seed = the hash of the block at seed_height
+```
+
+That first line is not decoration. Without it the arithmetic goes negative for
+the first `lag` blocks of a chain, and mainnet's first 64 blocks are exactly
+where a launch-day pool starts.
+
+| | epoch | lag |
+|---|---|---|
+| mainnet | 2048 blocks (~2.8 days) | 64 |
+| testnet | 256 blocks (~8 hours) | 16 |
+| regtest | 64 blocks | 4 |
+
+**Epoch 0 is not a block hash.** Before the first rotation the key is the fixed
+string `WAM/RandomX/epoch-0/2026`. A pool that starts from genesis and computes
+a block hash for epoch 0 will reject every share on the chain's first 2048
+blocks, and mainnet spends its first three days there.
+
+The node will tell you what it expects, at any height, and this is the
+authority — not this table:
+
+```bash
+wam-cli getrandomxinfo
+```
+
+```
+height, seed_height, seed_hash, bootstrap, epoch_blocks, epoch_lag,
+blocks_until_rotation, memory_bytes
+```
+
+`bootstrap: true` means epoch 0 — the string key. `blocks_until_rotation` is
+what a pool schedules its next seed build against.
+
+`pool/lib/randomxSeed.js` is the reference implementation, about eighty lines,
+and `pool/test/` exercises it across rotations. Reading it is faster than
+reading this section.
+
+Announce the seed to miners over stratum as `mining.set_seedhash`, and when it
+disagrees with `getrandomxinfo` you have found your bug rather than ours — see
+Troubleshooting.
+
+> **Test across a rotation before mainnet, not after.** Testnet rotates every
+> 256 blocks, so a rotation arrives in about eight hours; mainnet takes 2.8
+> days. A seed implementation that has never crossed a boundary is untested in
+> the one respect that matters, and launch day is a bad time to find that out —
+> every miner rebuilds at once and a pool that computes the new key wrongly
+> rejects all of them.
+>
+> This section exists because a pool operator asked for it on 8 September and
+> the page had nothing: it described how to *run* our pool through a rotation
+> and never said how the seed is derived, because whoever it was written for
+> already had our code.
+
+---
+
 ## RandomX memory
 
 | Mode | Memory | Use |
