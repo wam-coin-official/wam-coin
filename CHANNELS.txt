@@ -16,6 +16,7 @@
    discord        https://discord.gg/Gxvmrjy9Qb
    bitcointalk    https://bitcointalk.org/index.php?topic=5591218.0
    youtube        https://www.youtube.com/@WAMcoin-l1z
+   reddit         https://www.reddit.com/user/WAMCoinCore/   (held, not used)
    email          wam.coin.official@proton.me
 
  And the three services the network itself runs:
@@ -29,11 +30,17 @@
  wallet about what you hold. Check the host against this file before you
  point anything at it.
 
- There are no others. No Reddit, no Instagram, no second Telegram group,
- no second Discord, no second YouTube channel, no second BitcoinTalk
- thread, no "support" account, no
- exchange listing, no presale, no airdrop, no token sale, no wallet app. If
- you have found one of those and it says WAM, it is not us.
+ There are no others. No Instagram, no second Telegram group, no second
+ Discord, no second YouTube channel, no second Reddit account, no second
+ BitcoinTalk thread, no "support" account, no exchange listing, no
+ presale, no airdrop, no token sale, no wallet app. If you have found one
+ of those and it says WAM, it is not us.
+
+ The Reddit account is marked "held, not used" because that is what it is.
+ It was registered early so that nobody else could take the name, and
+ nothing has ever been posted from it. If you see a post there, either we
+ have started using it and said so here first, or somebody else has the
+ account -- and this file is how you tell those apart.
 
 
  WHAT NOBODY OFFICIAL WILL EVER DO
