@@ -192,6 +192,17 @@ run "published claims match consensus"  "$PY" scripts/check_published_claims.py
 # thread three weeks later -- because the fix was a person remembering.
 run "the channel list names all of us"  "$PY" scripts/check_channels.py
 
+# And that the signature on it still covers the bytes it names. CHANNELS.txt
+# tells its reader to run `gpg --verify`, and on 8 September the file was
+# edited twice without being re-signed -- so that instruction returned BAD
+# signature, which does not read as "they forgot" but as "somebody has taken
+# their site and altered the list of which accounts are theirs". Absent is
+# careless; BAD is an alarm we would have raised against ourselves.
+#
+# Needs only the public SIGNING-KEY.asc, so it runs here and in CI, on the
+# laptop where the edit happens and which holds no secret key.
+run "the channel list's signature is current"  bash scripts/check_channels_signed.sh
+
 # And the same question about the text we post: SECURITY.md is a filename to
 # us and a hostname to Telegram, which linked the sentence about verifying
 # our fingerprint to a shop in Moldova. Found by the founder pressing it.
