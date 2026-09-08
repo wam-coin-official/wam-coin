@@ -226,7 +226,9 @@ x           https://x.com/WAMCoinCore
 discord     https://discord.gg/Gxvmrjy9Qb
 [/code]
 
-There are no others. No Reddit, no second Telegram, no "support" account.
+There are no others. No second Telegram, no "support" account. The Reddit
+account @WAMCoinCore is ours and is held rather than used -- nothing has ever
+been posted from it.
 Nobody official will ever message you first, ask for a seed phrase, or offer
 you an allocation.
 

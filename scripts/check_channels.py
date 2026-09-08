@@ -96,6 +96,7 @@ OURS = re.compile(
       | https?://discord\.gg/[A-Za-z0-9]+
       | https?://bitcointalk\.org/index\.php\?topic=\d+[^\s"'<>)\]]*
       | https?://(?:www\.)?youtube\.com/@[A-Za-z0-9._-]+[^\s"'<>)\]]*
+      | https?://(?:www\.|old\.)?reddit\.com/user/[A-Za-z0-9_-]+[^\s"'<>)\]]*
       | [A-Za-z0-9._%+-]+@proton\.me
     )
     """)
@@ -142,6 +143,12 @@ def identity(u):
     m = re.match(r"youtube\.com/(@[a-z0-9._-]+)", low)
     if m:
         return f"youtube.com/{m.group(1)}"
+    # old.reddit.com and www.reddit.com are the same account. Reddit answers
+    # 403 to anything that is not a browser, which the reachability pass
+    # already tolerates -- only 404 and 410 mean an account is gone.
+    m = re.match(r"(?:old\.)?reddit\.com/user/([a-z0-9_-]+)", low)
+    if m:
+        return f"reddit.com/user/{m.group(1)}"
     m = re.match(r"(t\.me|x\.com|discord\.gg)/([a-z0-9_-]+)", low)
     if m:
         return f"{m.group(1)}/{m.group(2)}"
