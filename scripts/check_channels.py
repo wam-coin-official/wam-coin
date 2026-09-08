@@ -95,6 +95,7 @@ OURS = re.compile(
       | https?://(?:www\.)?x\.com/WAMCoinCore[^\s"'<>)\]]*
       | https?://discord\.gg/[A-Za-z0-9]+
       | https?://bitcointalk\.org/index\.php\?topic=\d+[^\s"'<>)\]]*
+      | https?://(?:www\.)?youtube\.com/@[A-Za-z0-9._-]+[^\s"'<>)\]]*
       | [A-Za-z0-9._%+-]+@proton\.me
     )
     """)
@@ -136,6 +137,11 @@ def identity(u):
     m = re.match(r"github\.com/([a-z0-9-]+)", low)
     if m:
         return f"github.com/{m.group(1)}"
+    # A YouTube channel is its handle, and everything under it -- /videos,
+    # /shorts, a single video -- is the same channel.
+    m = re.match(r"youtube\.com/(@[a-z0-9._-]+)", low)
+    if m:
+        return f"youtube.com/{m.group(1)}"
     m = re.match(r"(t\.me|x\.com|discord\.gg)/([a-z0-9_-]+)", low)
     if m:
         return f"{m.group(1)}/{m.group(2)}"

@@ -15,6 +15,7 @@
    x / twitter    https://x.com/WAMCoinCore
    discord        https://discord.gg/Gxvmrjy9Qb
    bitcointalk    https://bitcointalk.org/index.php?topic=5591218.0
+   youtube        https://www.youtube.com/@WAMcoin-l1z
    email          wam.coin.official@proton.me
 
  And the three services the network itself runs:
@@ -29,7 +30,8 @@
  point anything at it.
 
  There are no others. No Reddit, no Instagram, no second Telegram group,
- no second Discord, no second BitcoinTalk thread, no "support" account, no
+ no second Discord, no second YouTube channel, no second BitcoinTalk
+ thread, no "support" account, no
  exchange listing, no presale, no airdrop, no token sale, no wallet app. If
  you have found one of those and it says WAM, it is not us.
 
