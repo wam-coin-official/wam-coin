@@ -64,6 +64,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
@@ -468,11 +469,52 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
+def already_serving():
+    """Is a copy of this panel already answering on the port?
+
+    The scheduled task that owns this dashboard fires at logon and then every
+    ten minutes, as a keep-alive: if the panel has died, the next trigger
+    brings it back. But when it is alive and something else holds the port,
+    every one of those triggers used to end like this --
+
+        OSError: [WinError 10048] Only one usage of each socket address
+            (protocol/network address/port) is normally permitted
+
+    -- a console window flashing a Python traceback at the operator every ten
+    minutes for a day. That happened on 7 September because I restarted the
+    panel by hand instead of through its task, so my process held the port and
+    the task's own copy could never bind.
+
+    A traceback is the wrong answer to "something else is already doing this".
+    It reads like a fault in the panel, and the fault is that there is nothing
+    to do.
+    """
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{PORT}/state.json", timeout=4) as r:
+            return r.status == 200
+    except Exception:
+        return False
+
+
 def main():
     threading.Thread(target=collector, daemon=True).start()
     # 127.0.0.1 and nothing else. Binding to 0.0.0.0 here would put the map
     # of this network's weak points on whatever wifi this laptop is using.
-    with socketserver.ThreadingTCPServer(("127.0.0.1", PORT), Handler) as srv:
+    try:
+        srv = socketserver.ThreadingTCPServer(("127.0.0.1", PORT), Handler)
+    except OSError as e:
+        # errno 98 on Linux, 10048 on Windows -- both mean "taken".
+        if getattr(e, "winerror", None) == 10048 or e.errno in (48, 98, 10048):
+            if already_serving():
+                print(f"  the dashboard is already running on "
+                      f"http://127.0.0.1:{PORT} -- nothing to do.")
+                return 0
+            print(f"  port {PORT} is held by something that is not this "
+                  f"dashboard.\n  Find it with:  Get-NetTCPConnection "
+                  f"-LocalPort {PORT} -State Listen")
+            return 2
+        raise
+    with srv:
         srv.allow_reuse_address = True
         print(f"  WAM ops dashboard  ->  http://127.0.0.1:{PORT}")
         print(f"  reachable from this machine only. Ctrl-C to stop.\n")
@@ -483,4 +525,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main() returns a code now: 0 when another copy is already
+    # serving, 2 when the port is held by something else.
+    sys.exit(main() or 0)
