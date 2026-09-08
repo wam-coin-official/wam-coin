@@ -126,6 +126,17 @@ cd wam-coin-v0.1.7/bin
 ./wamd -testnet -printtoconsole
 ```
 
+**Or `-daemon` instead of `-printtoconsole`, if you would rather it ran in the
+background.** `-printtoconsole` shows you the node working, which is how you
+notice something is wrong before a check tells you — but it dies when you
+close the terminal. `-daemon` survives that and shows you nothing. You can
+have both: run `-daemon`, then `tail -f ~/.wam/testnet3/debug.log` in any
+terminal for the identical stream. The log file is written in all three cases.
+
+This choice used to be a line at the end of a long note further down, and the
+one tester who cared about it most read past it twice before saying so. That
+is a placement fault, not his.
+
 > **If it will not start, this is almost always why.** The download needs four
 > things from your system, and nothing else:
 >
@@ -166,9 +177,8 @@ nodes and asking them for the list. Leave it running.
 > ~/.wam/testnet3/debug.log
 > ```
 >
-> Quote from that file, never from the screen. And if you would rather it ran
-> in the background, drop `-printtoconsole` and add `-daemon`: the log file is
-> written either way.
+> Quote from that file, never from the screen — in `-daemon` too, where the
+> file is the only copy there is.
 
 To watch it in another terminal:
 
@@ -282,6 +292,33 @@ Nothing is lost either way — `createwallet` writes a file and deleting
 `blocks`, `chainstate` or `peers.dat` does not touch it. This was found on
 6 September by somebody following this page, restarting his node three times,
 and being told his wallet did not exist.
+
+**And if the machine itself is gone, this is how the backup goes back.** Put
+it where the node looks, under the name the node expects:
+
+```
+mkdir -p ~/.wam/testnet3/wallets/mine
+cp /path/to/your/backup.dat ~/.wam/testnet3/wallets/mine/wallet.dat
+./wam-cli -testnet loadwallet "mine"
+./wam-cli -testnet -rpcwallet=mine getbalance
+```
+
+The rename is the part that catches people: your backup may be called
+anything, but the file inside the folder must be `wallet.dat`, and the folder
+must carry the wallet's name. Get either wrong and the node reports a wallet
+that does not exist rather than a file that is misnamed.
+
+If the balance reads zero when you know it should not, the node has not looked
+at the older blocks yet — `./wam-cli -testnet -rpcwallet=mine
+rescanblockchain` reads the chain from the beginning, and `getwalletinfo`
+reports a `scanning` object until it is finished. A node still syncing from
+genesis, as a fresh install is, needs none of that: the blocks arrive with the
+wallet already open.
+
+This procedure is here because somebody reinstalled his operating system on
+8 September 2026, restored his wallet with no instructions to follow, got it
+right, and wrote down what he did. [MINE.md](MINE.md) carries the same steps
+next to the backup command.
 
 You will get something like `twam1q4syaj2akkysnsymxm8g85whanz23v3jn0jm6dd`.
 That is yours. Anyone can send to it; only you can spend from it.

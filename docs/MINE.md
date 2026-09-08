@@ -201,6 +201,42 @@ The live wallet is at `~/.wam/testnet3/wallets/mine/wallet.dat`, and
 `listdescriptors true` prints the same keys in portable form. Treat that
 output like cash: never paste it anywhere, including to us.
 
+## Restore it
+
+A backup nobody has ever restored is a file you hope about. This page told you
+how to make one in three separate places and never once said how to use one,
+which was found on 8 September 2026 by the first person outside this project
+to actually do it — onto a machine whose operating system he had reinstalled
+that morning. These are his steps, not ours.
+
+```
+mkdir -p ~/.wam/testnet3/wallets/mine
+cp /path/to/your/backup.dat ~/.wam/testnet3/wallets/mine/wallet.dat
+./wam-cli -testnet loadwallet "mine"
+./wam-cli -testnet -rpcwallet=mine getbalance
+```
+
+**The rename is the part that catches people.** Your backup may be called
+anything you like, but the file inside the folder must be called `wallet.dat`,
+and the folder must be named after the wallet you then pass to `loadwallet`.
+Neither is guessable, and getting either wrong gives you an error about a
+wallet that does not exist rather than one about a file that is misnamed.
+
+His balance was simply there, with no rescan, because that node was syncing
+from genesis: the blocks holding his coins arrived while the wallet was
+already open. A node that finished syncing weeks ago is the other case, and
+if the balance reads zero when you know it should not, ask the node to look
+again:
+
+```
+./wam-cli -testnet -rpcwallet=mine rescanblockchain
+```
+
+It reads the chain from the beginning and takes as long as it takes.
+`getwalletinfo` reports a `scanning` object while that is happening and
+`false` when it is done, so you are never left guessing whether it is still
+working.
+
 ---
 
 [discord](https://discord.gg/Gxvmrjy9Qb) ·
