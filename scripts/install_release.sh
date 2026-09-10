@@ -62,6 +62,21 @@ OWNER="${OWNER:-root}"
 BASE="https://github.com/wam-coin-official/wam-coin/releases/download/v${V}"
 WORK="$ROOT/wam-v${V}"
 
+# Resolved HERE, before the cd below, and not where it is used.
+#
+# It used to be computed further down, next to the verifier call that needs
+# it -- which reads better and is wrong. By then the script has already done
+# `cd "$WORK"`, so `dirname "$0"` -- a relative "scripts" when invoked as
+# `bash scripts/install_release.sh` -- points at a directory that no longer
+# exists from where we are standing:
+#
+#     install_release.sh: line 102: cd: scripts: No such file or directory
+#
+# It aborted after downloading the release and before verifying or installing
+# anything, on the first machine this script had touched in weeks. A path
+# taken from $0 is only meaningful before the first cd, wherever it is read.
+SELF_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" && pwd)"
+
 printf '\n%sinstalling WAM v%s%s\n' "$BLD" "$V" "$OFF"
 mkdir -p "$WORK"
 cd "$WORK"
@@ -99,7 +114,6 @@ done
 #  fingerprint from SECURITY.md and compares it explicitly, so a substituted
 #  SIGNING-KEY.asc changes the fingerprint and the comparison catches it.
 # ---------------------------------------------------------------------------
-SELF_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
 VERIFY="$SELF_DIR/verify_release.sh"
 if [ ! -x "$VERIFY" ] && [ ! -f "$VERIFY" ]; then
     printf '  %sverify_release.sh is not beside this script%s\n' "$RED" "$OFF"
