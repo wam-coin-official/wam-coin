@@ -341,7 +341,36 @@ A single computer wins rarely, so miners join a **pool**: everybody works
 together and the reward is split by how much work each contributed. Small,
 steady payments instead of a lottery.
 
+### First, get the miner — it is a separate download
+
+**The miner is not in the archive you already unpacked.** The node and the
+miner ship as two files, and until 10 September this page told you to run
+`./wam-miner` without ever telling you where to get it. Somebody mining under
+WSL found that, after first trying `./wam-cli` inside the miner's folder and
+being told there was no such file — which is the same confusion from the other
+end.
+
+| archive | what is in it |
+|---|---|
+| `wam-coin-v0.1.7-…` | `wamd`, `wam-cli` — the node |
+| `wam-miner-v0.1.7-…` | `wam-miner` — the miner, and nothing else |
+
+```bash
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/wam-miner-v0.1.7-x86_64-linux-gnu.tar.gz
+tar -xzf wam-miner-v0.1.7-x86_64-linux-gnu.tar.gz
+cd wam-miner-v0.1.7
+chmod +x wam-miner
+```
+
+`chmod` is there because a file unpacked onto a Windows drive — `/mnt/c/...`
+under WSL — loses the executable bit, and `bash` then says `Permission
+denied`, which reads as a broken download rather than a filesystem it passed
+through.
+
 ### Point your miner at the pool
+
+The address comes from step 4, and `wam-cli` lives in the *node* folder, not
+this one — so run the two from their own directories.
 
 ```bash
 ./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS.rig1 -t 4
