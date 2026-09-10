@@ -399,5 +399,6 @@ echo "=================================================================="
 # is the transport, and pinning git's protocol to its oldest version would go
 # on hiding that for years after the transport is fixed.
 # ---------------------------------------------------------------------------
-step "git fetches over HTTP/1.1 (HTTP/2 is broken in this git+curl pair)"
+log "git fetches over HTTP/1.1 (HTTP/2 is broken in this git+curl pair)"
 git config --system http.version HTTP/1.1
+ok "git http.version = $(git config --system --get http.version)"
