@@ -224,12 +224,28 @@ source      https://github.com/wam-coin-official/wam-coin
 telegram    https://t.me/wam_coin_updates
 x           https://x.com/WAMCoinCore
 discord     https://discord.gg/Gxvmrjy9Qb
+bluesky     https://bsky.app/profile/wamcoin.org
+youtube     https://www.youtube.com/@WAMcoin-l1z
+reddit      https://www.reddit.com/user/WAMCoinCore/
+tiktok      https://www.tiktok.com/@wamcoin
+twitch      https://www.twitch.tv/wamcoin
+email       wam.coin.official@proton.me
 [/code]
 
-There are no others. No second Telegram, no "support" account. The Reddit
-account u/WAMCoinCore is ours. One post was made from it and Reddit removed it
-under a temporary spam restriction -- a new account posting external links --
-so the page looks empty.
+There are no others -- no second account on any platform above, no "support"
+account, no exchange listing, no presale, no airdrop. The full list is signed,
+and checkable rather than merely believed:
+https://wamcoin.org/CHANNELS.txt
+
+The Bluesky handle @wamcoin.org is not a name chosen on Bluesky, it is the
+domain itself -- granted only to whoever can write a DNS record under it. So
+it proves itself without trusting us and without trusting Bluesky:
+
+  dig +short TXT _atproto.wamcoin.org
+
+The Reddit account u/WAMCoinCore is ours. One post was made from it and Reddit
+removed it under a temporary spam restriction -- a new account posting external
+links -- so the page looks empty.
 Nobody official will ever message you first, ask for a seed phrase, or offer
 you an allocation.
 
