@@ -72,8 +72,17 @@ TLDS = [
 #   - a label of letters, digits and hyphens only (an underscore is illegal
 #     in a hostname, so verify_release.sh is never linkified)
 #   - one of the extensions above
+# The lookbehind excludes "@" as well, because the domain half of an email
+# address is not a filename. On 10 September this check failed the forum post
+# for `wam.coin.official@proton.me` -- .me is Montenegro, so `proton.me`
+# matched -- and it was right that a client will linkify it. It was wrong that
+# this is a fault: a client turns an email address into a mailto link, which
+# goes exactly where it says, to us. The hazard this check exists for is a
+# token that linkifies to somebody ELSE, and an address preceded by "@" never
+# does. Removing the address would have been the wrong fix twice over: it is a
+# published channel, and it is in CHANNELS.txt.
 RX = re.compile(
-    r"(?<![/\w.$-])([A-Za-z][A-Za-z0-9-]*)\.(" + "|".join(TLDS) + r")\b")
+    r"(?<![/@\w.$-])([A-Za-z][A-Za-z0-9-]*)\.(" + "|".join(TLDS) + r")\b")
 
 
 def main():
