@@ -8,6 +8,49 @@
 <meta name="description" content="A CPU-mineable proof-of-work currency with a hard 22,000,000 cap. RandomX, two-minute blocks, a disclosed and time-locked founder reserve. Launching 15 September 2026.">
 <link rel="canonical" href="https://wamcoin.org/">
 
+<!-- Every account that is us, in the form a search engine actually reads.
+     schema.org's sameAs is the standard way to say "these profiles and this
+     website are one entity" -- it is what a search engine assembles an
+     official-accounts panel from. Without it, and without the visible links
+     further down, a profile our own domain never points at is a profile
+     nothing associates with us, and the impostor's copy is the one that gets
+     found first.
+
+     This runs in the opposite direction to the platforms' own verification,
+     and it is the direction we control: the claim comes from the domain,
+     which nobody else holds. Bluesky is the one that also proves itself the
+     other way, without us and without trusting Bluesky -- the handle IS the
+     domain, bound by a TXT record at _atproto.wamcoin.org that any stranger
+     can query. The rest carry only what they assert.
+
+     CHANNELS.txt is the signed copy of this same list. If the two ever
+     disagree, the signed one is the answer and this is the mistake. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "WAM Coin",
+  "alternateName": "WAMCoin",
+  "url": "https://wamcoin.org/",
+  "logo": "https://wamcoin.org/og-card.png",
+  "email": "wam.coin.official@proton.me",
+  "foundingDate": "2026",
+  "description": "A CPU-mineable proof-of-work currency with a hard 22,000,000 cap. RandomX, two-minute blocks, a disclosed and time-locked founder reserve. Mainnet 15 September 2026.",
+  "sameAs": [
+    "https://github.com/wam-coin-official/wam-coin",
+    "https://x.com/WAMCoinCore",
+    "https://t.me/wam_coin_updates",
+    "https://discord.gg/Gxvmrjy9Qb",
+    "https://bsky.app/profile/wamcoin.org",
+    "https://www.youtube.com/@WAMcoin-l1z",
+    "https://www.reddit.com/user/WAMCoinCore/",
+    "https://www.tiktok.com/@wamcoin",
+    "https://www.twitch.tv/wamcoin",
+    "https://bitcointalk.org/index.php?topic=5591218.0"
+  ]
+}
+</script>
+
 <!-- Without these, a link to this page posted on X, Discord, Telegram or a
      forum renders as a bare URL: no title, no summary, no mark. A Bisq
      maintainer read a submission for this coin and replied "I do not see any
@@ -268,6 +311,20 @@ promise that any wallet will add support.</p>
     <b>Official channels</b><span>the canonical list</span></a>
 </div>
 
+<!-- The cards above are the channels somebody actually needs. These are the
+     rest, listed because a search engine has no reason to connect an account
+     to this project unless this domain points at it -- and the account it
+     finds instead will be somebody else's, wearing our name. -->
+<p class="dim">Also ours, and nowhere else:
+<a href="https://bsky.app/profile/wamcoin.org">Bluesky</a> ·
+<a href="https://www.youtube.com/@WAMcoin-l1z">YouTube</a> ·
+<a href="https://www.reddit.com/user/WAMCoinCore/">Reddit</a> ·
+<a href="https://www.tiktok.com/@wamcoin">TikTok</a> ·
+<a href="https://www.twitch.tv/wamcoin">Twitch</a> ·
+<a href="https://bitcointalk.org/index.php?topic=5591218.0">BitcoinTalk</a>.
+The Bluesky handle is <span class="mono">@wamcoin.org</span> — that is this domain, bound by a
+DNS record you can query yourself, so it proves itself without trusting us or Bluesky.</p>
+
 <p class="dim">Those are the only accounts. Nobody speaking for WAM will message you first,
 offer you an allocation, or ask you for a key or a payment — there is nothing to buy and no
 reason anyone would need to reach you. <a href="/CHANNELS.txt">CHANNELS.txt</a> is the plain-text
@@ -406,6 +463,16 @@ reason Monero does not.</p>
   <a class="card" href="/CHANNELS.txt">
     <b>القنوات الرسمية</b><span>القائمة المرجعية</span></a>
 </div>
+
+<p class="dim">ولنا أيضاً، ولا شيء غيرها:
+<a href="https://bsky.app/profile/wamcoin.org">Bluesky</a> ·
+<a href="https://www.youtube.com/@WAMcoin-l1z">YouTube</a> ·
+<a href="https://www.reddit.com/user/WAMCoinCore/">Reddit</a> ·
+<a href="https://www.tiktok.com/@wamcoin">TikTok</a> ·
+<a href="https://www.twitch.tv/wamcoin">Twitch</a> ·
+<a href="https://bitcointalk.org/index.php?topic=5591218.0">BitcoinTalk</a>.
+ومعرّفنا على Bluesky هو <span class="mono" dir="ltr">@wamcoin.org</span> — وهو نطاقنا هذا نفسه،
+مربوط بسجل DNS تستطيع أن تستعلم عنه بنفسك، فيثبت نفسه دون أن تصدّقنا ودون أن تصدّق Bluesky.</p>
 
 <p class="dim">هذه هي الحسابات الوحيدة. لن يراسلك أحد باسم WAM أولاً، ولن يعرض عليك حصة،
 ولن يطلب منك مفتاحاً ولا مبلغاً — لا يوجد شيء يُشترى، ولا سبب يجعل أحداً يحتاج الوصول إليك.
