@@ -145,7 +145,41 @@ for f in "$NODE_DIR/wamd" "$NODE_DIR/wam-cli" "$MINER_BIN"; do
 done
 
 printf '\n  %swhat the new binaries say they are%s\n' "$BLD" "$OFF"
-"$NODE_DIR/wamd" -version 2>/dev/null | head -1 | sed 's/^/    /'
+
+# 2>/dev/null used to be here, and it threw away the only sentence that
+# mattered. On a clean Ubuntu 24.04 this line exited 127 -- the loader's code
+# for "I could not start it" -- printed nothing, and took the whole install
+# with it under `set -e`, after the release had downloaded and verified. The
+# reason was sitting on stderr:
+#
+#     wamd: error while loading shared libraries: libevent_pthreads-2.1.so.7
+#
+# An installer that puts down a binary and never checks it runs has not
+# installed anything. So: run it, and if it will not run, say which libraries
+# are missing and which packages carry them, rather than an exit code.
+if ! ver="$("$NODE_DIR/wamd" -version 2>&1 | head -1)" || \
+   printf '%s' "$ver" | grep -q "error while loading shared libraries"; then
+    printf '    %s%s%s\n' "$RED" "$ver" "$OFF"
+    printf '\n  %sthe binaries are installed but cannot start%s\n' "$RED" "$OFF"
+    miss="$(ldd "$NODE_DIR/wamd" 2>/dev/null | grep 'not found' | awk '{print $1}')"
+    [ -n "$miss" ] && printf '%s\n' "$miss" | sed 's/^/      missing  /'
+    printf '\n  These come from your distribution, not from us:\n\n'
+    if command -v apt-get >/dev/null 2>&1; then
+        # 24.04 renamed them in the 64-bit time_t transition, and the old
+        # names do not exist there. Offer what this machine actually has.
+        if apt-cache policy libevent-2.1-7t64 2>/dev/null | grep -q 'Candidate: [0-9]'; then
+            printf '      sudo apt install libevent-2.1-7t64 libevent-pthreads-2.1-7t64 libsqlite3-0\n\n'
+        else
+            printf '      sudo apt install libevent-2.1-7 libevent-pthreads-2.1-7 libsqlite3-0\n\n'
+        fi
+    else
+        printf '      libevent, libevent-pthreads and sqlite, by your package manager s names\n\n'
+    fi
+    printf '  Then run this script again. Nothing is half-installed: the\n'
+    printf '  symlinks below have not been moved.\n\n'
+    exit 1
+fi
+printf '    %s\n' "$ver"
 
 mkdir -p "$BIN"
 ln -sfn "$NODE_DIR/wamd"    "$BIN/wamd"

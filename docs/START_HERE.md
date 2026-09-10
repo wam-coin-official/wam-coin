@@ -155,9 +155,25 @@ is a placement fault, not his.
 >
 > | | |
 > |---|---|
-> | Debian, Ubuntu | `sudo apt install libevent-2.1-7 libsqlite3-0` |
+> | Ubuntu 24.04, Debian 13 | `sudo apt install libevent-2.1-7t64 libevent-pthreads-2.1-7t64 libsqlite3-0` |
+> | Ubuntu 22.04, Debian 12 | `sudo apt install libevent-2.1-7 libevent-pthreads-2.1-7 libsqlite3-0` |
 > | Fedora, RHEL | `sudo dnf install libevent sqlite-libs` |
 > | Arch | `sudo pacman -S libevent sqlite` |
+>
+> **The `t64` is not a typo and the two lines are not interchangeable.**
+> Ubuntu 24.04 renamed these packages during the 64-bit `time_t` transition,
+> and `libevent-2.1-7` simply does not exist there — `apt` answers `Unable to
+> locate package`, which reads as a broken instruction rather than the wrong
+> release's instruction. Measured on both: 24.04 reports `Candidate: (none)`
+> for the old name.
+>
+> **And `libevent-pthreads` is a separate package, on both.** `libevent-2.1-7`
+> depends on `libc6` and nothing else; it does not bring pthreads with it.
+> This page said it did until 11 September, and got away with it because most
+> machines already carry that library for some other reason. A clean server
+> does not — which is how it was found, installing a seed node on a fresh
+> Ubuntu 24.04 and watching `wamd` fail on
+> `libevent_pthreads-2.1.so.7: cannot open shared object file`.
 >
 > glibc is not something to worry about: the binary's highest requirement is
 > `GLIBC_2.34` and glibc is backward compatible, so any newer distribution

@@ -144,9 +144,23 @@ cd wam-coin-v0.1.7/bin
 >
 > | | |
 > |---|---|
-> | دبيان وأوبونتو | `sudo apt install libevent-2.1-7 libsqlite3-0` |
+> | أوبونتو 24.04، دبيان 13 | `sudo apt install libevent-2.1-7t64 libevent-pthreads-2.1-7t64 libsqlite3-0` |
+> | أوبونتو 22.04، دبيان 12 | `sudo apt install libevent-2.1-7 libevent-pthreads-2.1-7 libsqlite3-0` |
 > | فيدورا وRHEL | `sudo dnf install libevent sqlite-libs` |
 > | آرتش | `sudo pacman -S libevent sqlite` |
+>
+> **و`t64` ليست خطأً مطبعيّاً، والسطران لا يُستبدل أحدهما بالآخر.** أوبونتو
+> 24.04 غيّرت أسماء هذه الحزم في انتقال `time_t` إلى 64 بت، و`libevent-2.1-7`
+> **غير موجودة هناك أصلاً** — يردّ `apt` بـ`Unable to locate package`، وهي
+> رسالةٌ تُقرأ «تعليمة معطوبة» لا «تعليمة إصدارٍ آخر». قِسناها على الاثنين:
+> 24.04 تقول `Candidate: (none)` للاسم القديم.
+>
+> **و`libevent-pthreads` حزمةٌ منفصلة، في الإصدارين.** فـ`libevent-2.1-7`
+> تعتمد على `libc6` وحدها ولا تجلب pthreads معها. كانت هذه الصفحة تقول غير
+> ذلك حتى ١١ سبتمبر، ومرّت لأنّ أغلب الأجهزة تحمل تلك المكتبة لسببٍ آخر.
+> والخادم النظيف لا يحملها — وهكذا وُجد العيب: عند تنصيب بذرةٍ على أوبونتو
+> 24.04 جديدة، فشل `wamd` بـ
+> `libevent_pthreads-2.1.so.7: cannot open shared object file`.
 >
 > وglibc ليس مما يُقلق: أعلى ما يطلبه الملفّ هو `GLIBC_2.34`، وglibc متوافقٌ
 > للأعلى، فأيُّ توزيعةٍ أحدث تعمل. **و`wam-miner` لا يحتاج شيئاً من هذا** —
