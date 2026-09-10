@@ -97,6 +97,9 @@ OURS = re.compile(
       | https?://bitcointalk\.org/index\.php\?topic=\d+[^\s"'<>)\]]*
       | https?://(?:www\.)?youtube\.com/@[A-Za-z0-9._-]+[^\s"'<>)\]]*
       | https?://(?:www\.|old\.)?reddit\.com/user/[A-Za-z0-9_-]+[^\s"'<>)\]]*
+      | https?://bsky\.app/profile/[A-Za-z0-9._-]+[^\s"'<>)\]]*
+      | https?://(?:www\.)?tiktok\.com/@[A-Za-z0-9._-]+[^\s"'<>)\]]*
+      | https?://(?:www\.)?twitch\.tv/[A-Za-z0-9_]+[^\s"'<>)\]]*
       | [A-Za-z0-9._%+-]+@proton\.me
     )
     """)
@@ -149,6 +152,22 @@ def identity(u):
     m = re.match(r"(?:old\.)?reddit\.com/user/([a-z0-9_-]+)", low)
     if m:
         return f"reddit.com/user/{m.group(1)}"
+    # These three were invisible to this check until 10 September. The site
+    # named a Bluesky, a TikTok and a Twitch account; CHANNELS.txt did not,
+    # and said "There are no others" -- so our own signed list called three
+    # of our own accounts impostors, and this check reported ok, because a
+    # URL whose shape it does not recognise is a URL it never sees. It is the
+    # third time in two days the list has been behind what exists, and the
+    # first two were caught by a person, not by this.
+    m = re.match(r"bsky\.app/profile/([a-z0-9._-]+)", low)
+    if m:
+        return f"bsky.app/profile/{m.group(1)}"
+    m = re.match(r"(?:www\.)?tiktok\.com/(@[a-z0-9._-]+)", low)
+    if m:
+        return f"tiktok.com/{m.group(1)}"
+    m = re.match(r"(?:www\.)?twitch\.tv/([a-z0-9_]+)", low)
+    if m:
+        return f"twitch.tv/{m.group(1)}"
     m = re.match(r"(t\.me|x\.com|discord\.gg)/([a-z0-9_-]+)", low)
     if m:
         return f"{m.group(1)}/{m.group(2)}"

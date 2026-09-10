@@ -17,6 +17,10 @@
    bitcointalk    https://bitcointalk.org/index.php?topic=5591218.0
    youtube        https://www.youtube.com/@WAMcoin-l1z
    reddit         https://www.reddit.com/user/WAMCoinCore/   (ours, see below)
+   bluesky        https://bsky.app/profile/wamcoin.org       (see below -- this
+                                                              one proves itself)
+   tiktok         https://www.tiktok.com/@wamcoin
+   twitch         https://www.twitch.tv/wamcoin
    email          wam.coin.official@proton.me
 
  And the three services the network itself runs:
@@ -30,11 +34,15 @@
  wallet about what you hold. Check the host against this file before you
  point anything at it.
 
- There are no others. No Instagram, no second Telegram group, no second
- Discord, no second YouTube channel, no second Reddit account, no second
- BitcoinTalk thread, no "support" account, no exchange listing, no
- presale, no airdrop, no token sale, no wallet app. If you have found one
- of those and it says WAM, it is not us.
+ There are no others. No second account on any platform named above, no
+ Instagram, no "support" account, no exchange listing, no presale, no
+ airdrop, no token sale, no wallet app. If you have found one of those and
+ it says WAM, it is not us.
+
+ That sentence used to name each platform it was denying, and it went out
+ of date three times in two days -- once denying a Reddit account that was
+ ours. A list of what does not exist has to be rewritten every time
+ something does; a rule does not.
 
  The Reddit account is ours, registered on 10 August 2026 so that nobody
  else could take the name. One post was made from it, carrying links to
@@ -48,6 +56,33 @@
  reddit.com/user/WAMCoinCore and x.com/WAMCoinCore. Discord verified each
  of those by sign-in, not by being told, which makes it a second way to
  check this file that does not depend on this file.
+
+ THE ONE ACCOUNT THAT PROVES ITSELF WITHOUT US
+
+ Every other line above asks you to trust either this file or the platform
+ it names. A "website" field on a profile is text somebody typed, and an
+ impostor types the same text.
+
+ The Bluesky handle is different. It is not a name we chose on Bluesky --
+ it is this domain:
+
+   @wamcoin.org
+
+ Bluesky grants a domain as a handle only to whoever can write a DNS record
+ under it, and it re-checks. So the handle is a statement by the domain
+ itself, and you can read that statement without us and without Bluesky:
+
+   dig +short TXT _atproto.wamcoin.org
+
+   "did=did:plc:exxxhvsr3nals4cabrviatmt"
+
+ Whoever controls wamcoin.org published that record, and only whoever
+ controls wamcoin.org could. Nobody can forge it without taking the domain,
+ and if somebody takes the domain, this file is gone too.
+
+ That is the strongest identity proof this project has anywhere, and it is
+ stronger than the signature on this file for one narrow purpose: it needs
+ no key of ours to check, only a DNS query anybody can run.
 
 
  WHAT NOBODY OFFICIAL WILL EVER DO
@@ -77,6 +112,17 @@
  The fingerprint that must come back is published in SECURITY.md in the
  source repository, and nowhere else. Compare it character by character.
  A signature that verifies against some other key proves nothing at all.
+
+ GnuPG will also print, on a perfectly good signature:
+
+   gpg: WARNING: This key is not certified with a trusted signature!
+
+ That is not a failure and it is not about this file. It means only that
+ you have not told your own keyring that you trust our key -- which you
+ should not do on first contact anyway. The line that matters is the one
+ that says "Good signature", and the fingerprint underneath it. If you see
+ "BAD signature", that is the real thing, and it means these bytes are not
+ the bytes we signed.
 
  The key that signs this is kept offline and is not on any machine that
  faces the internet. The same key signs every release from v0.1.6, so the
@@ -131,7 +177,14 @@
    the check at all: it reads as though verification is available, and the
    reader who tries it and gets nothing has no way to tell our negligence
    from an attack. scripts/sign_channels.sh now signs and verifies its own
-   signature, so a revision cannot be published unsigned by forgetting.
+   signature.
+
+   That sentence used to end "so a revision cannot be published unsigned by
+   forgetting", and on 8 September it was forgotten twice in one day. A
+   script that is correct when run guarantees nothing about being run. What
+   makes the claim true is a check that fails on its own --
+   scripts/check_channels_signed.sh, in the sweep, which compares the bytes
+   git holds against the signature git holds.
 
  Revision 2 -- 2026-08-21
    Added the explorer, the pool and the Electrum server. They existed and
