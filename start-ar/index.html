@@ -161,7 +161,16 @@ cp /path/to/your/backup.dat ~/.wam/testnet3/wallets/mine/wallet.dat
 <h2 id="">٥. التعدين</h2>
 <p>التعدين هو أن يتنافس حاسوبك ليكون هو من يُضيف الكتلة التالية إلى السجل. ومن يُضيفها يُدفع له مقابل عمله: <strong>50 WAM</strong>، منها 47.5 للمعدّنين و2.5 لخزينة المشروع، وذلك لأول 400,000 كتلة.</p>
 <p>والحاسوب الواحد يفوز نادراً، فالمعدّنون ينضمّون إلى <strong>مجمّع</strong>: يعمل الجميع معاً ويُقسَّم العائد بقدر ما أسهم كلٌّ منهم. دفعات صغيرة منتظمة بدل يانصيب.</p>
+<h3 id="">أولاً: المعدّن تنزيلٌ منفصل</h3>
+<p><strong>المعدّن ليس داخل الأرشيف الذي فككته.</strong> العقدة والمعدّن ملفّان منفصلان، وحتى ١٠ سبتمبر كانت هذه الصفحة تقول لك <code>./wam-miner</code> ولا تقول لك من أين تجلبه. اكتشفها من يعدّن تحت WSL، بعد أن جرّب <code>./wam-cli</code> داخل مجلّد المعدّن فقيل له «لا يوجد ملف بهذا الاسم» — وهو نفس اللبس من الطرف الآخر.</p>
+<table><tr><th>الأرشيف</th><th>ما فيه</th></tr><tr><td><code>wam-coin-v0.1.7-…</code></td><td><code>wamd</code> و<code>wam-cli</code> — العقدة</td></tr><tr><td><code>wam-miner-v0.1.7-…</code></td><td><code>wam-miner</code> — المعدّن وحده</td></tr></table>
+<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/wam-miner-v0.1.7-x86_64-linux-gnu.tar.gz
+tar -xzf wam-miner-v0.1.7-x86_64-linux-gnu.tar.gz
+cd wam-miner-v0.1.7
+chmod +x wam-miner</code></pre>
+<p>و<code>chmod</code> هنا لأنّ ملفاً يُفكّ على قرص ويندوز — <code>/mnt/c/...</code> تحت WSL — يفقد صلاحية التنفيذ، فيقول لك <code>bash</code> عندها <code>Permission denied</code>، وهي رسالة تُقرأ «تنزيل معطوب» لا «نظام ملفات مرّ به الملف».</p>
 <h3 id="">وجّه معدّنك إلى المجمّع</h3>
+<p>والعنوان من الخطوة ٤، و<code>wam-cli</code> في مجلّد <strong>العقدة</strong> لا في هذا المجلّد — فشغّل كلّ واحد من مكانه.</p>
 <pre><code>./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u عنوانك.rig1 -t 4</code></pre>
 <p>ضع مكان <code>عنوانك</code> العنوانَ الذي أخذته في الخطوة ٤. وأبقِ <code>.rig1</code> — هي مجرّد اسم لهذا الجهاز، لتفرّق بين حواسيبك لاحقاً.</p>
 <p>و<code>-t 4</code> هو عدد أنوية المعالج المستعملة. اترك نواةً أو اثنتين إن أردت أن يبقى الحاسوب صالحاً للاستعمال.</p>
