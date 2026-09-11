@@ -139,8 +139,9 @@ messages only: no tracked file, no tag message, no release page and no
 binary carries one, and check_attribution.py in the sweep makes a new one
 impossible.
 
-Removing them rewrites 138 commits. v0.1.0 to v0.1.5 are untouched; v0.1.6
-and v0.1.7 move.
+Removing them rewrites 217 commits -- 138 when this was written, and 121
+have been added since. v0.1.0 to v0.1.5 are untouched; v0.1.6 and v0.1.7
+move.
 
 What that does NOT break, measured rather than assumed: verify_release.sh
 compares a signature to the binaries and never looks at a commit, so every
@@ -343,3 +344,72 @@ login_watch.
 The consequence is still worth writing down: **a closing port is not an event
 anywhere in this system.** Thirteen of them went silent on a seed node and the
 only machine that could tell was the one they went silent on.
+
+---
+
+## 11 September: the history rewrite, performed
+
+Done a day early, and the mirror earned its place twice before anything was
+pushed.
+
+**What was removed:** one line, `Co-Authored-By: Claude Opus 5`, from 24
+commit messages between 24 August and 4 September. Nothing else in any
+message changed, which was checked rather than hoped: every subject line
+identical and in the same order, and every body equal to the old body minus
+that trailer — zero exceptions across 338 commits.
+
+**What moved:** 217 commits, `v0.1.6` and `v0.1.7`. `v0.1.0` through
+`v0.1.5` kept their exact hashes, as the plan required.
+
+**What did not move:** any file. `git diff <old tip> <new tip>` was empty.
+
+### The first attempt moved all eight tags, and it was wrong
+
+Run over `--all` with a message filter that normalised trailing whitespace,
+it rewrote every commit in the repository — including the five releases that
+had no attribution anywhere near them.
+
+Two causes, and only one was mine. The filter called `rstrip()` on every
+message, touched or not, which is enough to move a hash. And the root commit
+carries a `gpgsig` header — GitHub signs the commit it creates when a
+repository is made through the web UI — and `filter-branch` strips signatures
+when it recreates a commit, so the very first hash changed and the change
+cascaded through all 338.
+
+Measured before deciding anything: **one commit in 338 is signed**, by
+GitHub's web-flow key, on "Initial commit". Losing it costs nothing. But the
+cascade it caused would have broken a promise in this plan, and the fix was
+to rewrite only `4a97de8^..main` and to return untouched messages byte for
+byte.
+
+That is what a mirror is for. Both attempts took three minutes each; the
+wrong one would have taken the repository.
+
+### Pushing the tags re-ran the release workflow, which the plan did not say
+
+`v0.1.7` re-ran and succeeded. `v0.1.6` re-ran and failed, at the step called
+*Publish the release* — it built for thirteen minutes and then refused to
+publish over a release that already exists.
+
+Neither replaced an asset. Checked against the API rather than assumed: every
+`updated_at` on both releases still reads August or 5 September. And the
+published v0.1.7 was downloaded again afterwards, on a clean machine over a
+fast link, and `verify_release.sh` said what it has always said:
+
+```
+this is the WAM release, unmodified since it was signed
+```
+
+Which was the load-bearing promise of the whole exercise: a signature covers
+bytes, not commits.
+
+### The check that guards this had to be told
+
+`check_attribution.py` carries a `BASELINE` commit, and that commit was one
+of the 217. It kept resolving on the machine that did the rewrite — git holds
+unreachable objects for weeks — so the check went on reporting a backlog of
+24 that no longer existed, and on a fresh clone it would have failed outright.
+
+The script predicts this, in a line a few rows under the constant: *"If
+history was rewritten, update BASELINE in this file."* It was right, and it
+is the only reason the stale count was noticed at all.
