@@ -67,10 +67,14 @@ echo "  moving the config and restarting..."
 ssh -o BatchMode=yes "root@$H" '
   set -e
 
-# An interpreter that is actually Python: `python3` on Windows is a
-# Microsoft Store stub that runs nothing and exits 49.
-SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-. "$SCRIPTS_DIR/lib/python.sh"
+  # /opt/wam is where the checkout lives on every host, and the path is
+  # written out because $0 does not mean anything useful here. This block
+  # arrives over ssh as a script on stdin, so $0 is "bash" and dirname gives
+  # ".", which resolved to the remote home: it sourced /root/lib/python.sh, a
+  # file that has never existed, and under set -e the move died there with
+  # $PY still empty. The pre-flight had already printed four warnings, so the
+  # failure read like a firewall problem for as long as nobody looked.
+  . /opt/wam/scripts/lib/python.sh
 
   cp /opt/wam/pool/config.json /root/config.json.bak-$(date -u +%Y%m%dT%H%M%SZ)
   "$PY" - <<PY
@@ -109,6 +113,10 @@ if [ "$ok" -eq 0 ]; then
     echo
     echo "  ${RED}rolling back -- a pool no miner can reach is worse than the collision${OFF}"
     ssh -o BatchMode=yes "root@$H" '
+      # The rollback used $PY without ever sourcing the file that sets it, so
+      # it ran the empty string and said "command not found" -- the path that
+      # exists to undo a bad move could not undo anything.
+      . /opt/wam/scripts/lib/python.sh
       "$PY" - <<PY
 import json
 p = "/opt/wam/pool/config.json"

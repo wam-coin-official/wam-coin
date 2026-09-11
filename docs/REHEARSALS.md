@@ -30,15 +30,15 @@ Three rules, or this becomes a ritual:
 | 7 Sep | **Phases A→D** in full on v0.1.6, from an empty directory | nothing |
 | 8 Sep | **Phase F** — the announcer posting to mainnet | nothing |
 | 9 Sep → 11 Sep | **France dies.** Does Singapore carry the network alone? | nothing |
-| 10 Sep | The **third seed**, if the server has arrived | Vultr |
-| 11–12 Sep | Repeat whatever found a defect; publish the BitcoinTalk announcement | signed release ✓ |
-| 12 Sep | **Rewrite the 24 marked commit messages** — on a mirror first, verified, then force-pushed | nothing |
+| 10 Sep → 11 Sep | The **third seed** | done: Contabo US-east, not Vultr |
+| 11–12 Sep | Repeat whatever found a defect; publish the BitcoinTalk announcement | done 11 Sep |
+| 12 Sep | **Rewrite the 24 marked commit messages** — on a mirror first, verified, then force-pushed | done 11 Sep, a day early |
 | 13 Sep | **Freeze.** No change but a critical fix |  |
 | 14 Sep | Full sweep, and read LAUNCH_DAY.md line by line |  |
 | 15 Sep | Launch |  |
 
-Only 10 September depends on anybody else. Contabo's panel and Vultr's
-approval block one line each; the rest proceeds whatever they do.
+Nothing on this schedule depends on anybody else any more. The third seed
+arrived on 11 September and the Contabo panel is answering.
 
 ### Why 5 September is first
 
@@ -240,8 +240,8 @@ watch for and why.
 
 | | Blocked on |
 |---|---|
-| TCP 13333–13336 in the Contabo panel, then `scripts/move_testnet_pool.sh` | their panel, which was down on 4 Sep |
-| The third server, so `seed3.wamcoin.org` stops being a name with no machine | Vultr's review |
+| TCP 13333–13336 in the Contabo panel, then `scripts/move_testnet_pool.sh` | **nothing any more.** The panel was down on 4 September and has been used repeatedly since |
+| ~~The third server, so `seed3.wamcoin.org` stops being a name with no machine~~ | done 11 Sep, at Contabo. Vultr took the money and never delivered a server, and refunded it |
 
 Until the first is done, launch night carries a step that must not be
 forgotten: **stop `wam-pool` before starting the mainnet one**, because both
