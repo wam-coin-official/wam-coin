@@ -185,6 +185,21 @@ mkdir -p "$BIN"
 ln -sfn "$NODE_DIR/wamd"    "$BIN/wamd"
 ln -sfn "$NODE_DIR/wam-cli" "$BIN/wam-cli"
 ln -sfn "$MINER_BIN"        "$BIN/wam-miner"
+
+# The offline tools go through here too, and did not until 11 September.
+#
+# Because nothing kept them current, both production seeds were still holding
+# COPIES of the v0.1.5 wam-tx, wam-util and wam-wallet from 23 August, in
+# /usr/local/bin, four days before mainnet -- while wamd beside them was
+# v0.1.7. wam-wallet is the one that matters: it is the tool that opens and
+# repairs a wallet file, and reaching for a two-release-old one is how a
+# wallet gets damaged by the thing meant to rescue it.
+#
+# Symlinks rather than copies, for the same reason the other three are: a copy
+# is a decision that stops tracking the release the moment it is made.
+for t in wam-tx wam-util wam-wallet; do
+    [ -f "$NODE_DIR/$t" ] && ln -sfn "$NODE_DIR/$t" "$BIN/$t"
+done
 chown -h "$OWNER:$OWNER" "$BIN/wamd" "$BIN/wam-cli" "$BIN/wam-miner" 2>/dev/null || true
 
 printf '\n  %ssymlinks%s\n' "$BLD" "$OFF"
