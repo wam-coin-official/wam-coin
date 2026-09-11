@@ -43,7 +43,17 @@ import quoted  # noqa: E402  -- needs the path above
 # HEAD on 4 September 2026, when the instruction was recorded. Everything
 # reachable from here is the backlog to be removed later; anything after it
 # is a regression.
-BASELINE = "f7bbf210bd05b14ba82a09c5d36439f6363973ae"
+# Moved on 11 September, when the 24 commits this baseline was holding the
+# line against were finally rewritten. The old value, f7bbf210bd05b14b, no
+# longer exists in this history -- and for a while it still resolved on the
+# machine that did the rewrite, because git keeps unreachable objects for
+# weeks, so this check went on reporting a backlog of 24 that was already
+# gone. On a fresh clone it would have failed outright, which is the message
+# a few lines below: "If history was rewritten, update BASELINE in this file."
+#
+# Same commit, same subject, same second: "the list that says who we are can
+# now prove it is us", 2026-09-04 17:15:44 +0200.
+BASELINE = "f1f841490edf0e47d8f86f478d213fa7dfa83209"
 
 PATTERNS = [
     r"co-authored-by:\s*claude",
