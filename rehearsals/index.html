@@ -190,6 +190,16 @@ before.</code></pre>
 <p>What nobody had considered is what happens when a tag is pushed for a release that is <strong>already published and signed</strong>. A second <code>v0.1.7</code> appeared in the list — a draft, carrying binaries built that afternoon and no signature at all — sitting one click away from replacing a good release with an uncheckable one.</p>
 <p>It was invisible to the check that went looking. Asked for the releases, the unauthenticated API returned eight and no duplicates, because <strong>it does not return drafts</strong>. The founder saw it in the web interface; the measurement could not. Deleted.</p>
 <p>The rule that follows, and it matters on 15 September: <strong>pushing or moving a tag re-runs the release workflow and creates a fresh unsigned draft.</strong> After any tag push, look at the releases list in the browser — not through the API — and delete what the run left behind.</p>
+<h3 id="and-git-subtree-push-stopped-working">And <code>git subtree push</code> stopped working</h3>
+<p>Publishing the site is <code>git subtree push --prefix site origin gh-pages</code>, and after the rewrite it was rejected:</p>
+<pre><code>828241d -&gt; gh-pages (non-fast-forward)
+hint: a pushed branch tip is behind its remote counterpart</code></pre>
+<p>Nothing was behind. <code>subtree push</code> derives a synthetic history from <code>site/</code>, one commit per commit that touched it, and every one of those commits had a new hash — so the branch it computed shared no ancestry with the <code>gh-pages</code> that was already there.</p>
+<p>The fix is one line and it is not a workaround:</p>
+<pre><code>git subtree split --prefix site -b gh-pages-new
+git push --force origin gh-pages-new:refs/heads/gh-pages</code></pre>
+<p><code>gh-pages</code> carries generated output and no history anybody builds on, so forcing it loses nothing. It was checked before pushing rather than after: the split branch had the site at its root, the signed channel list with Bluesky in it, and the new pool port on the start page.</p>
+<p>Third consequence of the rewrite that the plan did not name, after the signature cascade and the re-run release workflow. None of the three was dangerous; all three cost time at the moment of least patience, which is the argument for writing them down here.</p>
 <p class="foot">This page is generated from docs/REHEARSALS.md in the repository. It is the same text; nothing here is written twice.</p>
 </main>
 </body>
