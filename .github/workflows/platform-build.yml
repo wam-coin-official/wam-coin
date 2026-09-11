@@ -1,0 +1,306 @@
+# ===========================================================================
+#  platform-build -- can this node be built for Windows and macOS, and does
+#                    it still agree with the chain when it is?
+# ===========================================================================
+#
+#  Run it by hand from the Actions tab, or push to a branch under platform/.
+#
+#  WHY THIS IS A SEPARATE WORKFLOW AND NOT PART OF release.yml
+#
+#  Every release so far is x86_64-linux-gnu. docs/ROADMAP.md §7 records why
+#  that was a mistake and not an ordering: in a proof-of-work chain the miners
+#  ARE the security, RandomX was chosen so an ordinary desktop competes, and
+#  most ordinary desktops run Windows. There is no chain before the miners
+#  arrive, so "platforms come after users" was never coherent.
+#
+#  What was missing was not the will. It was a fact: nobody here had ever run
+#  the cross-build, so "six days is enough" and "six days is not enough" were
+#  both opinions. This workflow replaces both with a result, at the cost of
+#  free CI minutes and touching nothing:
+#
+#    * release.yml is not modified, and the signed Linux release is not rebuilt
+#    * no server is involved
+#    * nothing here can publish anything
+#
+#  AND WHY macOS TURNED OUT TO BE POSSIBLE
+#
+#  macOS was put behind Windows for two reasons. The first is real: upstream's
+#  cross-build needs the macOS SDK extracted from Xcode with an Apple account,
+#  under a licence nobody may redistribute. The second was wrong -- that
+#  nobody here has a Mac to test on. GitHub's hosted runners are real macOS
+#  machines, free for public repositories, and this repository is public. So
+#  the build is native, no SDK is extracted, and the same runner RUNS what it
+#  built. The half that was called impossible is the cheaper half.
+#
+#  THE GATE
+#
+#  Compiling proves the toolchain. It does not prove the binary computes the
+#  same proof-of-work, applies the same monetary schedule, or enforces the 5%
+#  treasury rule -- and a node that gets one of those wrong does not fail
+#  loudly, it forks itself off and its owner mines onto a history nobody else
+#  has. So every job here ends by syncing the real test network from genesis
+#  and comparing block hashes with what the Linux nodes have held since
+#  August. Green means agreed. Not green means not published.
+# ===========================================================================
+
+name: platform-build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'platform/**'
+
+permissions:
+  contents: read
+
+# One run per branch. A new push cancels the one before it.
+#
+# Without this, three pushes in an hour queued three runs and they serialised
+# behind the macOS runners -- which a free public repository gets few of, and
+# each run asks for two. The oldest run, carrying none of the fixes, was still
+# holding a place in the queue ahead of the newest. Measuring is only cheap if
+# the measurement arrives.
+concurrency:
+  group: platform-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # -------------------------------------------------------------------------
+  windows-cross:
+    name: Windows x86_64 (cross-compiled on Linux)
+    # 24.04, and release.yml stays on 22.04. Both are deliberate and the
+    # reasons are opposite.
+    #
+    # The Linux release is built on the oldest distribution we support so its
+    # glibc runs on 22.04 and 24.04 alike; building it on 24.04 would silently
+    # drop everyone still on 22.04.
+    #
+    # A cross-compiled Windows binary links against Windows DLLs and carries
+    # no glibc at all, so the host distribution leaves no trace in it -- and
+    # 22.04 ships mingw with GCC 10.3, which cannot compile the C++20 that
+    # Bitcoin Core v28 requires. The first run of this workflow proved it, on
+    # 22.04, after cross-building boost, bdb, libevent and sqlite first:
+    #
+    #   configure: error: *** A compiler with support for C++20 language
+    #                     features is required.
+    #
+    # 24.04 ships GCC 13. build_windows.sh now checks C++20 in its first
+    # second instead of learning it from configure forty minutes in.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build tools, and the one mingw flag that is not optional
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          # Core's own dependencies, plus mingw. The -posix variant is not a
+          # preference: the win32-threads runtime has no std::thread at all,
+          # and Core uses it everywhere, so the wrong alternative produces
+          # hundreds of lines of "'thread' is not a member of 'std'" -- which
+          # reads like a broken source tree and is a toolchain setting.
+          sudo apt-get install -qq -y \
+            build-essential libtool autotools-dev automake pkg-config \
+            bsdmainutils cmake curl git python3 \
+            g++-mingw-w64-x86-64-posix
+          sudo update-alternatives --set x86_64-w64-mingw32-g++ \
+            /usr/bin/x86_64-w64-mingw32-g++-posix
+          sudo update-alternatives --set x86_64-w64-mingw32-gcc \
+            /usr/bin/x86_64-w64-mingw32-gcc-posix
+          x86_64-w64-mingw32-g++ -v 2>&1 | grep 'Thread model'
+
+      - name: Fetch and patch Bitcoin Core
+        run: bash scripts/fetch-upstream.sh
+
+      - name: Cross-compile for Windows
+        run: |
+          set -o pipefail
+          bash scripts/build_windows.sh 2>&1 | tee build-step.log
+
+      # The reason a build failed has to be readable by whoever is looking,
+      # without credentials. Job logs and artifacts both answer 403 anonymously,
+      # so the first run of this workflow said "Process completed with exit code
+      # 1" and hid the actual error behind a login. Annotations are served
+      # without a token. See the header of the script.
+      - name: Say why it failed, where it can be read without a token
+        if: failure()
+        run: bash scripts/ci_annotate_failure.sh build-step.log "cross-compiling for Windows"
+
+      # clang, here rather than in the macOS job.
+      #
+      # The macOS build failed today on a clang/GCC disagreement in our own
+      # source -- two RPCResult overloads both fitting four arguments, so ""
+      # was a candidate for a bool. GCC chooses silently; clang refuses. Every
+      # binary this project has produced came from GCC, which is why it
+      # shipped.
+      #
+      # I put this check before the macOS build first, and it failed with
+      # exit 2 -- correctly. It needs a CONFIGURED tree, and a fresh runner
+      # has none: configure runs inside the build it was meant to precede.
+      # Here the tree has just been configured by the cross-build, clang is on
+      # the image, and the question -- does clang accept OUR sources -- has
+      # nothing to do with the target. Twenty seconds, on every push, with no
+      # macOS runner involved.
+      - name: Ask clang about our sources
+        run: bash scripts/test/test_clang.sh
+
+      - name: The AVX-512 guard, on a PE file this time
+        run: |
+          # This is the reason check_isa_baseline.sh was changed today: its
+          # format filter only recognised ELF, so a Windows binary walked
+          # straight past the guard that exists because a published node died
+          # with SIGILL on an AMD EPYC. A Windows audience is desktops of
+          # every age, so it matters more here than it did on a server.
+          bash scripts/check_isa_baseline.sh out/windows/*.exe
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wam-windows-x86_64
+          path: out/windows/
+          retention-days: 14
+
+      - name: Keep the logs whatever happened
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-build-logs
+          path: |
+            build/configure-windows.log
+            build/make-windows.log
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # -------------------------------------------------------------------------
+  windows-consensus:
+    name: Windows binary agrees with the chain
+    needs: windows-cross
+    runs-on: windows-latest
+    # 180, and SYNC_TIMEOUT to match below.
+    #
+    # The first run of this failed after 30 minutes and 40 seconds -- which is
+    # the gate's own default of 1800 seconds, not a disagreement with the
+    # chain. A hosted runner has four slow vCPUs and RandomX verification is
+    # the whole cost of a sync: the same binary reached height 6029 in about
+    # ten minutes on a real desktop. Reported as it stood, "Windows binary
+    # agrees with the chain: failed" is a verdict on consensus delivered about
+    # a clock.
+    timeout-minutes: 180
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: wam-windows-x86_64
+          path: bin
+
+      - name: Sync the test chain from genesis, on Windows
+        run: |
+          set -o pipefail
+          chmod +x bin/*.exe 2>/dev/null || true
+          SYNC_TIMEOUT=9000 bash scripts/test/test_platform_consensus.sh bin 2>&1 | tee gate.log
+
+      # The annotator was put on the build steps and not on this one, so the
+      # job whose failure most needs reading said "Process completed with exit
+      # code 1" and nothing else -- the exact silence the annotator exists to
+      # end, left standing by only half-applying it.
+      - name: Say why it failed, where it can be read without a token
+        if: failure()
+        run: bash scripts/ci_annotate_failure.sh gate.log "the Windows binary agreeing with the chain"
+
+  # -------------------------------------------------------------------------
+  macos:
+    name: macOS ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false        # one architecture failing must not hide the other
+      matrix:
+        include:
+          # Every Mac sold since 2020 is arm64; everything before it is
+          # x86_64, and a binary for one does not run on the other. Both are
+          # built because "macOS support" that covers one of them is a support
+          # claim that fails for half the people who read it.
+          - runner: macos-14
+            arch: arm64
+          # macos-13 (Intel) is deliberately not here yet.
+          #
+          # A free public repository gets few macOS runners, and asking for two
+          # per run put four runs in a queue that had not started an hour
+          # later. Intel Macs are the minority and the smaller half of the
+          # audience; arm64 is what most Macs sold since 2020 are. So the first
+          # measurement asks one question on one runner, and macos-13 comes
+          # back the moment arm64 builds -- "macOS support" that covers one
+          # architecture is a support claim that fails for half its readers,
+          # and that is a shipping decision, not a diagnosis one.
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Dependencies
+        run: |
+          set -euo pipefail
+          brew install automake libtool boost pkg-config libevent cmake sqlite || true
+          echo "arch: $(uname -m)"
+
+      - name: Fetch and patch Bitcoin Core
+        run: bash scripts/fetch-upstream.sh
+
+      - name: Build for macOS
+        run: |
+          set -o pipefail
+          bash scripts/build_macos.sh 2>&1 | tee build-step.log
+
+      - name: Say why it failed, where it can be read without a token
+        if: failure()
+        run: bash scripts/ci_annotate_failure.sh build-step.log "building on macOS ${{ matrix.arch }}"
+
+      - name: The instruction-baseline guard
+        run: |
+          # On arm64 this reports "this check does not apply" and exits 2
+          # rather than claiming an Apple Silicon binary is within an x86-64
+          # baseline -- a confident answer to a question nobody asked. That
+          # is expected here, so 2 is tolerated and anything else is not.
+          set +e
+          bash scripts/check_isa_baseline.sh out/macos-*/wamd
+          st=$?
+          set -e
+          echo "check_isa_baseline exit: $st"
+          if [ "$(uname -m)" = "x86_64" ] && [ "$st" -ne 0 ]; then
+            echo "::error::an Intel Mac binary must pass the x86-64 baseline"
+            exit 1
+          fi
+          if [ "$st" -ne 0 ] && [ "$st" -ne 2 ]; then exit "$st"; fi
+
+      - name: Sync the test chain from genesis, on macOS
+        run: |
+          set -o pipefail
+          SYNC_TIMEOUT=9000 bash scripts/test/test_platform_consensus.sh "out/macos-$(uname -m)" 2>&1 | tee gate.log
+
+      - name: Say why it failed, where it can be read without a token
+        if: failure()
+        run: bash scripts/ci_annotate_failure.sh gate.log "the macOS binary agreeing with the chain"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wam-macos-${{ matrix.arch }}
+          path: out/macos-*/
+          retention-days: 14
+
+      - name: Keep the logs whatever happened
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-${{ matrix.arch }}-logs
+          path: |
+            build/configure-macos.log
+            build/make-macos.log
+            build/tests-macos.log
+          retention-days: 14
+          if-no-files-found: ignore
