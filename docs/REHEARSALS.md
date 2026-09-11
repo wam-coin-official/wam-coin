@@ -29,7 +29,7 @@ Three rules, or this becomes a ritual:
 | 6 Sep | **A stranger follows START_HERE** from nothing: download, verify, sync, mine | nothing |
 | 7 Sep | **Phases A→D** in full on v0.1.6, from an empty directory | nothing |
 | 8 Sep | **Phase F** — the announcer posting to mainnet | nothing |
-| 9 Sep | **France dies.** Does Singapore carry the network alone? | nothing |
+| 9 Sep → 11 Sep | **France dies.** Does Singapore carry the network alone? | nothing |
 | 10 Sep | The **third seed**, if the server has arrived | Vultr |
 | 11–12 Sep | Repeat whatever found a defect; publish the BitcoinTalk announcement | signed release ✓ |
 | 12 Sep | **Rewrite the 24 marked commit messages** — on a mirror first, verified, then force-pushed | nothing |
@@ -71,6 +71,8 @@ is the day it is needed.
 | 7 Sep | **Phases A→D**, and Phase D's one open item | **the nightly backup could not have covered the mainnet pool wallet, in three ways and two of them silent**: the datadir defaulted to `/root/.wam` whatever the network, so a mainnet run would have encrypted the *testnet* chain and reported success; the archive name carried no network; and rotation counted both networks' archives against one `KEEP=14`, so each would have kept about seven. Also: `START_HERE` promises Windows and macOS builds are "planned" and nothing anywhere is the plan | `wam-backup@.service`/`@.timer`, one instance per network, migrated on both hosts; `ROADMAP.md` §7 |
 
 | 7 Sep | **Build the node for Windows and macOS** — asked for by the founder, against my own judgement that it should wait | **`nMinimumChainWork` stops every new node syncing.** Setting it turns on Core's presync path, which enforces Bitcoin's 2016-block retarget rule, which DarkGravityWave violates at height 1: `invalid difficulty transition at height=1 (presync phase)`. Published releases carry zero, so the live network was never affected — but `check_min_chain_work.py` instructs setting it on mainnet **after launch**. Also: macOS was built against Homebrew's boost, which is newer than Core v28 accepts; three separate files hardcoded `wam-backup.timer` and I fixed two, leaving the panel red in the only one that is looked at; and the consensus gate assumed a free RPC port and a POSIX path, either of which would have failed the Windows runner | `PermittedDifficultyTransition` patched; macOS moved to `depends`; the unit lists discover; the gate picks a free port and converts the path. **Windows then synced 6,029 blocks from genesis and matched all four known blocks** |
+| 11 Sep | **A third seed node**, on a clean machine | **five defects, all in paths that run rarely**: `harden_server.sh` called a function it never defines and died one line early, so the git HTTP/1.1 setting never applied; `install_release.sh` resolved its own directory after a `cd` and aborted after downloading the release; it also ran `wamd -version` with `2>/dev/null`, so a missing-library failure exited 127 and printed nothing; **both production servers were carrying a v0.1.5 `wam-wallet` in PATH beside a v0.1.7 node**, because the installer linked three binaries and stopped; and the runtime library line this project publishes **names a package that does not exist on Ubuntu 24.04**, with `libevent-pthreads` missing from both releases' lists | all five fixed; `seed3.wamcoin.org` now answers with a machine, and all three nodes report byte-identical binaries |
+| 11 Sep | **France dies** — every WAM service stopped on the France host for eight minutes | **the chain stopped.** Height held at 8,307 across four block times, because the only miner runs on France. The *network* survived — Singapore and the new seed stayed up, agreed, and kept peers — but nothing was added to the chain. Explorer and pool returned 502 for the whole outage; wamcoin.org was unaffected, being on GitHub Pages. One alert did arrive, and **it named the wrong event**: it reported `wam-reorg-watch@testnet.service FAILED`, not that a seed node had died. **Everything that alerted ran on the dying machine**, so a real power cut would have been silent. And the new seed had no alerting at all | alerting wired on the new seed and proved end to end; the miner and the cross-machine watch are decisions, recorded below |
 
 Five in one evening, in a phase that had been rehearsed once already. That is
 the number to watch.
@@ -243,3 +245,101 @@ watch for and why.
 Until the first is done, launch night carries a step that must not be
 forgotten: **stop `wam-pool` before starting the mainnet one**, because both
 claim 3333–3336.
+
+---
+
+## 11 September: France dies
+
+Two days late, and worth the wait only because it was run properly: every WAM
+service on the France host stopped at 13:37:24 UTC and started again at
+13:45:02. Eight minutes. The machine and its SSH stayed up, so the simulation
+is of a **service death, not a power cut** — and the difference turned out to
+be the most important thing it found.
+
+### The chain stopped
+
+```
+T+2min  h=8307     T+5min  h=8307
+T+3min  h=8307     T+6min  h=8307
+T+4min  h=8307     T+7min  h=8307
+```
+
+Four block times, no block. Singapore and the new seed stayed up, stayed
+connected, and agreed with each other throughout — the network was never in
+danger. But **the only miner on this chain runs on France**, so nothing was
+being added to the thing the network was faithfully agreeing about.
+
+The question in the schedule was "does Singapore carry the network alone?"
+The answer is: it carries the network and it does not carry the chain. Those
+are different things and the schedule line did not distinguish them.
+
+This is not a defect to fix in software. It is a decision to take before
+15 September, and it is the founder's: either a second machine mines, or the
+chain is known to stop when one machine does.
+
+### The alert named the wrong event
+
+One message arrived, and it said:
+
+```
+ALARM  wam-reorg-watch@testnet.service FAILED on vmi3500463
+```
+
+A watcher failed. That is true, and it is the smallest true thing that could
+have been said. A seed node had died, the explorer and the pool were
+returning 502 to the public, and the chain had stopped — and the alarm
+reported a helper script exiting non-zero.
+
+`wamd` itself has `OnFailure=`, but a `systemctl stop` is not a failure, so it
+said nothing. What spoke was the collateral: another unit noticed its node was
+gone and died of it. The alarm we heard was an accident of dependency.
+
+### Everything that alerted was on the machine that died
+
+The reorg watcher that noticed, the alert unit that fired, and the credentials
+it sent with are all on France. This message arrived because France was alive
+enough to send it.
+
+**A power cut would have been silent.** Singapore does not watch France. The
+new seed watches nothing. The only thing that polls all three is the
+operations panel on a laptop that is not always on.
+
+That is the finding with the longest reach, and like the miner it is a
+decision rather than a patch: something off-machine has to watch each machine,
+or a dead host is discovered by somebody noticing.
+
+### And the new seed could not have spoken at all
+
+It had no `OnFailure=` and no `wam-alert@.service`, because its unit was
+written by hand during the install instead of taken from `deploy/systemd/`.
+Wired, and then proved rather than assumed: a probe unit was failed
+deliberately and the alert path ran to completion from that host.
+
+### The one thing that did notice spoke only when it came back
+
+At 13:50 UTC, five minutes after the services were restarted, this arrived:
+
+```
+notice  vmi3500463: now listening on port(s) 19554, 19555, 19556, 3333,
+3334, 3335, 3336, 51001, 51002, 51004, 8001, 8080, 8081, which were closed
+before.
+```
+
+Thirteen ports had gone and come back, and that is the only message in the
+whole exercise that was about the ports at all. It reported the **recovery**.
+
+`scripts/login_watch.py` compares what is listening now against what was
+listening last time and speaks about the difference in one direction only:
+
+```python
+if state.get("ports") and ports - set(state["ports"]):
+```
+
+Newly opened ports, never newly closed ones. That is correct for what it is —
+a security watch, where a port appearing means somebody may have opened a way
+in, and a port disappearing means a service stopped. It is not a defect in
+login_watch.
+
+The consequence is still worth writing down: **a closing port is not an event
+anywhere in this system.** Thirteen of them went silent on a seed node and the
+only machine that could tell was the one they went silent on.
