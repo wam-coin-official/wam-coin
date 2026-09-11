@@ -442,3 +442,35 @@ The rule that follows, and it matters on 15 September: **pushing or moving a
 tag re-runs the release workflow and creates a fresh unsigned draft.** After
 any tag push, look at the releases list in the browser — not through the API
 — and delete what the run left behind.
+
+### And `git subtree push` stopped working
+
+Publishing the site is `git subtree push --prefix site origin gh-pages`, and
+after the rewrite it was rejected:
+
+```
+828241d -> gh-pages (non-fast-forward)
+hint: a pushed branch tip is behind its remote counterpart
+```
+
+Nothing was behind. `subtree push` derives a synthetic history from `site/`,
+one commit per commit that touched it, and every one of those commits had a
+new hash — so the branch it computed shared no ancestry with the `gh-pages`
+that was already there.
+
+The fix is one line and it is not a workaround:
+
+```
+git subtree split --prefix site -b gh-pages-new
+git push --force origin gh-pages-new:refs/heads/gh-pages
+```
+
+`gh-pages` carries generated output and no history anybody builds on, so
+forcing it loses nothing. It was checked before pushing rather than after:
+the split branch had the site at its root, the signed channel list with
+Bluesky in it, and the new pool port on the start page.
+
+Third consequence of the rewrite that the plan did not name, after the
+signature cascade and the re-run release workflow. None of the three was
+dangerous; all three cost time at the moment of least patience, which is
+the argument for writing them down here.
