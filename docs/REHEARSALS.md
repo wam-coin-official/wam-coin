@@ -352,7 +352,8 @@ only machine that could tell was the one they went silent on.
 Done a day early, and the mirror earned its place twice before anything was
 pushed.
 
-**What was removed:** one line, `Co-Authored-By: Claude Opus 5`, from 24
+**What was removed:** one line -- a `Co-Authored-By:` trailer naming the
+assistant, not written out here for the same reason it was removed -- from 24
 commit messages between 24 August and 4 September. Nothing else in any
 message changed, which was checked rather than hoped: every subject line
 identical and in the same order, and every body equal to the old body minus
