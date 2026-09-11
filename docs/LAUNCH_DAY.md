@@ -440,8 +440,14 @@ early.
    13333–13336 answer
 3. Repoint the laptop miner at `pool.wamcoin.org:13333`
 
-Until step 1 is done, launch night has a step that must not be forgotten:
-stop `wam-pool` before starting the mainnet one.
+**Done on 11 September.** All three steps ran: the ports were opened in the
+Contabo panel, `move_testnet_pool.sh` moved the config and verified from
+outside that 3333-3336 answer nothing and 13333-13336 do, and the published
+mining commands were changed to 13333.
+
+So launch night no longer has the step that must not be forgotten. It used
+to read: stop `wam-pool` before starting the mainnet one. There is nothing
+on 3333-3336 to stop.
 
 17. **The pool.** Its payout address is mainnet and it must be checked
     before a single share is credited:
@@ -578,13 +584,17 @@ machines: Singapore has 958 MB free and needs about 605 MB, a margin of
 roughly 350 MB with no swap on the machine. It fits, and it is the tightest
 thing on that host.
 
-**One thing is still outstanding and is not ours to do.** ufw allows
-51001/51002/51004 on both hosts, but Contabo and Hetzner each drop inbound
-TCP to any port not on an allow-list in their control panel, and a dropped
-packet is silent — so the servers look perfect from the inside while nothing
-reaches them. Until those three ports are added in both panels, testnet's
-Electrum is reachable only from the machines themselves. Nothing about
-mainnet depends on it: 50001/50002/50004 were already open there.
+**That was outstanding and is not any more.** 51001/51002/51004 were added
+in both panels at some point and nobody wrote it down; measured from outside
+both hosts on 11 September, all three answer. The worry was real while it
+lasted — Contabo and Hetzner each drop inbound TCP to any port not on a
+panel allow-list, and a dropped packet is silent, so a server looks perfect
+from the inside while nothing reaches it.
+
+Mainnet's 50001/50002/50004 correctly answer nothing yet: ElectrumX for
+mainnet is not running. That is the difference between a closed port and a
+blocked one, and it is why this is checked from outside rather than with
+`ufw status`.
 
 **Who is awake?** Every step above assumes one person doing them in order.
 If that person is asleep at 04:00 the chain does not stop, but nobody is
