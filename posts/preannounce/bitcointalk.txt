@@ -157,20 +157,22 @@ https://github.com/wam-coin-official/wam-coin/blob/main/SECURITY.md
 [code]
 testnet genesis    2026-08-01
 height now         8,291
-independent nodes  1 still connected as this is written, unbroken for five
-                   days and present since 2 September
+independent nodes  2 people outside this project have run one
 [/code]
 
-One. Not a number worth inflating: it is one person we have never met who
-found the network, ran it, and has stayed on it. The seeds are ours, and
-saying otherwise would be the first checkable lie in this post.
+Two. Not a number worth inflating, and deliberately not a count of who is
+connected at this instant -- people close their laptops, and a figure that
+becomes false when somebody goes to bed is not worth printing.
 
-Two more people ran nodes this week and are not counted above because
-neither is connected at this moment. One of them built under WSL on
-Windows, synced from genesis, and his node reported the same block hash
-at height 7738 that ours did; he then mined, and his miner rebuilt its
-RandomX dataset across a key rotation without dropping a share. Both of
-those are things we had only ever proved on our own machines.
+The first found the network on 2 September and has been on it since. The
+second built under WSL on Windows this week, synced from genesis, and his
+node reported the same block hash at height 7738 that ours did. He then
+mined: his miner rebuilt its RandomX dataset across a key rotation and
+did not drop a share. Until this week both of those had only ever been
+proved on our own machines.
+
+The seeds are ours, and saying otherwise would be the first checkable lie
+in this post.
 
 
 [b]5. THE LAUNCH IS BEING REHEARSED, AND WHAT EACH REHEARSAL FINDS IS
