@@ -389,11 +389,16 @@ The address comes from step 4, and `wam-cli` lives in the *node* folder, not
 this one — so run the two from their own directories.
 
 ```bash
-./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS.rig1 -t 4
+./wam-miner -o stratum+tcp://pool.wamcoin.org:13333 -u YOUR_ADDRESS.rig1 -t 4
 ```
 
 Replace `YOUR_ADDRESS` with the address from step 4. Keep the `.rig1` — it is
 just a name for this machine, so you can tell your computers apart later.
+
+**13333 is the testnet port, and it changed on 11 September.** It used to be
+3333, which is the number mainnet publishes — and both pools cannot hold it,
+so the testnet one moved aside and 3333-3336 now stand empty until the 15th.
+If you were already mining on 3333, that is why it stopped.
 
 `-t 4` is how many processor cores to use. Leave one or two free if you want
 the computer to stay usable.

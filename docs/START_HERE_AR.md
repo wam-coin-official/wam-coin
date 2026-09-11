@@ -365,7 +365,7 @@ chmod +x wam-miner
 فشغّل كلّ واحد من مكانه.
 
 ```bash
-./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u عنوانك.rig1 -t 4
+./wam-miner -o stratum+tcp://pool.wamcoin.org:13333 -u عنوانك.rig1 -t 4
 ```
 
 ضع مكان `عنوانك` العنوانَ الذي أخذته في الخطوة ٤. وأبقِ `.rig1` — هي مجرّد اسم

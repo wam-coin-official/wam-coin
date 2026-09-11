@@ -61,8 +61,14 @@ The last command prints your address; it starts with `twam1`. Then, from
 where the miner unpacked:
 
 ```
-./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS -t 4
+./wam-miner -o stratum+tcp://pool.wamcoin.org:13333 -u YOUR_ADDRESS -t 4
 ```
+
+**13333, not 3333.** The testnet pool moved off 3333-3336 on 11 September so
+those ports stand empty for mainnet on the 15th. `pool.wamcoin.org:3333` is
+the mainnet address and answers nothing until then -- pointing a testnet
+miner at it now gets a connection refused, not a wrong chain, which is the
+safer of the two ways to be wrong.
 
 `-t 4` is how many processor cores to use. Without it the miner takes every
 core but one, which makes the rest of the machine unpleasant to use.
