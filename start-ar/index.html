@@ -173,7 +173,7 @@ chmod +x wam-miner</code></pre>
 <p>و<code>chmod</code> هنا لأنّ ملفاً يُفكّ على قرص ويندوز — <code>/mnt/c/...</code> تحت WSL — يفقد صلاحية التنفيذ، فيقول لك <code>bash</code> عندها <code>Permission denied</code>، وهي رسالة تُقرأ «تنزيل معطوب» لا «نظام ملفات مرّ به الملف».</p>
 <h3 id="">وجّه معدّنك إلى المجمّع</h3>
 <p>والعنوان من الخطوة ٤، و<code>wam-cli</code> في مجلّد <strong>العقدة</strong> لا في هذا المجلّد — فشغّل كلّ واحد من مكانه.</p>
-<pre><code>./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u عنوانك.rig1 -t 4</code></pre>
+<pre><code>./wam-miner -o stratum+tcp://pool.wamcoin.org:13333 -u عنوانك.rig1 -t 4</code></pre>
 <p>ضع مكان <code>عنوانك</code> العنوانَ الذي أخذته في الخطوة ٤. وأبقِ <code>.rig1</code> — هي مجرّد اسم لهذا الجهاز، لتفرّق بين حواسيبك لاحقاً.</p>
 <p>و<code>-t 4</code> هو عدد أنوية المعالج المستعملة. اترك نواةً أو اثنتين إن أردت أن يبقى الحاسوب صالحاً للاستعمال.</p>
 <h3 id="">أي منفذ تختار</h3>

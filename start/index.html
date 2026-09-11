@@ -179,8 +179,9 @@ chmod +x wam-miner</code></pre>
 <p><code>chmod</code> is there because a file unpacked onto a Windows drive — <code>/mnt/c/...</code> under WSL — loses the executable bit, and <code>bash</code> then says <code>Permission denied</code>, which reads as a broken download rather than a filesystem it passed through.</p>
 <h3 id="point-your-miner-at-the-pool">Point your miner at the pool</h3>
 <p>The address comes from step 4, and <code>wam-cli</code> lives in the <em>node</em> folder, not this one — so run the two from their own directories.</p>
-<pre><code>./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS.rig1 -t 4</code></pre>
+<pre><code>./wam-miner -o stratum+tcp://pool.wamcoin.org:13333 -u YOUR_ADDRESS.rig1 -t 4</code></pre>
 <p>Replace <code>YOUR_ADDRESS</code> with the address from step 4. Keep the <code>.rig1</code> — it is just a name for this machine, so you can tell your computers apart later.</p>
+<p><strong>13333 is the testnet port, and it changed on 11 September.</strong> It used to be 3333, which is the number mainnet publishes — and both pools cannot hold it, so the testnet one moved aside and 3333-3336 now stand empty until the 15th. If you were already mining on 3333, that is why it stopped.</p>
 <p><code>-t 4</code> is how many processor cores to use. Leave one or two free if you want the computer to stay usable.</p>
 <h3 id="which-port">Which port</h3>
 <table><tr><th>Port</th><th>For</th><th>Meaning</th></tr><tr><td><strong>3333</strong></td><td>a laptop or desktop</td><td>start here</td></tr><tr><td>3334</td><td>a server</td><td>fewer, larger reports</td></tr><tr><td>3335</td><td>a farm of machines</td><td></td></tr></table>
