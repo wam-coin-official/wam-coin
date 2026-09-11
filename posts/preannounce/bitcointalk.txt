@@ -164,9 +164,12 @@ Two. Not a number worth inflating, and deliberately not a count of who is
 connected at this instant -- people close their laptops, and a figure that
 becomes false when somebody goes to bed is not worth printing.
 
-The first found the network on 2 September and has been on it since. The
-second built under WSL on Windows this week, synced from genesis, and his
-node reported the same block hash at height 7738 that ours did. He then
+They do not dip in and out. The first found the network on 2 September and
+has been on it since, and one single connection of his was measured at 135
+hours -- five days and six hours unbroken, ended by a restart of ours and
+not of his. The second built under WSL on Windows this week, synced from
+genesis, and his node reported the same block hash at height 7738 that
+ours did. He then
 mined: his miner rebuilt its RandomX dataset across a key rotation and
 did not drop a share. Until this week both of those had only ever been
 proved on our own machines.
