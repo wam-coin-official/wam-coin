@@ -12,10 +12,10 @@
 ===========================================================================
 
 
-[size=14pt][b]Eleven days out. Everything that can be checked before the chain exists.[/b][/size]
+[size=14pt][b]Four days out. Everything that can be checked before the chain exists.[/b][/size]
 
 Mainnet opens 15 September 2026 at 00:00 UTC. This is the whole state of the
-project in one post, eleven days from genesis, so nobody has to read the
+project in one post, four days from genesis, so nobody has to read the
 thread backwards to find it.
 
 The part worth your time is not the feature list. It is that [b]almost
@@ -125,7 +125,7 @@ Every release from v0.1.6 is signed with an offline key:
 [/code]
 
 [code]
-https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.6
+https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.7
 [/code]
 
 Download the release, SHA256SUMS and SHA256SUMS.asc into one directory.
@@ -152,17 +152,25 @@ https://github.com/wam-coin-official/wam-coin/blob/main/SECURITY.md
 [/code]
 
 
-[b]4. THERE IS A TESTNET, AND IT HAS BEEN RUNNING FOR FIVE WEEKS[/b]
+[b]4. THERE IS A TESTNET, AND IT HAS BEEN RUNNING FOR SIX WEEKS[/b]
 
 [code]
 testnet genesis    2026-08-01
-height now         5,136
-independent nodes  1, connected without a break for two days
+height now         8,291
+independent nodes  1 still connected as this is written, unbroken for five
+                   days and present since 2 September
 [/code]
 
 One. Not a number worth inflating: it is one person we have never met who
 found the network, ran it, and has stayed on it. The seeds are ours, and
 saying otherwise would be the first checkable lie in this post.
+
+Two more people ran nodes this week and are not counted above because
+neither is connected at this moment. One of them built under WSL on
+Windows, synced from genesis, and his node reported the same block hash
+at height 7738 that ours did; he then mined, and his miner rebuilt its
+RandomX dataset across a key rotation without dropping a share. Both of
+those are things we had only ever proved on our own machines.
 
 
 [b]5. THE LAUNCH IS BEING REHEARSED, AND WHAT EACH REHEARSAL FINDS IS
@@ -188,6 +196,22 @@ including the days that found nothing. Some of what is in there:
          Found by running it the way a stranger runs it -- clean machine,
          nothing imported -- rather than from inside the repository, where
          it had always passed. Fixed and re-proved before this post
+ 7 Sep   the launch-night announcement command failed before reaching its
+         own safety check. Two files disagreed about where the config
+         lives, so the guard that stops the announcement going out on the
+         wrong chain never ran at all
+ 8 Sep   the signed channel list verified on this disk and was BAD in the
+         repository. It was signed with CRLF line endings and git stores
+         LF, so the file and its signature differed by 142 bytes and
+         anybody cloning got "BAD signature" -- which reads as tampering
+10 Sep   a Windows build and a macOS build each synced the test chain from
+         genesis and agreed with the Linux nodes block for block. The
+         first independent node under WSL, and the first outside miner,
+         both reported by people who are not us
+11 Sep   a third seed node, and the clean machine found five more: both
+         production servers were carrying a v0.1.5 wallet tool in PATH
+         beside a v0.1.7 node, and the runtime library line this project
+         publishes names a package that does not exist on Ubuntu 24.04
 [/code]
 
 A project that publishes its defect list before launch is doing something
@@ -260,4 +284,4 @@ cd wam-coin && ./install.sh
 Builds from source, checks its own checksums, and requires no trust in a
 binary anybody handed you.
 
-Eleven days. Questions here get answered.
+Four days. Questions here get answered.
