@@ -413,3 +413,32 @@ unreachable objects for weeks — so the check went on reporting a backlog of
 The script predicts this, in a line a few rows under the constant: *"If
 history was rewritten, update BASELINE in this file."* It was right, and it
 is the only reason the stale count was noticed at all.
+
+### And it left an unsigned draft release behind
+
+The `v0.1.7` run that succeeded did what the workflow is written to do:
+
+```
+gh release create "$VERSION" ... --draft
+```
+
+That `--draft` is deliberate, and `release.yml` argues for it at length — the
+runner cannot sign, the key is on a USB stick, and without the draft every
+release went public unsigned until a person noticed. It waits for someone to
+sign SHA256SUMS by hand and publish.
+
+What nobody had considered is what happens when a tag is pushed for a release
+that is **already published and signed**. A second `v0.1.7` appeared in the
+list — a draft, carrying binaries built that afternoon and no signature at
+all — sitting one click away from replacing a good release with an
+uncheckable one.
+
+It was invisible to the check that went looking. Asked for the releases, the
+unauthenticated API returned eight and no duplicates, because **it does not
+return drafts**. The founder saw it in the web interface; the measurement
+could not. Deleted.
+
+The rule that follows, and it matters on 15 September: **pushing or moving a
+tag re-runs the release workflow and creates a fresh unsigned draft.** After
+any tag push, look at the releases list in the browser — not through the API
+— and delete what the run left behind.

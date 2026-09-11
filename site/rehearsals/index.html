@@ -183,6 +183,13 @@ before.</code></pre>
 <h3 id="the-check-that-guards-this-had-to-be-told">The check that guards this had to be told</h3>
 <p><code>check_attribution.py</code> carries a <code>BASELINE</code> commit, and that commit was one of the 217. It kept resolving on the machine that did the rewrite — git holds unreachable objects for weeks — so the check went on reporting a backlog of 24 that no longer existed, and on a fresh clone it would have failed outright.</p>
 <p>The script predicts this, in a line a few rows under the constant: <em>"If history was rewritten, update BASELINE in this file."</em> It was right, and it is the only reason the stale count was noticed at all.</p>
+<h3 id="and-it-left-an-unsigned-draft-release-behind">And it left an unsigned draft release behind</h3>
+<p>The <code>v0.1.7</code> run that succeeded did what the workflow is written to do:</p>
+<pre><code>gh release create "$VERSION" ... --draft</code></pre>
+<p>That <code>--draft</code> is deliberate, and <code>release.yml</code> argues for it at length — the runner cannot sign, the key is on a USB stick, and without the draft every release went public unsigned until a person noticed. It waits for someone to sign SHA256SUMS by hand and publish.</p>
+<p>What nobody had considered is what happens when a tag is pushed for a release that is <strong>already published and signed</strong>. A second <code>v0.1.7</code> appeared in the list — a draft, carrying binaries built that afternoon and no signature at all — sitting one click away from replacing a good release with an uncheckable one.</p>
+<p>It was invisible to the check that went looking. Asked for the releases, the unauthenticated API returned eight and no duplicates, because <strong>it does not return drafts</strong>. The founder saw it in the web interface; the measurement could not. Deleted.</p>
+<p>The rule that follows, and it matters on 15 September: <strong>pushing or moving a tag re-runs the release workflow and creates a fresh unsigned draft.</strong> After any tag push, look at the releases list in the browser — not through the API — and delete what the run left behind.</p>
 <p class="foot">This page is generated from docs/REHEARSALS.md in the repository. It is the same text; nothing here is written twice.</p>
 </main>
 </body>
