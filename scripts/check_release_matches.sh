@@ -135,9 +135,22 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
 if ! curl -sSL -m 300 -o "$TMP/r.tar.gz" "$URL" 2>/dev/null; then
-    bad "could not download the published tarball -- it was NOT checked"
+    # Not a finding. This file argues the distinction itself further down:
+    # exit 2 means the check could not run, and a fault that cannot be
+    # measured must not look like a fault that was measured.
+    #
+    # A download that times out says nothing about the release. On
+    # 11 September this went red on a link carrying 16 KB/s -- 963 KB of an
+    # 11.7 MB tarball in sixty seconds -- and reported it as though the
+    # published download were wrong. A red that appears every time because of
+    # somebody's connection is a red that stops being read.
+    got="$(wc -c < "$TMP/r.tar.gz" 2>/dev/null || echo 0)"
+    warn "the published tarball was NOT downloaded: $got byte(s) in 300s"
+    printf '        That is this connection, not the release. Run this check\n'
+    printf '        from a faster link -- one of the servers will do it in\n'
+    printf '        seconds -- or accept that it was not measured here.\n'
     echo; echo "=================================================================="
-    exit 1
+    exit 2
 fi
 tar -xzf "$TMP/r.tar.gz" -C "$TMP" 2>/dev/null
 BIN="$(find "$TMP" -type f -name 'wamd' | head -1)"
