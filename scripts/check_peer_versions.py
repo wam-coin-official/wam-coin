@@ -84,7 +84,13 @@ def main():
     ap.add_argument("--node", default="pool.wamcoin.org")
     ap.add_argument("--network", default="testnet",
                     choices=["mainnet", "testnet", "regtest"])
-    ap.add_argument("--ours", default="169.58.159.165,5.223.52.200,41.254.76.34",
+    # The last address is the founder's own node, and it is stale: his ISP
+    # hands out a new one, so on 10 September he appeared as 41.254.73.0 and
+    # this list counted him as an independent operator. The count said two
+    # when the honest answer was one. A fixed address cannot track a dynamic
+    # one, so the wording below says "not our servers" rather than
+    # "independent" -- which is exactly what this list can actually prove.
+    ap.add_argument("--ours", default="169.58.159.165,5.223.52.200,13.140.33.187,41.254.76.34",
                     help="addresses we run ourselves, excluded from the count of "
                          "independent operators")
     ap.add_argument("--window-hours", type=int, default=48,
@@ -208,7 +214,7 @@ def main():
              if ver_tuple(floor_v) <= ver_tuple(v) < ver_tuple(current)}
 
     print()
-    ok(f"{len(by_addr)} peer(s), of which {len(independent)} are not ours")
+    ok(f"{len(by_addr)} peer(s), of which {len(independent)} are not our servers")
 
     if not independent:
         warn("no independent node is connected -- there is nobody to warn, and "

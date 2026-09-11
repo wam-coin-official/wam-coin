@@ -77,6 +77,7 @@ STATE = os.path.join(HERE, "state.json")
 HOSTS = [
     ("France", "169.58.159.165"),
     ("Singapore", "5.223.52.200"),
+    ("US-east", "13.140.33.187"),
 ]
 
 # Services that are expected on a host. A host that has never run one is not
