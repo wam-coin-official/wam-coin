@@ -579,10 +579,34 @@ decision no longer costs anything on the night: testnet's ElectrumX already
 moved to 51001/51002/51004, and mainnet's ports are already free. Whichever
 way the answer goes, launch night is one `systemctl enable --now` per host.
 
-Memory was measured rather than estimated, and both networks fit on both
-machines: Singapore has 958 MB free and needs about 605 MB, a margin of
-roughly 350 MB with no swap on the machine. It fits, and it is the tightest
-thing on that host.
+**The answer, decided 12 September: Singapore runs mainnet only.** Stop
+testnet there on the night. There are three seeds now, and testnet keeps
+running on the two that have room for it -- France and the US seed -- so
+nothing is lost: the rehearsal ground stays, and the two independent
+operators keep a chain to be on.
+
+This is a memory decision and the number behind it is not a tuning knob.
+A WAM node holds **512 MiB for RandomX alone** -- two verification contexts
+at 256 MiB each, which is what lets it check proof-of-work at all. The node's
+own RPC says so:
+
+```
+wam-cli getrandomxinfo   ->   "memory_bytes": 536870912
+```
+
+and `wamd` on Singapore has an RSS of 537 MB against a `dbcache` of 100 and a
+19 MB chain. Practically all of the node's memory is RandomX, and the mainnet
+node will want the same 512 MiB beside it.
+
+Singapore has 1914 MB. Two nodes plus two ElectrumX plus the system is about
+1.3 GB of it, which fits only by leaning on swap -- and a node validating
+blocks out of swap is the slowest thing it can be on the night it matters
+most. Stopping testnet there frees 512 MiB in one command and costs nothing.
+
+The alternative was priced before being dismissed: rescaling that machine
+from 2 GB to 4 GB is $31/month against $18, in a region where Hetzner
+charges Asian rates. A hundred and fifty-six dollars a year for memory that
+one `systemctl stop` releases.
 
 **That was outstanding and is not any more.** 51001/51002/51004 were added
 in both panels at some point and nobody wrote it down; measured from outside
