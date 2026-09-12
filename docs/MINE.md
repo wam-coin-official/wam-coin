@@ -91,20 +91,35 @@ Expand-Archive wam-coin-v0.1.8-x86_64-w64-mingw32.zip -DestinationPath .
 Expand-Archive wam-miner-v0.1.8-x86_64-w64-mingw32.zip -DestinationPath .
 ```
 
-Check the two files against `SHA256SUMS` before you run anything. `certutil`
-is already on every Windows machine:
+**Check it before you run it.** One command, and it is the only step here that
+cannot be checked afterwards:
 
 ```
-certutil -hashfile wam-coin-v0.1.8-x86_64-w64-mingw32.zip SHA256
-type SHA256SUMS
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS.asc
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.ps1
+powershell -ExecutionPolicy Bypass -File verify_release.ps1
 ```
 
-The lines must match. That compares your copy with our list; to check the list
-itself is ours you need GnuPG, which Windows does not ship — either install
-[Gpg4win](https://gpg4win.org/) and run `gpg --verify SHA256SUMS.asc
-SHA256SUMS`, or run the four lines above from WSL. If you skip that, you are
-trusting that nobody replaced both files, which is a smaller assumption than
-skipping the hash entirely and a larger one than checking the signature.
+It should end with `this is the WAM release, unmodified since it was signed`.
+Anything else, and it will say what is wrong and tell you not to run the
+files.
+
+This page used to tell you to run `certutil -hashfile` and compare
+sixty-four hexadecimal characters against `SHA256SUMS` by eye. Nobody does
+that: people check the first four characters and the last four, which is the
+check an attacker would design for. The script compares every one of them,
+and then does the part `certutil` cannot — it verifies that `SHA256SUMS`
+itself is ours, by the fingerprint published in
+[SECURITY.md](../SECURITY.md).
+
+That last part needs GnuPG, which Windows does not ship. If you have
+[Git for Windows](https://gitforwindows.org/) you already have one and the
+script finds it; otherwise install [Gpg4win](https://gpg4win.org/). Without
+it the script checks the hashes, tells you the signature was **not** checked,
+and exits without saying the release is good — because a matching hash
+against an unsigned list proves your download is not corrupt and proves
+nothing about who wrote the list.
 
 Then the node, with the directory named explicitly so you always know where
 the wallet is:

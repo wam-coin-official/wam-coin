@@ -68,6 +68,34 @@ CHAINPARAMS_PATTERNS = [
 # wam-params.h is nothing but consensus numbers, so every value line counts.
 PARAMS_PATTERN = r'^\s*(?:static\s+const|constexpr|#define)\s+.+$'
 
+# Fields that `consensus.\w+` catches and that this file must not count.
+#
+# The test at the head of CHAINPARAMS_PATTERNS is the definition: "a node
+# disagreeing about any of these is a node on a different chain." Exactly one
+# field assigned through `consensus.` fails that test.
+#
+# nMinimumChainWork is the least total work a header chain must carry before a
+# node will begin to trust it -- an anti-DoS policy, so that a fresh node
+# cannot be walked onto a cheap fabricated history by the first peer it meets.
+# Two nodes with different values accept identical blocks. It cannot put them
+# on different chains. What it can do is stop a node syncing at all, which is
+# a liveness question, and scripts/check_min_chain_work.py exists for it.
+#
+# Counting it here is not harmless. v0.1.8 set the testnet value -- leaving
+# mainnet at zero -- and that moved this floor to v0.1.8, which made
+# release.yml refuse to publish a release whose tag carried no MANDATORY line.
+# The two remedies available at that moment were both wrong: write a MANDATORY
+# line, and every channel is told UPDATE REQUIRED for a release no node needs
+# -- spending the one warning that has to be believed on launch day, which is
+# precisely the failure release.yml's own comments describe; or do not publish.
+#
+# A v0.1.7 node has zero there, follows this chain exactly as before, and
+# accepts every block a v0.1.8 node accepts. It is not on a different chain,
+# so v0.1.8 is not a floor.
+NOT_A_VALIDITY_RULE = (
+    "nMinimumChainWork",
+)
+
 
 def git(*args):
     r = subprocess.run(["git", "-C", str(REPO), *args],
@@ -100,8 +128,16 @@ def fingerprint_text(chainparams, params):
     text = re.sub(r"/\*(?!nNonce=).*?\*/", " ", chainparams, flags=re.S)
     text = re.sub(r"//[^\n]*", "", text)
     for pat in CHAINPARAMS_PATTERNS:
-        values += [re.sub(r"\s+", " ", m).strip()
-                   for m in re.findall(pat, text)]
+        for m in re.findall(pat, text):
+            v = re.sub(r"\s+", " ", m).strip()
+            # See NOT_A_VALIDITY_RULE. Dropped after matching rather than by
+            # narrowing the pattern, so that `consensus.` still catches every
+            # field by default and an exception has to be named and argued
+            # for -- a new consensus value must never be missed because a
+            # regular expression was tightened to exclude a different one.
+            if any(("." + f) in v for f in NOT_A_VALIDITY_RULE):
+                continue
+            values.append(v)
 
     text = re.sub(r"/\*.*?\*/", " ", params, flags=re.S)
     text = re.sub(r"//[^\n]*", "", text)
