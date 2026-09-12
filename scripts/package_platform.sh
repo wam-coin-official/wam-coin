@@ -85,11 +85,22 @@ done
 # in the one file whose whole job is to be believed.
 case "$PLATFORM" in
     windows)      TRIPLET="x86_64-w64-mingw32"; WANT="PE32+";  ARCHIVE="zip"
-                  STRIP="x86_64-w64-mingw32-strip"; PRETTY="Windows" ;;
+                  STRIP="x86_64-w64-mingw32-strip"; PRETTY="Windows"
+                  HOW="cross-compiled on Linux by the platform-build workflow"
+                  MINER_HOW="cross-compiled on Linux, which cannot run it, so
+--self-test was run on a Windows machine afterwards" ;;
     macos-arm64)  TRIPLET="arm64-apple-darwin"; WANT="Mach-O"; ARCHIVE="tar.gz"
-                  STRIP="strip"; PRETTY="macOS (Apple Silicon)" ;;
+                  STRIP="strip"; PRETTY="macOS (Apple Silicon)"
+                  HOW="compiled natively on a macOS runner by the
+platform-build workflow, not cross-compiled from anything"
+                  MINER_HOW="compiled on that same machine, so it ran its
+own --self-test there, during the build" ;;
     macos-x86_64) TRIPLET="x86_64-apple-darwin"; WANT="Mach-O"; ARCHIVE="tar.gz"
-                  STRIP="strip"; PRETTY="macOS (Intel)" ;;
+                  STRIP="strip"; PRETTY="macOS (Intel)"
+                  HOW="compiled natively on a macOS runner by the
+platform-build workflow, not cross-compiled from anything"
+                  MINER_HOW="compiled on that same machine, so it ran its
+own --self-test there, during the build" ;;
     *) die "platform must be windows, macos-arm64 or macos-x86_64 (got '$PLATFORM')" ;;
 esac
 case "$VERSION" in v*) ;; *) VERSION="v$VERSION" ;; esac
@@ -288,24 +299,29 @@ fi
 cat > "$NODE/RELEASE.txt" <<TXT
 WAM Coin $VERSION -- $TRIPLET
 
-These binaries were cross-compiled on Linux by the platform-build workflow
-and then run against the live test chain on a $PRETTY runner, which synced
-from the genesis block over the real peer-to-peer protocol and compared four
-blocks the Linux nodes have held since August: 0, 1, 5000 and 6000. Block 1
-is where the 5% treasury rule is first enforced, so a binary that disagrees
-about consensus disagrees there.
+These binaries were $HOW.
 
-The miner in the separate archive was cross-compiled the same way and then
-ran --self-test on a $PRETTY machine, which checks SHA-256, stratum byte
-order, the difficulty targets, and RandomX against the two official test
-vectors. A miner whose RandomX disagreed with the network would hash all day,
-find nothing, and report no error at all, so that check is the whole question.
+They were then run against the live test chain on a $PRETTY machine, which
+synced from the genesis block over the real peer-to-peer protocol and
+compared four blocks the Linux nodes have held since August: 0, 1, 5000 and
+6000. Block 1 is where the 5% treasury rule is first enforced, so a binary
+that disagrees about consensus disagrees there.
+
+The chain was synced with the files in THIS archive, after stripping and
+packaging, not with an earlier build of them.
+
+The miner in the separate archive was $MINER_HOW.
+
+That check covers SHA-256, stratum byte order, the difficulty targets, and
+RandomX against the two official test vectors. A miner whose RandomX
+disagreed with the network would hash all day, find nothing, and report no
+error at all, so it is the whole question.
 
 That is what is being claimed, and all of it. What is NOT claimed:
 
   * no human had double-clicked these before the release that carries them
-  * the packaging and the signature had never covered a second platform
-    before $VERSION, so this path is newer than the Linux one
+  * before $VERSION the packaging and the signature covered Linux and
+    nothing else, so this path is newer and less worn than that one
 
 TXT
 
