@@ -97,7 +97,7 @@ done
 GRN=$'\033[32m'; RED=$'\033[31m'; YLW=$'\033[33m'; BLD=$'\033[1m'; OFF=$'\033[0m'
 FAIL=0
 
-rsh() { timeout 60 ssh -o BatchMode=yes -o ConnectTimeout=15 "root@$1" "$2" 2>/dev/null; }
+rsh() { timeout 60 ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes -o ConnectTimeout=15 "root@$1" "$2" 2>/dev/null; }
 
 echo "=================================================================="
 echo " Reachability of $TARGET, seen from $VANTAGE"

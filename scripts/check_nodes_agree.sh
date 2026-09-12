@@ -59,7 +59,7 @@ fi
 HOSTS=("$@")
 
 rsh() {
-    timeout 45 ssh -o BatchMode=yes -o ConnectTimeout=15 "root@$1" "$2" 2>/dev/null
+    timeout 45 ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes -o ConnectTimeout=15 "root@$1" "$2" 2>/dev/null
 }
 
 echo "=================================================================="

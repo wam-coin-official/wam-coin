@@ -73,7 +73,7 @@ run_elsewhere() {
     here="$(git rev-parse HEAD 2>/dev/null)"
 
     for h in $WAM_TOOL_HOSTS; do
-        there="$(ssh -o BatchMode=yes -o ConnectTimeout=12 "root@$h" \
+        there="$(timeout 60 ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes -o ConnectTimeout=12 "root@$h" \
                  "cd $WAM_REMOTE_REPO 2>/dev/null && git rev-parse HEAD" 2>/dev/null)"
         [ -n "$there" ] || continue
 
@@ -85,7 +85,7 @@ run_elsewhere() {
 
         printf '  the tool is not here; running this check on %s (%s)\n' \
             "$h" "${there:0:7}" >&2
-        ssh -o BatchMode=yes -o ConnectTimeout=25 "root@$h" \
+        timeout 300 ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes -o ConnectTimeout=25 "root@$h" \
             "cd $WAM_REMOTE_REPO && WAM_ALREADY_REMOTE=1 bash $rel $*"
         exit $?
     done

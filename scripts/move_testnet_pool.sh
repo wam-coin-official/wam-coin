@@ -64,7 +64,7 @@ done
 
 echo
 echo "  moving the config and restarting..."
-ssh -o BatchMode=yes "root@$H" '
+ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes "root@$H" '
   set -e
 
   # /opt/wam is where the checkout lives on every host, and the path is
@@ -112,7 +112,7 @@ done
 if [ "$ok" -eq 0 ]; then
     echo
     echo "  ${RED}rolling back -- a pool no miner can reach is worse than the collision${OFF}"
-    ssh -o BatchMode=yes "root@$H" '
+    ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes "root@$H" '
       # The rollback used $PY without ever sourcing the file that sets it, so
       # it ran the empty string and said "command not found" -- the path that
       # exists to undo a bad move could not undo anything.

@@ -46,7 +46,7 @@ echo
 echo "${BLD}can each node still say who connected?${OFF}"
 
 for h in "$@"; do
-    out="$(ssh -o BatchMode=yes -o ConnectTimeout=15 "root@$h" '
+    out="$(timeout 90 ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes -o ConnectTimeout=15 "root@$h" '
         C=/opt/wam-current-bin/wam-cli
         live=$($C -testnet logging 2>/dev/null | grep -c "\"net\": true")
         conf=$(grep -cE "^[[:space:]]*debug[[:space:]]*=[[:space:]]*net" /root/.wam/wam.conf 2>/dev/null)

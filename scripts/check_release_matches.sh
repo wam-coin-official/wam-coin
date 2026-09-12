@@ -255,7 +255,7 @@ check_artifact() {
         . "$HERE/scripts/lib/elsewhere.sh"
         isa_remote=""
         for h in $WAM_TOOL_HOSTS; do
-            isa_remote="$(ssh -o BatchMode=yes -o ConnectTimeout=20 "root@$h" "
+            isa_remote="$(timeout 300 ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes -o ConnectTimeout=20 "root@$h" "
                 set -u
                 command -v objdump >/dev/null 2>&1 || exit 3
                 command -v file    >/dev/null 2>&1 || exit 3

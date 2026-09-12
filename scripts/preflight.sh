@@ -66,7 +66,7 @@ gate() { printf '  %sgate%s   %s\n' "$YLW" "$OFF" "$*"; GATE=$((GATE+1)); }
 unchecked() { printf '  %swarn%s   %s\n' "$YLW" "$OFF" "$*"; UNCHECKED=$((UNCHECKED+1)); }
 sect() { printf '\n%s%s%s\n' "$BLD" "$*" "$OFF"; }
 
-rsh() { timeout 40 ssh -o BatchMode=yes -o ConnectTimeout=12 "root@$HOST" "$@" 2>/dev/null; }
+rsh() { timeout 40 ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes -o ConnectTimeout=12 "root@$HOST" "$@" 2>/dev/null; }
 
 echo "=================================================================="
 echo " WAM preflight"

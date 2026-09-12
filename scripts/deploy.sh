@@ -61,7 +61,7 @@ fi
 
 bad=0
 for h in "${HOSTS[@]}"; do
-    before="$(ssh -o BatchMode=yes -o ConnectTimeout=15 "root@$h" \
+    before="$(ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes -o ConnectTimeout=15 "root@$h" \
         'git -C /opt/wam rev-parse --short HEAD' 2>/dev/null)"
     # The default protocol first, then v0. Measured on 2 September 2026:
     # git 2.43.0 on Ubuntu 24.04 fails protocol v2 against GitHub six times in
@@ -78,7 +78,7 @@ for h in "${HOSTS[@]}"; do
     for try in $(seq 1 $TRIES); do
         proto=""
         [ $try -gt 1 ] && proto="-c protocol.version=0"
-        err="$(ssh -o BatchMode=yes -o ConnectTimeout=15 "root@$h" \
+        err="$(ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes -o ConnectTimeout=15 "root@$h" \
             "git $proto -C /opt/wam fetch -q origin && git -C /opt/wam reset -q --hard origin/main" 2>&1)"
         rc=$?
         if [ $rc -eq 0 ]; then
@@ -92,14 +92,14 @@ for h in "${HOSTS[@]}"; do
     done
 
     # Read it back. Not "the command exited 0" -- what the machine now holds.
-    got="$(ssh -o BatchMode=yes -o ConnectTimeout=15 "root@$h" \
+    got="$(ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes -o ConnectTimeout=15 "root@$h" \
         'git -C /opt/wam rev-parse HEAD' 2>/dev/null)"
 
     if [ "$got" = "$WANT" ]; then
         # Scripts that run from outside the checkout have to be copied out of
         # it, or the machine runs the new code everywhere except where it
         # matters most -- wam-facts is the forced command on the reporting key.
-        ssh -o BatchMode=yes "root@$h" '
+        ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes "root@$h" '
             install -m 755 /opt/wam/scripts/wam-facts.sh /usr/local/bin/wam-facts
             install -m 755 /opt/wam/scripts/wam-maint.sh /usr/local/bin/wam-maint
         ' >/dev/null 2>&1

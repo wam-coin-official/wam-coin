@@ -88,7 +88,7 @@ if [ -n "$RUNHOST" ]; then
             "$RUNHOST" >&2
         exit 2
     fi
-    exec ssh -o ConnectTimeout=15 -o BatchMode=yes "root@$RUNHOST" "$REMOTE"
+    exec ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o ConnectTimeout=15 -o BatchMode=yes "root@$RUNHOST" "$REMOTE"
 fi
 
 case "$NETWORK" in

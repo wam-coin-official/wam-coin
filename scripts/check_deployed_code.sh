@@ -54,7 +54,7 @@ for h in "$@"; do
     printf '%s%s%s\n' "$BLD" "$h" "$OFF"
     FOUND=0
     for p in $PATHS; do
-        HEAD="$(timeout 45 ssh -o BatchMode=yes -o ConnectTimeout=15 "root@$h" \
+        HEAD="$(timeout 45 ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes -o ConnectTimeout=15 "root@$h" \
             "[ -d $p/.git ] && git -C $p rev-parse HEAD 2>/dev/null" 2>/dev/null | tr -d '\r\n ')"
         [ -n "$HEAD" ] || continue
         FOUND=1
@@ -71,7 +71,7 @@ for h in "$@"; do
             FAIL=$((FAIL + 1))
         fi
 
-        DIRTY="$(timeout 45 ssh -o BatchMode=yes "root@$h" \
+        DIRTY="$(timeout 45 ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes "root@$h" \
             "git -C $p status --porcelain 2>/dev/null | grep -v '^??' | head -5" 2>/dev/null)"
         if [ -n "$DIRTY" ]; then
             printf '  %swarn%s    %s has uncommitted edits:\n' "$YLW" "$OFF" "$p"

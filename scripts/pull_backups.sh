@@ -46,7 +46,7 @@ warn() { printf '  %s!!%s    %s\n' "$YEL" "$OFF" "$*"; }
 
 [ "$#" -ge 1 ] || { printf 'usage: %s HOST [HOST...]\n' "${0##*/}" >&2; exit 2; }
 
-rsh() { timeout 300 ssh -o BatchMode=yes -o ConnectTimeout=15 "root@$1" "$2"; }
+rsh() { timeout 300 ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes -o ConnectTimeout=15 "root@$1" "$2"; }
 
 FAILED=0
 PULLED=0
