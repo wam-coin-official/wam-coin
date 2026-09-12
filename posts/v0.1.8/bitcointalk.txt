@@ -1,0 +1,126 @@
+=== Reply in the existing WAM Coin topic, Altcoin Announcements ===
+=== BBCode, one post ===
+
+[b]v0.1.8 — Windows and macOS, signed[/b]
+
+WAM now publishes signed binaries for three operating systems. Node and
+miner for each, in one release, covered by one checksum list and one key
+that is kept off every machine that touches the internet.
+
+[url=https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.8]github.com/wam-coin-official/wam-coin/releases/tag/v0.1.8[/url]
+
+[code]
+Linux    x86_64          node + miner
+Windows  x86_64          node + miner     new
+macOS    Apple Silicon   node + miner     new
+[/code]
+
+No WSL, no building, no installer. Archives and a terminal on all three.
+
+[b]Why this and not something else[/b]
+
+WAM uses RandomX so that an ordinary desktop processor can compete for
+blocks. Most ordinary desktops do not run Linux, and until today this
+project asked those people to install one before they could take part in
+the proof of work — which excluded the exact audience the algorithm was
+chosen for. The node had cross-compiled for Windows since 7 September; what
+was missing was the miner, and nobody had noticed.
+
+[b]What was measured[/b]
+
+No platform was published because it compiled. Each had to sync the test
+chain from the genesis block, over the real peer-to-peer protocol, and
+agree with the Linux nodes at heights 0, 1, 5000 and 6000. Block 1 is where
+the 5% treasury rule is first enforced, so a binary that disagrees about
+consensus disagrees there.
+
+That gate ran on the archives that are on the release page — after
+stripping and packaging, not on an earlier build of them. It is the reason
+the workflow packages first and tests second.
+
+Each miner passed its own self-test on the platform it is built for,
+including both of RandomX's official test vectors. A miner whose RandomX
+disagrees with the network hashes all day, finds nothing, and reports no
+error at all, so that check is the whole question and not a formality.
+
+The Windows miner was then pointed at the testnet pool from an ordinary
+desktop:
+
+[code]
+1.88 kH/s        8 of 24 cores, 2 GiB dataset
+10 accepted      0 rejected
+block 8478       recorded and paid by the pool
+[/code]
+
+Zero rejected is the number worth reading. A single byte-order mistake in
+the header, the nonce or the target comparison gives every share rejected,
+with no error message — a miner that hashes correctly and finds nothing.
+
+macOS is built natively on macOS rather than cross-compiled, so its miner
+runs its own self-test on the machine that produced it. That is a shorter
+chain of custody than the Windows one, not a longer one.
+
+[b]Two warnings, because you will meet them[/b]
+
+[b]Windows Defender deletes the miner.[/b] Fourteen seconds into its first
+run it was removed and reported as Trojan:Win32/Bearfoos.A!ml. It is a false
+positive and we cannot make it go away. A program that opens a network
+connection and then uses every core behaves exactly like the cryptojacking
+malware that infects people without asking; no scanner can separate them by
+behaviour, because the behaviour is the same. The difference is that you
+chose this one, and it mines to the address on its own command line and
+nowhere else. The only thing that removes the warning is a publisher
+certificate, and this project has not bought one.
+
+What to do: check the file, not the verdict. If you want to mine, allow that
+one file by name — never a folder, and never the whole machine. If you would
+rather not, the node is a separate archive, is not a miner, and is not
+normally flagged. Anyone claiming to be us and telling you to switch your
+antivirus off entirely is not us.
+
+[b]macOS refuses to run them at all, the first time.[/b] Not a virus report:
+the binaries are not notarised, which requires a paid Apple developer
+account. One command clears the quarantine flag on three named files, and it
+is not "disable Gatekeeper". Run it after you have checked the signature,
+not before.
+
+Apple Silicon only. A binary for one architecture does not run on the other,
+and asking a free public repository for a second macOS runner per build
+costs hours in a queue. Intel Macs build it in about twenty minutes.
+
+[b]Checking it[/b]
+
+[code]
+Linux and macOS   scripts/verify_release.sh
+Windows           scripts/verify_release.ps1
+[/code]
+
+The PowerShell one is new in this release, for a reason worth stating: the
+verifier that guarded every release until now is a bash script, and the
+audience a Windows build was added for cannot run it. What the documentation
+told them instead was to compare sixty-four hexadecimal characters by eye,
+which nobody does — people check the first four and the last four, which is
+the check an attacker would design for.
+
+[url=https://github.com/wam-coin-official/wam-coin/blob/main/docs/MINE.md]Seven lines for each platform, and both warnings in full[/url]
+
+[b]A correction[/b]
+
+For about seven hours on 12 September the checksum list on that release page
+did not match its own signature. A file was replaced and its signature was
+not, so anyone who verified in that window was told the signature was
+invalid — about a release that was sound. It is fixed: six files, one list,
+one signature, and you can confirm that from the page rather than from this
+post. If you saw that failure, download again.
+
+Two things came out of it. The announcement bot now refuses to say anything
+about a release that does not verify, and every seed checks the published
+release every ten minutes and alarms when it stops verifying. The check that
+would have caught it existed already and ran only when somebody remembered
+to run it.
+
+[b]Still testnet[/b]
+
+These coins are worth nothing and will not become real ones. The test chain
+has been wiped before and may be again. Mainnet is 15 September 2026, 00:00
+UTC.

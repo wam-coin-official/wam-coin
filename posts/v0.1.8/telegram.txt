@@ -1,0 +1,129 @@
+=== MESSAGE 1 of 2 — English ===
+
+v0.1.8: Windows and macOS
+
+WAM now has signed downloads for three operating systems. Node and miner
+for each, in one release, covered by one checksum list and one offline key.
+
+https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.8
+
+    Linux    x86_64          node + miner
+    Windows  x86_64          node + miner     new
+    macOS    Apple Silicon   node + miner     new
+
+WAM uses RandomX so an ordinary desktop processor can compete for blocks.
+Most ordinary desktops do not run Linux, and until today this project asked
+those people to install one before they could take part in the proof of
+work. That was the wrong thing to be missing.
+
+WHAT WAS MEASURED
+
+Both new platforms had to sync the test chain from the genesis block over
+the real peer-to-peer network and agree with the Linux nodes at heights 0,
+1, 5000 and 6000 before anything was packaged. Block 1 is where the 5%
+treasury rule is first enforced, so a binary that disagrees about consensus
+disagrees there. The check ran on the exact archives on that page, after
+stripping and packaging — not on an earlier build of them.
+
+Each miner had to pass its own self-test on the platform it is for,
+including both of RandomX's official test vectors. A miner whose RandomX
+disagrees hashes all day, finds nothing, and reports no error at all.
+
+The Windows miner then mined on testnet, on an ordinary desktop: ten shares
+accepted, zero rejected, and block 8478 — recorded and paid by the pool.
+Zero rejected is the number that matters; one byte-order mistake gives every
+share rejected and no message.
+
+TWO WARNINGS, BEFORE YOU MEET THEM
+
+Windows Defender deleted the miner fourteen seconds into its first run and
+called it a trojan. It is a false positive and we cannot remove it: a
+program that opens a socket and then uses every core is indistinguishable
+from cryptojacking malware by behaviour, and the only thing that clears the
+warning is a publisher certificate this project has not bought. Verify the
+file instead of trusting a verdict; if you mine, allow that one file by
+name, never a folder and never the machine.
+
+macOS refuses to run the binaries on the first attempt, because they are
+not notarised — that needs a paid Apple developer account. One command
+clears the flag on three named files, and it is not "disable Gatekeeper".
+
+Apple Silicon only. Intel Macs build it in about twenty minutes.
+
+HOW TO CHECK IT
+
+Linux and macOS:
+https://github.com/wam-coin-official/wam-coin/blob/main/scripts/verify_release.sh
+
+Windows, new in this release, because the verifier that guarded every
+release until now is a bash script the Windows audience cannot run:
+https://github.com/wam-coin-official/wam-coin/blob/main/scripts/verify_release.ps1
+
+Seven lines for each platform, and both warnings in full:
+https://github.com/wam-coin-official/wam-coin/blob/main/docs/MINE.md
+
+A CORRECTION
+
+For about seven hours this morning the checksum list on that release page
+did not match its own signature: a file was replaced and its signature was
+not. Anyone who checked in that window was told the signature was not valid,
+about a release that was sound. It is fixed — six files, one list, one
+signature, all agreeing — and you can verify that from the page yourself.
+If you saw that failure, download again.
+
+Still testnet. These coins are worth nothing and will not become real ones.
+Mainnet: 15 September 2026, 00:00 UTC.
+
+=== MESSAGE 2 of 2 — Arabic ===
+
+‏v0.1.8: ويندوز وماك
+
+‏صار لـWAM تنزيلاتٌ موقَّعةٌ لثلاثة أنظمة. العقدةُ والمعدّنُ لكلِّ واحدٍ
+‏منها، في إصدارٍ واحد، تغطّيها قائمةُ بصماتٍ واحدةٌ ومفتاحٌ واحدٌ مُبعَدٌ عن
+‏الشبكة.
+
+https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.8
+
+‏WAM تستعمل RandomX لكي يستطيع معالجُ حاسوبٍ عاديٍّ أن ينافس على الكتل.
+‏وأغلبُ الحواسيب العاديّة ليست على لينكس، وحتى اليوم كان هذا المشروع يطلب من
+‏أصحابها أن يُنصّبوا لينكس قبل أن يشاركوا في إثبات العمل. وكان ذلك أسوأَ ما
+‏يمكن أن يكون ناقصاً.
+
+‏ما قيس، لا ما يُدَّعى: كان على المنصّتين الجديدتين أن تُزامنا شبكةَ الاختبار
+‏من كتلة الجينيسيس عبر شبكة الند للند الحقيقيّة، وأن توافقا عُقدَ لينكس عند
+‏الارتفاعات 0 و1 و5000 و6000، قبل أن يُحزَم أيُّ شيء. والكتلةُ 1 هي حيث
+‏تُطبَّق قاعدةُ الخزينة 5% أوّلَ مرّة. والفحصُ جرى على الأرشيفات التي على تلك
+‏الصفحة بعد التجريد والتحزيم، لا على بناءٍ أسبقَ منها.
+
+‏وكان على كلِّ معدّنٍ أن ينجح في اختباره الذاتيِّ على منصّته، بما فيه متّجها
+‏RandomX الرسميّان. فمعدّنٌ تخالف RandomX عنده الشبكةَ يعدّن اليومَ كلَّه ولا
+‏يجد شيئاً ولا يُبلّغ عن أيِّ خطأ.
+
+‏ثمّ عدّن معدّنُ ويندوز فعلاً على شبكة الاختبار، على حاسوبٍ عاديّ: عشرُ حصصٍ
+‏مقبولة، وصفرُ مرفوضة، والكتلةُ 8478 — سجّلها المسبحُ ودفعها. وصفرُ المرفوضة
+‏هو الرقمُ المهمّ: خطأٌ واحدٌ في ترتيب البايتات يجعل كلَّ الحصص مرفوضةً بلا
+‏أيِّ رسالة.
+
+‏وتحذيران، قبل أن تلقاهما: برنامجُ الحماية في ويندوز حذف المعدّنَ بعد أربعَ
+‏عشرةَ ثانيةً من أوّل تشغيلٍ وسمّاه حصانَ طروادة. هو إنذارٌ كاذبٌ ولا نستطيع
+‏إزالته: برنامجٌ يفتح اتصالاً بالشبكة ثمّ يستهلك كلَّ الأنوية لا يُفرَّق
+‏سلوكيّاً عن برمجيّات التعدين الخفيّة، والشيءُ الوحيدُ الذي يُزيل التحذيرَ
+‏شهادةُ ناشرٍ لم يشترِها هذا المشروع. فتحقّقْ من الملفِّ بنفسك ولا تثق بحكم؛
+‏وإن عدّنتَ فاستثنِ ذلك الملفَّ باسمه وحده، لا مجلّداً ولا الجهازَ كلَّه.
+
+‏وماك يرفض تشغيلَها في المرّة الأولى لأنّها بلا توثيقٍ من آبل — وذلك يحتاج
+‏حساب مطوّرٍ مدفوعاً. وأمرٌ واحدٌ يُزيل العلامةَ عن ثلاثة ملفّاتٍ بأسمائها،
+‏وليس هو «أوقِفْ الحماية». ومعالجُ آبل وحدَه؛ وماك إنتل يبنيه في نحو عشرين
+‏دقيقة.
+
+‏كيف تتحقّق — سبعةُ أسطرٍ لكلِّ نظام، والتحذيران بنصّهما:
+https://github.com/wam-coin-official/wam-coin/blob/main/docs/MINE.md
+
+‏وتصحيح: لنحو سبع ساعاتٍ هذا الصباح كانت قائمةُ البصمات على صفحة الإصدار لا
+‏تطابق توقيعَها، لأنّ ملفاً استُبدل وتوقيعُه لم يُستبدل. فمن تحقّق في تلك
+‏المدّة قيل له إنّ التوقيعَ غيرُ صحيحٍ عن إصدارٍ سليم. أُصلح الأمرُ — ستّةُ
+‏ملفّاتٍ وقائمةٌ وتوقيعٌ تتّفق كلُّها — ويمكنك التحقّقُ من ذلك من الصفحة
+‏نفسها. وإن رأيتَ ذلك الإخفاق، فنزّلْ من جديد.
+
+‏وهي شبكةُ اختبارٍ بعد. هذه العملاتُ لا قيمةَ لها ولن تصير حقيقيّة. والشبكةُ
+‏الرئيسيّة: 15 سبتمبر 2026، الساعة 00:00 UTC.

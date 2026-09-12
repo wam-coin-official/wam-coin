@@ -1,0 +1,88 @@
+=== MESSAGE 1 of 3 — reply in the thread where Sparks60 asked ===
+
+@Sparks60 — you asked for this. It is done, and it is signed.
+
+**v0.1.8 adds Windows and macOS.** Node and miner for both, in the same
+release, covered by the same checksum list and the same offline key as the
+Linux archives have been since v0.1.0.
+
+https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.8
+
+    Linux    x86_64          node + miner
+    Windows  x86_64          node + miner     new
+    macOS    Apple Silicon   node + miner     new
+
+No WSL. No building. No `.dmg` and no installer either — archives and a
+terminal, the same on all three.
+
+**What was measured, not claimed.** Both new platforms had to sync the test
+chain from the genesis block over the real peer-to-peer network and agree
+with the Linux nodes at heights 0, 1, 5000 and 6000 before anything was
+packaged. Block 1 is where the 5% treasury rule is first enforced, so a
+binary that disagrees about consensus disagrees there. The gate ran on the
+exact archives on that page, after stripping and packaging — not on an
+earlier build of them.
+
+The miners had to pass their own self-test on the target platform,
+including both of RandomX's official test vectors. A miner whose RandomX
+disagrees with the network hashes all day, finds nothing, and reports no
+error at all, so that check is the whole question.
+
+And the Windows miner mined. On testnet, on an ordinary desktop: 1.88 kH/s
+on 8 of 24 cores, ten shares accepted, zero rejected, and **block 8478**,
+which the pool recorded and paid. Zero rejected is the part that matters —
+one byte-order mistake in the header or the nonce gives every share
+rejected and no error message.
+
+=== MESSAGE 2 of 3 ===
+
+**Your antivirus will object to the Windows miner, and it is wrong.**
+
+We would rather you heard that from us. Windows Defender deleted
+`wam-miner.exe` fourteen seconds into its first run and called it
+`Trojan:Win32/Bearfoos.A!ml`.
+
+A program that opens a network connection and then uses every core behaves
+exactly like the cryptojacking malware that infects people without asking.
+No scanner can tell them apart by behaviour, because the behaviour is
+identical — the difference is that you chose this one, and it mines to the
+address on its own command line and nowhere else. A publisher certificate
+is the only thing that removes the warning; this project has not bought one.
+
+So verify the file instead of trusting a verdict. If you want to mine,
+allow that one file by name — never a folder and never the whole machine.
+If you would rather not, the node is a separate archive, is not a miner,
+and is not normally flagged.
+
+**macOS will refuse to run them on the first attempt.** Not a virus
+warning: the binaries are not notarised, which needs a paid Apple developer
+account. The page below gives the one command that clears the quarantine
+flag on three named files. It is not "disable Gatekeeper", and do not run it
+before you have checked the signature.
+
+**Apple Silicon only.** A binary for one architecture does not run on the
+other. Intel Macs build it in about twenty minutes.
+
+=== MESSAGE 3 of 3 ===
+
+**Checking it takes one command.**
+
+Linux and macOS:
+https://github.com/wam-coin-official/wam-coin/blob/main/scripts/verify_release.sh
+
+Windows, new in this release because the old one was a bash script that the
+audience for a Windows build cannot run:
+https://github.com/wam-coin-official/wam-coin/blob/main/scripts/verify_release.ps1
+
+The seven lines for each platform, and the warnings in full:
+https://github.com/wam-coin-official/wam-coin/blob/main/docs/MINE.md
+
+**One correction.** For about seven hours this morning the checksum list on
+that release page did not match its own signature — a file was replaced and
+its signature was not. Anyone who checked in that window was told the
+signature was not valid, about a release that was fine. It is fixed, the six
+files and the signature agree, and the fix is verifiable from the page
+itself. If you saw that failure, download again.
+
+Still testnet. The coins are worth nothing. Mainnet is 15 September 2026,
+00:00 UTC.

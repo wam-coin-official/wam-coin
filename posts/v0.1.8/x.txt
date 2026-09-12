@@ -1,0 +1,73 @@
+=== THREAD, 8 posts, x.com/WAMCoinCore ===
+
+1/
+v0.1.8 adds Windows and macOS. Node and miner for both, signed with the
+same offline key as every Linux release since v0.1.0.
+
+Three operating systems, one checksum list, one signature.
+
+https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.8
+
+2/
+WAM uses RandomX so an ordinary desktop processor can compete for blocks.
+
+Most ordinary desktops do not run Linux. Until today this project asked
+those people to install one first. That was the wrong thing to be missing.
+
+3/
+Neither platform was published on a build that compiled.
+
+Both had to sync the test chain from the genesis block over the real
+peer-to-peer network and agree with the Linux nodes at heights 0, 1, 5000
+and 6000. Block 1 is where the 5% treasury rule is first enforced.
+
+4/
+And on the exact archives you can download — after stripping and
+packaging, not an earlier build of them.
+
+Each miner passed its own self-test on its own platform, both official
+RandomX vectors included.
+
+5/
+Then the Windows miner mined. Testnet, ordinary desktop:
+
+  10 shares accepted
+  0 rejected
+  block 8478, recorded and paid by the pool
+
+Zero rejected is the number. One byte-order mistake gives all rejected and
+no error message.
+
+6/
+Windows Defender deleted the miner 14 seconds into its first run and called
+it a trojan.
+
+False positive, and we cannot remove it: a program that opens a socket then
+uses every core is behaviourally identical to cryptojacking malware. Only a
+publisher certificate clears it.
+
+7/
+So verify the file rather than trust a verdict. If you mine, allow one file
+by name — never a folder, never the machine.
+
+macOS refuses its first run too: not notarised. Apple Silicon only.
+
+8/
+Both warnings in full, and seven lines for each platform:
+https://github.com/wam-coin-official/wam-coin/blob/main/docs/MINE.md
+
+Still testnet. Mainnet is 15 September 2026, 00:00 UTC.
+
+=== SEPARATE POST, Arabic ===
+
+‏1/ v0.1.8: صار لـWAM تنزيلاتٌ موقَّعةٌ لثلاثة أنظمة — لينكس وويندوز وماك،
+‏العقدةُ والمعدّنُ لكلٍّ منها.
+
+‏ولم تُنشر منصّةٌ لمجرّد أنّها تُصرَّف: كان على الاثنتين أن تُزامنا شبكةَ
+‏الاختبار من الجينيسيس وتوافقا عُقدَ لينكس كتلةً بكتلة.
+
+‏2/ ثمّ عدّن معدّنُ ويندوز على حاسوبٍ عاديّ: عشرُ حصصٍ مقبولة، صفرُ مرفوضة،
+‏وكتلةٌ واحدة.
+
+‏وبرنامجُ الحماية سيعترض عليه، وهو مخطئ — والسببُ والعلاجُ مكتوبان بلا تجميل:
+https://github.com/wam-coin-official/wam-coin/blob/main/docs/MINE.md
