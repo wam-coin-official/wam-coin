@@ -259,29 +259,21 @@ else
     warn "    sudo apt install binutils-mingw-w64-x86-64"
 fi
 
-cat > "$NODE/RELEASE.txt" <<TXT
-WAM Coin $VERSION -- $TRIPLET
-
-These binaries were cross-compiled on Linux by the platform-build workflow
-and then run against the live test chain on a $PRETTY runner, which synced
-from the genesis block over the real peer-to-peer protocol and compared four
-blocks the Linux nodes have held since August: 0, 1, 5000 and 6000. Block 1
-is where the 5% treasury rule is first enforced, so a binary that disagrees
-about consensus disagrees there.
-
-The miner in the separate archive was cross-compiled the same way and then
-ran --self-test on a $PRETTY machine, which checks SHA-256, stratum byte
-order, the difficulty targets, and RandomX against the two official test
-vectors. A miner whose RandomX disagreed with the network would hash all day,
-find nothing, and report no error at all, so that check is the whole question.
-
-That is what is being claimed, and all of it. What is NOT claimed:
-
-  * no human had double-clicked these before the release that carries them
-  * the packaging and the signature had never covered a second platform
-    before $VERSION, so this path is newer than the Linux one
-
-$(if [ "$PLATFORM" = "windows" ]; then cat <<'WARN'
+# Built into a variable BEFORE the heredoc below, not inside it.
+#
+# It was a heredoc nested inside a command substitution nested inside
+# another heredoc. bash 5 on the Linux runner produced the right file; the
+# macOS runner ships bash 3.2, produced NOTHING, and this script then printed
+#
+#     ok    RELEASE.txt written -- it says what was tested and what was not
+#
+# about a file of zero bytes. It shipped that way in the first macOS archive:
+# the one file whose whole job is to state what was tested and what was not,
+# empty, with a line claiming it had been written. The smoke test that would
+# have caught it ran on Linux only.
+WINWARN=""
+if [ "$PLATFORM" = "windows" ]; then
+    WINWARN=$(cat <<'WARN'
 YOUR ANTIVIRUS WILL PROBABLY OBJECT TO THE MINER, AND IT IS WRONG.
 
 On 12 September, during testing, Windows Defender deleted wam-miner.exe
@@ -311,7 +303,32 @@ surprise you. What to do:
 Anyone claiming to be us and asking you to switch your antivirus off
 entirely is not us.
 WARN
-fi)
+)
+fi
+
+cat > "$NODE/RELEASE.txt" <<TXT
+WAM Coin $VERSION -- $TRIPLET
+
+These binaries were cross-compiled on Linux by the platform-build workflow
+and then run against the live test chain on a $PRETTY runner, which synced
+from the genesis block over the real peer-to-peer protocol and compared four
+blocks the Linux nodes have held since August: 0, 1, 5000 and 6000. Block 1
+is where the 5% treasury rule is first enforced, so a binary that disagrees
+about consensus disagrees there.
+
+The miner in the separate archive was cross-compiled the same way and then
+ran --self-test on a $PRETTY machine, which checks SHA-256, stratum byte
+order, the difficulty targets, and RandomX against the two official test
+vectors. A miner whose RandomX disagreed with the network would hash all day,
+find nothing, and report no error at all, so that check is the whole question.
+
+That is what is being claimed, and all of it. What is NOT claimed:
+
+  * no human had double-clicked these before the release that carries them
+  * the packaging and the signature had never covered a second platform
+    before $VERSION, so this path is newer than the Linux one
+
+$WINWARN
 
 VERIFY BEFORE YOU RUN IT. The checksum file is signed with a key kept
 offline, and the fingerprint is published in SECURITY.md in the source
@@ -327,7 +344,19 @@ repository and nowhere else:
 
 A release without SHA256SUMS.asc beside it cannot be checked. Do not run it.
 TXT
-ok "RELEASE.txt written -- it says what was tested and what was not"
+# Measured, not asserted. The line above used to print whatever happened,
+# including for an empty file, which is how a zero-byte RELEASE.txt reached
+# an archive somebody could download. 1500 bytes is well under the real size
+# and well over any truncation.
+RTXT_BYTES=$(wc -c < "$NODE/RELEASE.txt" 2>/dev/null || echo 0)
+if [ "$RTXT_BYTES" -lt 1500 ]; then
+    die "RELEASE.txt came out $RTXT_BYTES bytes, which is not a release note.
+
+          It is the file that tells a stranger what was tested and what was
+          not, so an empty or truncated one is worse than none: the archive
+          looks complete and says nothing. Nothing was packaged."
+fi
+ok "RELEASE.txt   $RTXT_BYTES bytes -- what was tested, and what was not"
 
 MINERSRC=""
 for cand in "$FROM/wam-miner.exe" "$FROM/wam-miner"; do
