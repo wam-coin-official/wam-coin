@@ -608,6 +608,16 @@ from 2 GB to 4 GB is $31/month against $18, in a region where Hetzner
 charges Asian rates. A hundred and fifty-six dollars a year for memory that
 one `systemctl stop` releases.
 
+**And whatever any of these machines is ever rescaled to, it must stay
+x86_64.** Hetzner offers Arm64 (Ampere) beside x86 in its cheaper tiers, a
+few dollars less, one radio button away from the price. Every binary this
+project ships is `x86_64-linux-gnu`, and the only ARM target in the
+repository is macOS on Apple Silicon -- there is no Linux ARM build.
+
+An Arm64 server cannot run `wamd` at all. Not slowly, not with less memory:
+as a file the loader refuses. The panel would show a healthy server with no
+node on it, which is the shape of failure that takes longest to find.
+
 **That was outstanding and is not any more.** 51001/51002/51004 were added
 in both panels at some point and nobody wrote it down; measured from outside
 both hosts on 11 September, all three answer. The worry was real while it
