@@ -44,10 +44,33 @@
 
 set -uo pipefail
 
-[ $# -ge 1 ] || { printf 'usage: %s FILE [FILE...]\n' "${0##*/}" >&2; exit 2; }
+[ $# -ge 1 ] || {
+    printf 'reason: no file was given\n'
+    printf 'usage: %s FILE [FILE...]\n' "${0##*/}" >&2; exit 2; }
 
-command -v objdump >/dev/null 2>&1 || {
-    printf 'objdump is required: apt-get install -y binutils\n' >&2; exit 2; }
+# The disassembler is named once. This script used to print
+# "OBJDUMP=llvm-objdump (or run this on the machine that built it)" as the
+# way to read a Mach-O binary, and then call `objdump` regardless -- advice
+# that could be followed exactly and change nothing. If it tells you which
+# tool to use, it has to be the tool it uses.
+OBJDUMP="${OBJDUMP:-objdump}"
+command -v "$OBJDUMP" >/dev/null 2>&1 || {
+    printf 'reason: %s is not installed (apt-get install -y binutils)\n' "$OBJDUMP"
+    printf '%s is required: apt-get install -y binutils\n' "$OBJDUMP" >&2; exit 2; }
+
+# `file` decides which format each argument is, and a missing `file` used to
+# mean every argument fell through the case below as "unknown" and was
+# skipped in silence. On 12 September the Singapore seed had no `file`: this
+# script examined nothing, said so, and exited 1 -- and its caller printed
+# "the published binaries carry instructions many CPUs do not have" in red
+# about a release whose five Linux binaries are clean. One absent 100 KB
+# utility became a launch-stopping claim.
+#
+# Reading the magic bytes with od would remove the dependency altogether and
+# is the better fix; three days before launch, this one says so instead.
+command -v file >/dev/null 2>&1 || {
+    printf 'reason: file(1) is not installed, so no format could be identified (apt-get install -y file)\n'
+    printf 'file is required: apt-get install -y file\n' >&2; exit 2; }
 
 GRN=$'\033[32m'; RED=$'\033[31m'; YLW=$'\033[33m'; OFF=$'\033[0m'
 FAIL=0
@@ -101,7 +124,7 @@ for f in "$@"; do
 
     CHECKED=$((CHECKED + 1))
 
-    D="$(objdump -d --no-show-raw-insn "$f" 2>/dev/null)"
+    D="$("$OBJDUMP" -d --no-show-raw-insn "$f" 2>/dev/null)"
     if [ -z "$D" ]; then
         # Not `continue`. CHECKED has already been incremented, so continuing
         # here counted an unreadable file towards "all N binaries stay within
@@ -135,6 +158,8 @@ done
 echo
 echo "=================================================================="
 if [ "$UNREADABLE" -gt 0 ]; then
+    printf 'reason: %d binary(ies) could not be disassembled by %s\n' \
+        "$UNREADABLE" "$OBJDUMP"
     printf ' %s%d binary(ies) could not be disassembled -- this check did not run%s\n' \
         "$RED" "$UNREADABLE" "$OFF"
     echo
@@ -145,11 +170,19 @@ if [ "$UNREADABLE" -gt 0 ]; then
     exit 2
 fi
 if [ "$CHECKED" -eq 0 ] && [ "$ARM" -eq 0 ]; then
+    # This exited 1, which every caller reads as "AVX-512 was found". It is
+    # the opposite: nothing was opened, so nothing is known. The two are
+    # indistinguishable in a summary and only one of them should stop a
+    # release -- and the difference cost a FAIL on 12 September, when a
+    # caller globbed a path that matched no file and this script told it the
+    # published binaries were unrunnable.
+    printf 'reason: no file matched, so no binary was examined\n'
     printf ' %sno binary was examined -- this proves nothing%s\n' "$RED" "$OFF"
     echo "=================================================================="
-    exit 1
+    exit 2
 fi
 if [ "$CHECKED" -eq 0 ]; then
+    printf 'reason: %d arm64 binary(ies) only, and this check is about x86-64\n' "$ARM"
     printf ' %s%d arm64 binary(ies) only -- nothing here was in this check'"'"'s scope%s\n' \
         "$YLW" "$ARM" "$OFF"
     echo

@@ -428,6 +428,13 @@ jobs:
           # rather than claiming an Apple Silicon binary is within an x86-64
           # baseline -- a confident answer to a question nobody asked. That
           # is expected here, so 2 is tolerated and anything else is not.
+          #
+          # Tolerating 2 means tolerating "this check could not run", so the
+          # one thing that must not be in doubt is whether there was a file
+          # to run it on. Since 12 September "no file matched" is also a 2 --
+          # it was a 1, which callers read as "AVX-512 found" -- so the glob
+          # is asserted here rather than trusted.
+          ls -l out/macos-*/wamd || { echo "::error::no macOS wamd to check"; exit 1; }
           set +e
           bash scripts/check_isa_baseline.sh out/macos-*/wamd
           st=$?
