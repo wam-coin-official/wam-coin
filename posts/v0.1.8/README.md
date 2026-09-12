@@ -22,8 +22,7 @@ on 12 September, and each can be re-read:
 ```
 heights 0, 1, 5000, 6000   scripts/test/test_platform_consensus.sh, the gate
                            in .github/workflows/platform-build.yml
-1.88 kH/s, 8 of 24 cores   the miner's own stats line, Windows 11
-10 accepted, 0 rejected    the same
+10 accepted, 0 rejected    the miner's own stats line, Windows 11
 block 8478                 the pool journal on the France host:
                            "BLOCK CANDIDATE at height 8478 by ...win11"
                            then "BLOCK 8478 ACCEPTED"
@@ -40,10 +39,21 @@ the correction             measured by downloading the page from a seed
 means naming a country names the person, to anyone who can watch the
 network, and none of them agreed to be named. That rule has not changed.
 
-**No hashrate for the network as a whole.** The figure quoted is one
-desktop's, labelled as one desktop's. The network total is smaller than a
-single machine and publishing it invites the arithmetic an attacker
-performs; `docs/ROADMAP.md` section 5.0 is why.
+**No hashrate at all, ours or the network's.** The drafts first quoted this
+machine's rate beside the block it found, which is worse than quoting the
+network total: the two together are the arithmetic an attacker performs, and
+we would have done it for him. `docs/ROADMAP.md` section 5.0 sets out that
+comparison once, deliberately, and it does not need repeating in a post.
+
+What survives is the part that proves the port rather than the strength:
+shares accepted with none rejected, and a block the network took. Neither
+tells a reader how much work the chain is defended by.
+
+**No monitoring intervals.** An earlier draft named the cadence at which the
+release is re-checked. That tells anybody who substitutes a file exactly how
+long they have before anyone notices, and this file is as public as the post
+was going to be, so the number is not here either. The draft says it is
+watched from more than one machine, which is the part a reader needs.
 
 **Nothing that ages.** No countdown, no "in three days". The date says the
 same thing and stays true. The chain height moves every two minutes, so no

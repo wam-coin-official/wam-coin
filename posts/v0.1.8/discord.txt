@@ -28,9 +28,9 @@ including both of RandomX's official test vectors. A miner whose RandomX
 disagrees with the network hashes all day, finds nothing, and reports no
 error at all, so that check is the whole question.
 
-And the Windows miner mined. On testnet, on an ordinary desktop: 1.88 kH/s
-on 8 of 24 cores, ten shares accepted, zero rejected, and **block 8478**,
-which the pool recorded and paid. Zero rejected is the part that matters —
+And the Windows miner mined. On testnet, on an ordinary desktop: ten shares
+accepted, zero rejected, and **block 8478**, which the pool recorded and
+paid. Zero rejected is the part that matters —
 one byte-order mistake in the header or the nonce gives every share
 rejected and no error message.
 

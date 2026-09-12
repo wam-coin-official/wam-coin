@@ -47,9 +47,8 @@ The Windows miner was then pointed at the testnet pool from an ordinary
 desktop:
 
 [code]
-1.88 kH/s        8 of 24 cores, 2 GiB dataset
-10 accepted      0 rejected
-block 8478       recorded and paid by the pool
+10 shares accepted      0 rejected
+block 8478              recorded and paid by the pool
 [/code]
 
 Zero rejected is the number worth reading. A single byte-order mistake in
@@ -114,10 +113,10 @@ one signature, and you can confirm that from the page rather than from this
 post. If you saw that failure, download again.
 
 Two things came out of it. The announcement bot now refuses to say anything
-about a release that does not verify, and every seed checks the published
-release every ten minutes and alarms when it stops verifying. The check that
-would have caught it existed already and ran only when somebody remembered
-to run it.
+about a release that does not verify, and the published release is now
+watched from more than one machine and alarms when it stops verifying. The
+check that would have caught this existed already and ran only when somebody
+remembered to run it.
 
 [b]Still testnet[/b]
 
