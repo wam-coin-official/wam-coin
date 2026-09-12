@@ -38,6 +38,7 @@ None of this is done at midnight.
 | Backups verified | `wam-backup.sh --verify` on every host, within the day |
 | The clock is right on every machine | `timedatectl` — genesis validation is absolute time, not relative |
 | The paper matches the binary | the founder and treasury addresses in the release equal the ones on paper |
+| **All three hosts measured against this table** | **done 12 Sep** — seven items on each, and the third seed failed two of them: it had no `wamd-mainnet.service` and no `/root/.wam-mainnet/wam.conf`. It joined on the 11th, its testnet side was set up, and its mainnet side never was. Phase C would have stopped there at 00:30 UTC. Both are in place now, disabled, and `genesis_gate.sh` was run by hand on that host to watch it refuse |
 | **Windows is downloadable and signed** | **done 12 Sep** in v0.1.8 — node and miner, and the Windows archives are named in `SHA256SUMS` *before* it was signed. `docs/RELEASING.md` §3b is the step that is easy to skip; if it were skipped the `.zip` files on the release page would carry no signed proof at all, on the platform most people are on |
 
 The last one is worth the minute it takes. A binary built from a checkout
