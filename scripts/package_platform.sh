@@ -79,13 +79,17 @@ done
         "${0##*/}" >&2; exit 2; }
 [ -d "$FROM" ] || die "no such directory: $FROM"
 
+# PRETTY is the platform as it appears in a sentence a stranger reads. The
+# first version of RELEASE.txt interpolated $PLATFORM directly and told people
+# their binary had been tested "on a windows runner", which reads like a typo
+# in the one file whose whole job is to be believed.
 case "$PLATFORM" in
     windows)      TRIPLET="x86_64-w64-mingw32"; WANT="PE32+";  ARCHIVE="zip"
-                  STRIP="x86_64-w64-mingw32-strip" ;;
+                  STRIP="x86_64-w64-mingw32-strip"; PRETTY="Windows" ;;
     macos-arm64)  TRIPLET="arm64-apple-darwin"; WANT="Mach-O"; ARCHIVE="tar.gz"
-                  STRIP="strip" ;;
+                  STRIP="strip"; PRETTY="macOS (Apple Silicon)" ;;
     macos-x86_64) TRIPLET="x86_64-apple-darwin"; WANT="Mach-O"; ARCHIVE="tar.gz"
-                  STRIP="strip" ;;
+                  STRIP="strip"; PRETTY="macOS (Intel)" ;;
     *) die "platform must be windows, macos-arm64 or macos-x86_64 (got '$PLATFORM')" ;;
 esac
 case "$VERSION" in v*) ;; *) VERSION="v$VERSION" ;; esac
@@ -180,14 +184,14 @@ cat > "$NODE/RELEASE.txt" <<TXT
 WAM Coin $VERSION -- $TRIPLET
 
 These binaries were cross-compiled on Linux by the platform-build workflow
-and then run against the live test chain on a $PLATFORM runner, which synced
+and then run against the live test chain on a $PRETTY runner, which synced
 from the genesis block over the real peer-to-peer protocol and compared four
 blocks the Linux nodes have held since August: 0, 1, 5000 and 6000. Block 1
 is where the 5% treasury rule is first enforced, so a binary that disagrees
 about consensus disagrees there.
 
 The miner in the separate archive was cross-compiled the same way and then
-ran --self-test on a $PLATFORM machine, which checks SHA-256, stratum byte
+ran --self-test on a $PRETTY machine, which checks SHA-256, stratum byte
 order, the difficulty targets, and RandomX against the two official test
 vectors. A miner whose RandomX disagreed with the network would hash all day,
 find nothing, and report no error at all, so that check is the whole question.
@@ -229,6 +233,7 @@ Anyone claiming to be us and asking you to switch your antivirus off
 entirely is not us.
 WARN
 fi)
+
 VERIFY BEFORE YOU RUN IT. The checksum file is signed with a key kept
 offline, and the fingerprint is published in SECURITY.md in the source
 repository and nowhere else:
