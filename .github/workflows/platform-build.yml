@@ -72,6 +72,39 @@ concurrency:
 
 jobs:
   # -------------------------------------------------------------------------
+  #  The version, derived once.
+  #
+  #  Both platform jobs stamp a version onto an archive, and both must stamp
+  #  the same one. Deriving it twice would be one fact in two places, which is
+  #  the mistake this repository has been bitten by three times; making macOS
+  #  wait for the Windows build to publish an output would cost it half an hour
+  #  in a queue that a free public repository already loses hours to.
+  #
+  #  So a thirty-second job neither of them can disagree with.
+  version:
+    name: The version these archives will claim
+    runs-on: ubuntu-latest
+    outputs:
+      v: ${{ steps.v.outputs.v }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Tags, so the version comes from the repository rather than from a
+          # form nobody checks.
+          fetch-tags: true
+          fetch-depth: 0
+      - id: v
+        run: |
+          set -euo pipefail
+          v="${{ github.event.inputs.version }}"
+          if [ -z "$v" ]; then
+            v="$(git describe --tags --abbrev=0 2>/dev/null || echo v0.0.0)"
+            echo "::notice::No version was given, so the newest tag is used: $v"
+          fi
+          echo "v=$v" >> "$GITHUB_OUTPUT"
+          echo "### Packaging as \`$v\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # -------------------------------------------------------------------------
   windows-cross:
     name: Windows x86_64 (cross-compiled on Linux)
     # 24.04, and release.yml stays on 22.04. Both are deliberate and the
@@ -94,26 +127,10 @@ jobs:
     # second instead of learning it from configure forty minutes in.
     runs-on: ubuntu-24.04
     timeout-minutes: 240
+    needs: version
 
     steps:
       - uses: actions/checkout@v5
-        with:
-          # Tags, so the version can be read from the repository instead of
-          # being typed into a form that nobody checks.
-          fetch-tags: true
-          fetch-depth: 0
-
-      - name: The version these archives will claim
-        id: ver
-        run: |
-          set -euo pipefail
-          v="${{ github.event.inputs.version }}"
-          if [ -z "$v" ]; then
-            v="$(git describe --tags --abbrev=0 2>/dev/null || echo v0.0.0)"
-            echo "::notice::No version was given, so the newest tag is used: $v"
-          fi
-          echo "v=$v" >> "$GITHUB_OUTPUT"
-          echo "### Packaging as \`$v\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build tools, and the one mingw flag that is not optional
         run: |
@@ -195,7 +212,7 @@ jobs:
           set -euo pipefail
           bash scripts/package_platform.sh \
               --platform windows \
-              --version "${{ steps.ver.outputs.v }}" \
+              --version "${{ needs.version.outputs.v }}" \
               --from out/windows
           ls -l out/release/
 
@@ -362,6 +379,7 @@ jobs:
     name: macOS ${{ matrix.arch }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 240
+    needs: version
     strategy:
       fail-fast: false        # one architecture failing must not hide the other
       matrix:
@@ -421,10 +439,43 @@ jobs:
           fi
           if [ "$st" -ne 0 ] && [ "$st" -ne 2 ]; then exit "$st"; fi
 
+      # Packaged BEFORE the gate, and the gate then runs on what was packaged.
+      #
+      # Same ordering as the Windows job and for the same reason: strip and
+      # package first, and the bytes that sync the chain from genesis are the
+      # bytes a stranger downloads. Package afterwards and RELEASE.txt's claim
+      # that these binaries were tested stops being literally true.
+      - name: Package it, exactly as it will be published
+        run: |
+          set -euo pipefail
+          bash scripts/package_platform.sh \
+              --platform "macos-${{ matrix.arch }}" \
+              --version "${{ needs.version.outputs.v }}" \
+              --from "out/macos-$(uname -m)"
+          ls -l out/release/
+
+      - name: Unpack the archives a stranger would download
+        run: |
+          set -euo pipefail
+          mkdir -p unpacked bin
+          for a in out/release/*.tar.gz; do tar -xzf "$a" -C unpacked; done
+          find unpacked -maxdepth 3 -type f -perm -u+x -exec cp {} bin/ \;
+          ls -l bin/
+
+      # The miner already ran --self-test during the build, on this same
+      # machine. Run it again on the packaged and stripped copy, because
+      # `strip -S` on a Mach-O is the step most likely to produce a file that
+      # is present, correct-looking, and refuses to execute.
+      - name: The packaged miner still verifies its own RandomX
+        run: |
+          set -euo pipefail
+          ls -l bin/wam-miner
+          ./bin/wam-miner --self-test --no-colour
+
       - name: Sync the test chain from genesis, on macOS
         run: |
           set -o pipefail
-          SYNC_TIMEOUT=9000 bash scripts/test/test_platform_consensus.sh "out/macos-$(uname -m)" 2>&1 | tee gate.log
+          SYNC_TIMEOUT=9000 bash scripts/test/test_platform_consensus.sh bin 2>&1 | tee gate.log
 
       - name: Say why it failed, where it can be read without a token
         if: failure()
@@ -432,8 +483,9 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
+          # The finished archives, not the build tree -- see the Windows job.
           name: wam-macos-${{ matrix.arch }}
-          path: out/macos-*/
+          path: out/release/
           retention-days: 14
 
       - name: Keep the logs whatever happened

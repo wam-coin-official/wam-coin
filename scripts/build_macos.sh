@@ -227,6 +227,82 @@ echo
 [ "$FOUND" -gt 0 ] || die "no macOS executable was produced and make reported
           success. Look in $CORE_DIR/src for what was actually built."
 
+# ---------------------------------------------------------------------------
+#  wam-miner
+# ---------------------------------------------------------------------------
+#
+#  The same omission Windows had, found the same way: this script built five
+#  node binaries and stopped, so a Mac owner would have got a wallet and no
+#  way to take part in the proof of work. WAM uses RandomX precisely so that
+#  an ordinary desktop processor competes, and a Mac is an ordinary desktop.
+#
+#  Cheaper here than it was for Windows, in two ways. Nothing needed porting:
+#  miner/src/platform.h exists because Winsock disagrees with Berkeley
+#  sockets, and macOS does not -- it compiles as written. And the self-test
+#  RUNS, because this script is executing on the machine the binary is for,
+#  so the two RandomX reference vectors are checked here rather than deferred
+#  to a later job. Step 1 above has already run RandomX's own test suite
+#  against this librandomx.a.
+printf '\n%swam-miner%s\n' "$BLD" "$OFF"
+
+MINER_OUT="$OUT_DIR/wam-miner"
+
+# -mtune=generic is an x86 option. Passing it to clang on Apple Silicon is
+# either an error or a warning that hides a real one, so the portable-baseline
+# flag is chosen by architecture rather than copied from the Linux path. On
+# arm64 there is nothing to choose: every Mac with that chip has the same
+# baseline, which is why check_isa_baseline.sh reports "does not apply" here
+# instead of inventing an answer.
+case "$MACH" in
+    x86_64) MINER_CXXFLAGS="-O3 -mtune=generic" ;;
+    *)      MINER_CXXFLAGS="-O3" ;;
+esac
+
+if CXX="${CXX:-clang++}" \
+   CXXFLAGS="$MINER_CXXFLAGS" \
+   RANDOMX_INCLUDE="$RANDOMX_DIR/src" \
+   RANDOMX_LIB="$RX_BUILD/librandomx.a" \
+   OUT="$MINER_OUT" \
+   bash "$HERE/miner/build.sh" > "$BUILD_DIR/make-miner-macos.log" 2>&1
+then
+    MFMT="$(file -bL "$MINER_OUT" 2>/dev/null || echo unknown)"
+    case "$MFMT" in
+        *Mach-O*)
+            ok "wam-miner  $(du -h "$MINER_OUT" | cut -f1)  ($MFMT)"
+            ok "its self-test passed here, on the machine it was built for"
+            FOUND=$((FOUND + 1)) ;;
+        *)  die "wam-miner is $MFMT, not Mach-O" ;;
+    esac
+else
+    die "the miner did not build. The last 30 lines:
+$(tail -30 "$BUILD_DIR/make-miner-macos.log" | sed 's/^/          /')
+          Full log: $BUILD_DIR/make-miner-macos.log"
+fi
+
+# ---------------------------------------------------------------------------
+#  Debug symbols
+# ---------------------------------------------------------------------------
+#
+#  Before the Windows path, nothing in this project stripped a binary except
+#  package_release.sh, and platform-build #10 uploaded 197 MB of symbols
+#  nobody could download on a slow connection. Stripping here rather than at
+#  packaging time is deliberate for the same reason it is on Windows: the
+#  consensus gate runs on what comes out of this directory, so the bytes that
+#  sync the chain from genesis are the bytes that get published.
+printf '\n%sdebug symbols%s\n' "$BLD" "$OFF"
+if command -v strip >/dev/null 2>&1; then
+    BEFORE=$(du -sk "$OUT_DIR" | cut -f1)
+    # -S, not -s. A full strip of a Mach-O removes symbols the dynamic linker
+    # needs and macOS then refuses to run the file; -S removes debug symbols
+    # and leaves the symbol table alone, which is what Apple's own guidance
+    # says and what the size is in anyway.
+    strip -S "$OUT_DIR"/* 2>/dev/null || true
+    AFTER=$(du -sk "$OUT_DIR" | cut -f1)
+    ok "stripped  $(( BEFORE / 1024 )) MB -> $(( AFTER / 1024 )) MB"
+else
+    warn "strip not found -- shipping $(du -sh "$OUT_DIR" | cut -f1) of symbols"
+fi
+
 echo "=================================================================="
 printf ' %s%d macOS (%s) executable(s) in %s%s\n' "$GRN" "$FOUND" "$MACH" "$OUT_DIR" "$OFF"
 echo "=================================================================="
