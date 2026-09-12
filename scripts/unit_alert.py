@@ -125,7 +125,7 @@ def due(unit, now, state):
 
 def main():
     if len(sys.argv) < 2:
-        print("usage: unit_alert.py <unit>", file=sys.stderr)
+        print("usage: scripts/unit_alert.py <unit>", file=sys.stderr)
         return 2
     unit = sys.argv[1]
     dry = "--dry-run" in sys.argv

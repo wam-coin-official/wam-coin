@@ -240,8 +240,32 @@ sect "Money"
     && ok "the 22,000,000 cap is enforced by the arithmetic" \
     || bad "the supply audit fails"
 
+# Is there a JavaScript runtime at all, before any of this is called a result?
+#
+# On 12 September the sweep was run from seed3, which has no node -- it does
+# not run the pool, so it was never given one. Every one of these tests
+# "FAILED", and the sweep reported, in red, four lines of the form
+#
+#     FAIL   payment-safety.test.js FAILS -- this is payout code
+#
+# about a machine whose only problem was the absence of an interpreter. That
+# is the worst sentence this file can produce: on launch night somebody reads
+# "payout code fails" and stops the launch, and the tests were never run.
+#
+# Exit 2 is this project's convention for "the check could not run", and
+# sweep.sh prints it in yellow as NOT RUN rather than as a finding. A missing
+# runtime is that, and a passing verdict issued over zero executed tests would
+# be worse than either.
+if ! command -v node >/dev/null 2>&1; then
+    unchecked "the pool's payout tests were NOT RUN: this host has no node.
+           They are JavaScript, and node is installed on the host that runs
+           the pool. Run this there, or install node here. It is not a pass,
+           and it is not a failure of the payout code."
+fi
+
 for t in pool/test/*.test.js; do
     [ -f "$t" ] || continue
+    command -v node >/dev/null 2>&1 || continue
     node "$t" >/dev/null 2>&1 \
         && ok "$(basename "$t") passes" \
         || bad "$(basename "$t") FAILS -- this is payout code"

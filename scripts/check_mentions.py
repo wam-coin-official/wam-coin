@@ -75,6 +75,12 @@ HONOURS = re.compile(r"import quoted\b|lib/quoted\.(py|sh)|quoted\.strip_quoted"
 EXEMPT = {
     "scripts/check_mentions.py":
         "it matches the names of checks, not the contents of documents",
+    "scripts/release_watch.py":
+        "it greps the stdout of check_release_signed.sh for the lines worth "
+        "quoting back to an operator, and a subprocess's output is not a "
+        "tracked file -- there is nothing in it for an author to have marked. "
+        "The text it scans was written by the check it just ran, seconds "
+        "earlier, on this machine",
     "scripts/check_post_text.py":
         "it reads announcement drafts, which are the text itself -- there is "
         "no code in them for a quotation to be part of",

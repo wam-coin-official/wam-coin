@@ -117,9 +117,39 @@ EXPECTED_ABSENT='pool/config\.json|pool/config-mainnet\.json|bots/config\.json|.
 # the reference lives in. With -h the filenames are gone and $EXCLUDE matches
 # nothing -- which is why this first reported every path inside legacy/, a
 # directory it is explicitly told to skip.
+# Read through `unquoted`, like every other text check in this file.
+#
+# This section was the one that did not, and on 12 September it went red about
+# a comment whose whole purpose was to record two filenames that had been
+# WRONG -- scripts/test/test_alert_text.py had named two senders that do not
+# exist, this check caught it within the hour, and then the sentence explaining
+# the mistake re-created it. A reference to a missing file and a sentence
+# quoting the name of one are the same bytes; the wam:quote marks are how an
+# author says which is which, and the rest of this script has honoured them
+# since it was written.
+#
+# The loop reads tracked files one at a time instead of letting grep walk the
+# tree, because `unquoted` works on a file. It is slower and it is a few
+# hundred files. `git ls-files` also drops everything .gitignore covers, which
+# the old form had to ask git about separately, one path at a time.
 MISSING=0
-for ref in $(grep -roE '(brand|docs|scripts|genesis|deploy|site|pool|explorer|bots|miner)/[A-Za-z0-9/_.-]+\.(svg|png|jpg|md|sh|py|js|json|service|yml)' \
-             "${SEARCH[@]}" . 2>/dev/null | grep -vE "$EXCLUDE" | cut -d: -f2- | sort -u); do
+REFS="$(for f in $(git ls-files 2>/dev/null); do
+            case "$f" in
+                *.md|*.html|*.js|*.py|*.sh|*.cpp|*.h|*.json|*.service|*.yml) ;;
+                *) continue ;;
+            esac
+            # "./$f", not "$f". EXCLUDE is anchored on ^\./ because it was
+            # written for `grep -r .`, and git ls-files prints bare paths --
+            # so testing the bare path makes every anchored exclusion stop
+            # matching, silently, and the check starts reporting the
+            # generated site pages and brand/legacy that it is explicitly
+            # told to skip. One prefix keeps a single definition of EXCLUDE
+            # instead of a second copy that has to be kept in step.
+            printf './%s\n' "$f" | grep -qE "$EXCLUDE" && continue
+            unquoted "$f" 2>/dev/null \
+              | grep -oE '(brand|docs|scripts|genesis|deploy|site|pool|explorer|bots|miner)/[A-Za-z0-9/_.-]+\.(svg|png|jpg|md|sh|py|js|json|service|yml)'
+        done | sort -u)"
+for ref in $REFS; do
     printf '%s' "$ref" | grep -qE "$EXPECTED_ABSENT" && continue
     # Anything .gitignore keeps out is absent on purpose, and asking the
     # filesystem instead of git is how this check passed on the machine that

@@ -499,11 +499,26 @@ if [ "${#SKIPPED[@]}" -gt 0 ]; then
         echo " some of these questions -- no dig, a slow link, or a shared GitHub"
         echo " rate limit. Several of the lines above would simply run elsewhere."
         echo
-        echo " Before launch, run it where the network is:"
+        # Not "a seed". Seed3 was tried on 12 September and produced TWELVE red
+        # lines, none of them a fault: it holds no key to the other hosts, so
+        # every cross-host check failed with "Permission denied", and it has no
+        # node, so preflight reported the payout tests as failing payout code.
+        # That is a worse answer than the laptop's, and the wrong host is a
+        # harder mistake to see than the wrong command.
+        #
+        # France runs the pool, so it has node; it holds the key the other
+        # hosts accept; and it has dig and a fast link.
+        echo " Before launch, run it where the tools and the keys are -- the"
+        echo " pool host, which has node, dig, a fast link, and the key the"
+        echo " other seeds accept:"
         echo
-        echo "     ssh root@<a seed> 'cd /opt/wam && bash scripts/sweep.sh'"
+        echo "     ssh root@169.58.159.165 'cd /opt/wam && bash scripts/sweep.sh \\"
+        echo "         --nodes \"169.58.159.165 5.223.52.200 13.140.33.187\"'"
         echo
-        echo " and compare. A check that could not run is not a check that passed."
+        echo " A seed that holds no cross-host key will fail every check that"
+        echo " needs one, and those failures are about the host, not the chain."
+        echo " A check that could not run is not a check that passed, and a"
+        echo " check that ran from the wrong place is not one either."
     fi
 fi
 echo "=================================================================="

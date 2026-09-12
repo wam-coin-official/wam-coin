@@ -50,6 +50,8 @@ import re
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(REPO / "scripts" / "lib"))
+import quoted  # noqa: E402  -- needs the path above
 
 # Suffixes this project actually writes that are also real top-level domains.
 # .md is Moldova, .sh Saint Helena, .py Paraguay, .zip a real TLD since 2023,
@@ -69,37 +71,52 @@ LITERAL = re.compile(r'"((?:[^"\\\n]|\\.)*)"' + "|" + r"'((?:[^'\\\n]|\\.)*)'")
 # The files whose strings are sent to a person. Everything else may name a file
 # however it likes -- a comment, a usage line and a docstring are read in a
 # terminal or an editor, where nothing linkifies anything.
+# Named, not globbed -- and the names have to be right.
+#
+# The first version of this list named two files that do not exist:
+#
+# wam:quote-begin
+#     scripts/wam_alert.sh
+#     scripts/reorg_watch.py
+# wam:quote-end
+#
+# They are unit_alert.py and check_reorg.py. The run said "4 sender(s)" and
+# nothing questioned the number, including me; audit_repo.sh did, within the
+# hour, which is exactly what it is for -- and it is why the count is printed.
+#
+# The marks above are not decoration. Without them this comment, which exists
+# to explain the mistake, re-creates it: audit_repo.sh reads every tracked
+# file for paths that are referenced and missing, and a sentence naming a
+# missing file is indistinguishable from a reference to one. The same thing
+# happened in docs/REHEARSALS.md, where a write-up quoted an attribution
+# trailer verbatim and the attribution check went red about the write-up.
 SENDERS = [
     "scripts/release_watch.py",
     "scripts/peer_watch.py",
     "scripts/login_watch.py",
-    "scripts/wam_alert.sh",
+    "scripts/unit_alert.py",
+    "scripts/check_reorg.py",
     "scripts/daily_report.py",
-    "scripts/reorg_watch.py",
 ]
 
 
 def literals_of(path):
     """Every one-line string literal that reads like a sentence.
 
-    Whole-line comments are blanked first, and keeping the line count right is
-    why they are blanked rather than removed. This test's first run failed on
-    a comment that QUOTED the offending sentence while explaining why it had
-    been removed -- a check that cannot tell an explanation from the thing it
-    explains reports the fix as the fault.
+    Lines the author marked with wam:quote-line, or inside a wam:quote-begin
+    region, are skipped -- through scripts/lib/quoted.py, which is the
+    mechanism this project already has for exactly this, and which
+    check_mentions.py requires every text-scanning check to honour.
 
-    A trailing comment after code is still scanned. That is a narrower hole
-    than it looks: nothing in these files puts a sentence in a trailing
-    comment, and the alternative is parsing each language properly to find
-    out where its strings really are, for a rule about six files.
+    This test's first run failed on a comment that QUOTED the offending
+    sentence while explaining its removal. The first fix for that was a
+    private rule of its own: blank every whole-line comment. It worked, and
+    it was wrong -- a second way of saying "this is a quotation" is a second
+    thing for a reader to know, and check_mentions.py went red within the
+    hour to say so.
     """
-    raw = path.read_text(encoding="utf-8", errors="replace")
-    lines = []
-    for ln in raw.splitlines():
-        s = ln.lstrip()
-        lines.append("" if s.startswith(("#", "//")) else ln)
-    text = "\n".join(lines)
-
+    text = quoted.strip_quoted(path.read_text(encoding="utf-8",
+                                              errors="replace"))
     out = []
     for m in LITERAL.finditer(text):
         lit = m.group(1) if m.group(1) is not None else m.group(2)

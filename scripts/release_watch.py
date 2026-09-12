@@ -151,7 +151,7 @@ def main():
             gone = int((now - state.get("since", now)) / 60)
             # The fingerprint, not the filename.
             #
-            # This line said "the key in SECURITY.md", and Telegram turned
+            # This line said "the key in SECURITY.md", and Telegram turned  # wam:quote-line
             # SECURITY.md into a hyperlink -- .md is Moldova's top-level
             # domain -- so an alarm from this project pointed at a stranger's
             # server. scripts/test/test_alert_text.py refuses it now. The
