@@ -1,0 +1,40 @@
+# ===========================================================================
+#  wam-peer-watch -- one seed noticing that another has gone
+# ===========================================================================
+#
+#  Installed on every seed, on purpose. A host cannot report its own death:
+#  on 11 September France was stopped for eight minutes and the only alarm
+#  that arrived was sent by France, about a helper script, while the chain
+#  produced nothing and the public got 502s. A power cut would have been
+#  silent.
+#
+#  So each machine watches the others, and two of them survive any one.
+#
+#  It asks its own node's peer list and nothing else -- no SSH between
+#  servers, no new credential, no new port. daily_report.py already records
+#  why cross-server keys are a risk worth naming: if one host is taken, what
+#  its key reaches goes with it. A watchdog is not worth buying at that price.
+# ===========================================================================
+[Unit]
+Description=Watch whether the other WAM seeds are still reachable from here
+Documentation=https://github.com/wam-coin-official/wam-coin/blob/main/scripts/peer_watch.py
+After=wamd.service
+OnFailure=wam-alert@%n.service
+
+[Service]
+Type=oneshot
+Environment=HOME=/root
+Environment=WAM_NETWORK=testnet
+WorkingDirectory=/opt/wam/scripts
+ExecStart=/usr/bin/python3 /opt/wam/scripts/peer_watch.py
+
+# Its memory of who was missing, and for how long. Without this the count
+# resets every run and three consecutive misses can never be observed.
+StateDirectory=wam-peer-watch
+StateDirectoryMode=0750
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/wam-peer-watch
+ProtectHome=read-only
+PrivateTmp=yes

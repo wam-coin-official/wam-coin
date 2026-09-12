@@ -1,0 +1,23 @@
+# ===========================================================================
+#  Every five minutes.
+#
+#  Three misses at five minutes is fifteen minutes of absence before anybody
+#  is woken -- long enough that a node restart or a network blip passes
+#  unremarked, short enough to matter on a launch night.
+#
+#  Persistent=false deliberately. If a host was off, the peer list it would
+#  have read no longer exists, and running the check late would compare
+#  against a world that has moved on. There is nothing useful to catch up on.
+# ===========================================================================
+[Unit]
+Description=Check every five minutes whether the other WAM seeds are still there
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=5min
+AccuracySec=30s
+Persistent=false
+Unit=wam-peer-watch.service
+
+[Install]
+WantedBy=timers.target
