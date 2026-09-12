@@ -303,13 +303,28 @@ was a trap with a date on it, and the date was after the 15th.
    invocation and forty lines of socket compatibility, and calling it worthless before
    step 1 was the error in this list: a node without a miner is a wallet, and this chain's
    whole argument is that an ordinary desktop should be able to mine.
-3. **macOS** — still open, and deliberately. It builds and passes the consensus gate on
-   every `platform-build` run, and packaging it is now the same two commands as Windows.
-   What stops it is the miner: `build_macos.sh` does not build one either, and a free
-   public repository gets few macOS runners, so each attempt costs hours of queue three
-   days before launch. Windows is the majority platform and got the time. macOS is the
-   first thing after the chain is stable, and this time that sentence has a date behind
-   it rather than a hope.
+3. ~~**macOS**~~ — done 12 September, in v0.1.8, hours after this line said it
+   would wait. The founder pointed out that the agreement had been Windows *and*
+   macOS, and that deferring was not what we agreed. He was right, and the reason
+   written here -- that the miner was not built and macOS runners are queued -- was
+   a cost, not an argument.
+
+   `build_macos.sh` builds the miner now, and it needed no porting at all:
+   `miner/src/platform.h` exists because Winsock disagrees with Berkeley sockets,
+   and macOS does not. The self-test runs during the build, on the machine the
+   binary is for, which is a shorter chain of custody than Windows has.
+
+   **Apple Silicon only.** A binary for one architecture does not run on the other
+   and `macos-13` would ask a free public repository for a second macOS runner per
+   run. Every Mac sold since 2020 is Apple Silicon; Intel owners build it, and
+   that run is still worth more to this project than another arm64 one because
+   nobody has done it.
+
+   **Not notarised, and it never will be for free.** macOS refuses an unstapled
+   binary from the internet on first run. `docs/MINE.md` says what the message is
+   and gives the one command that clears the quarantine flag on three named files
+   -- not "disable Gatekeeper", which is what a reader would otherwise search for
+   and find.
 
 WSL stays documented rather than dropped: it is the path strangers have actually used
 since August, and it is still the answer for anyone who prefers it.

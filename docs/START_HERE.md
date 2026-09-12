@@ -60,21 +60,26 @@ That is all. No graphics card, no special hardware, no money to start.
 > are the ones it finds. The memory and disk above are what Linux needs inside
 > WSL, not what Windows needs on top of it.
 >
-> **Mac.** There is still no `.dmg` and this page will not pretend otherwise.
-> The software runs there — on 7 September a macOS build on Apple Silicon
-> synced the test chain from genesis over the real peer-to-peer network and
-> agreed with the Linux nodes at heights 0, 1, 5,000 and 6,000, block 1
-> included, which is where the treasury rule is first enforced — and every
-> `platform-build` run since has repeated it. What is missing is the same
-> thing that was missing for Windows until v0.1.8: a packaged, signed
-> download. A binary you cannot verify is one you should not run, including
-> one from us.
+> **Mac — Apple Silicon only.** Since **v0.1.8** there is a signed download
+> for Macs with an M-series chip: two `.tar.gz` archives, node and miner,
+> built natively on macOS rather than cross-compiled, and covered by the same
+> `SHA256SUMS` and signature as everything else.
 >
-> So on a Mac, build it: [BUILD.md §9](BUILD.md#9-building-on-macos) is about
-> twenty minutes, and it takes boost from `depends/` rather than Homebrew for
-> a reason that page gives. Apple Silicon is the architecture that has been
-> proven; an Intel Mac has not been tried, so if you have one, that run is
-> worth more to this project than a second Apple Silicon one.
+> There is no `.dmg` and no installer. You unpack the archives and run the
+> binaries from a terminal, exactly as on Linux. macOS will also refuse to
+> run them on the first attempt, because they carry no Apple notarisation —
+> that costs a paid developer account and this project does not have one.
+> [MINE.md → macOS](MINE.md#macos) says what the message looks like and what
+> to do about it.
+>
+> **An Intel Mac is not covered.** A binary for one architecture does not run
+> on the other, and adding the second one to the build asks a free public
+> repository for a second macOS runner per run, in a queue that already costs
+> hours. Every Mac sold since 2020 is Apple Silicon; if yours is older, build
+> it — [BUILD.md §9](BUILD.md#9-building-on-macos), about twenty minutes, and
+> it takes boost from `depends/` rather than Homebrew for a reason that page
+> gives. That run is also worth more to this project than another Apple
+> Silicon one, because nobody has done it.
 >
 > **Do not run a Linux binary on an Apple chip through a container.** Our
 > Linux download is x86_64 and that processor is ARM, so it would be emulated:

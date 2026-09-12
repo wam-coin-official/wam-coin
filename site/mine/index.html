@@ -73,7 +73,8 @@ hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
 <h1 id="mine-wam">Mine WAM</h1>
 <p>Nine lines, no explanation. If you want the explanation, read <a href="/start/">START_HERE.md</a>.</p>
 <p>This page exists because a tester on 5 September said his friends "want plain jane, step by step, and shortest way to start mining", and he was right that the guide is the wrong shape for that. It explains what a blockchain is, which that reader either knows already or does not care about.</p>
-<p>Linux or Windows, 64-bit Intel or AMD, about 2 GB of free memory. Nothing else. The Linux commands are first because they are the ones that have been run by strangers since August; <a href="#windows">Windows</a> is below them and is new in v0.1.8 — including the antivirus warning you will get, which is explained there rather than left to surprise you.</p>
+<p>Linux, Windows, or a Mac with an Apple chip. About 2 GB of free memory. Nothing else.</p>
+<p>The Linux commands are first because they are the ones strangers have been running since August. <a href="#windows">Windows</a> and <a href="#macos">macOS</a> are below them and both are new in v0.1.8 — including what each operating system will say about the files when you first run them, which is explained there rather than left to surprise you.</p>
 <h2 id="the-test-network-live-now">The test network — live now</h2>
 <pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-coin-v0.1.8-x86_64-linux-gnu.tar.gz
 curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-miner-v0.1.8-x86_64-linux-gnu.tar.gz
@@ -130,6 +131,34 @@ powershell -ExecutionPolicy Bypass -File verify_release.ps1</code></pre>
 <p>The thing that removes the warning is a publisher certificate, which costs money and a registered company, and this project has neither yet. So:</p>
 <ol><li><strong>Verify the file instead of trusting a verdict.</strong> The SHA256 above and the signature on <code>SHA256SUMS</code> are evidence that these are the bytes we built. An antivirus verdict is an opinion about behaviour.</li><li><strong>If you want to mine, allow that one file</strong>, by name — Windows Security → Virus &amp; threat protection → Manage settings → Exclusions → Add → File, and pick <code>wam-miner.exe</code>. Not a folder. Not the whole machine. Turning your antivirus off to run a stranger's program is how people actually get robbed, and anyone telling you to do that is not us.</li><li><strong>Or do not mine, and run the node anyway.</strong> <code>wamd.exe</code> is not a miner and is not normally flagged. A node that relays blocks and holds a wallet is a real contribution and costs you no CPU.</li></ol>
 <p>The node's own first run may show a blue SmartScreen box saying "Windows protected your PC" — that is the unsigned-publisher notice, not a virus report. <code>More info</code> → <code>Run anyway</code>, once you have checked the hash.</p>
+<h2 id="macos">macOS</h2>
+<p>Apple Silicon only — an M1, M2, M3 or M4. An Intel Mac cannot run these and has to build its own; <a href="/build/#9-building-on-macos">BUILD.md §9</a> is twenty minutes.</p>
+<pre><code>mkdir -p ~/wam &amp;&amp; cd ~/wam
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-coin-v0.1.8-arm64-apple-darwin.tar.gz
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-miner-v0.1.8-arm64-apple-darwin.tar.gz
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS.asc
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.sh
+bash verify_release.sh .</code></pre>
+<p><code>verify_release.sh</code> needs GnuPG, which macOS does not ship: <code>brew install gnupg</code> first, or the script will tell you the signature was <strong>not</strong> checked and exit without calling the release good. It should end with <code>this is the WAM release, unmodified since it was signed</code>.</p>
+<p>Then:</p>
+<pre><code>tar -xzf wam-coin-v0.1.8-arm64-apple-darwin.tar.gz
+tar -xzf wam-miner-v0.1.8-arm64-apple-darwin.tar.gz
+cd wam-coin-v0.1.8/bin
+./wamd -testnet -datadir=$HOME/wam/data -daemon
+./wam-cli -testnet -datadir=$HOME/wam/data createwallet "mine"
+./wam-cli -testnet -datadir=$HOME/wam/data -rpcwallet=mine backupwallet $HOME/wam/wallet-backup.dat
+./wam-cli -testnet -datadir=$HOME/wam/data -rpcwallet=mine getnewaddress</code></pre>
+<p>and the miner, from where it unpacked:</p>
+<pre><code>./wam-miner -o stratum+tcp://pool.wamcoin.org:13333 -u YOUR_ADDRESS -t 4</code></pre>
+<h3 id="macos-will-refuse-to-run-them-the-first-time">macOS will refuse to run them the first time</h3>
+<p>Not a virus warning and not the same thing Windows does. You will see</p>
+<pre><code>"wamd" cannot be opened because the developer cannot be verified.</code></pre>
+<p>or, from the terminal, <code>killed: 9</code>. These binaries are not <strong>notarised</strong> — Apple's process where a developer uploads each build to Apple, pays for a developer account, and receives a stapled approval. This project has no such account, so nothing here is stapled, and macOS treats an unstapled binary downloaded from the internet as untrusted by default.</p>
+<p>The honest position is the same as on Windows: we cannot remove that message, so we tell you about it. What to do, once you have run <code>verify_release.sh</code> and seen it pass:</p>
+<pre><code>xattr -d com.apple.quarantine ./wamd ./wam-cli ./wam-miner</code></pre>
+<p>That removes the <em>downloaded-from-the-internet</em> mark from those three files and nothing else. It is not "disable Gatekeeper", it is not <code>sudo</code>, and it does not change a system setting. Do it only for files whose signature you have just checked, and never because a stranger told you to.</p>
 <h2 id="the-one-line-that-is-not-optional">The one line that is not optional</h2>
 <pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS.asc
 curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.sh

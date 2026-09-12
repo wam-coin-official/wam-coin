@@ -8,11 +8,14 @@ jane, step by step, and shortest way to start mining", and he was right that
 the guide is the wrong shape for that. It explains what a blockchain is,
 which that reader either knows already or does not care about.
 
-Linux or Windows, 64-bit Intel or AMD, about 2 GB of free memory. Nothing
-else. The Linux commands are first because they are the ones that have been
-run by strangers since August; [Windows](#windows) is below them and is new in
-v0.1.8 — including the antivirus warning you will get, which is explained
-there rather than left to surprise you.
+Linux, Windows, or a Mac with an Apple chip. About 2 GB of free memory.
+Nothing else.
+
+The Linux commands are first because they are the ones strangers have been
+running since August. [Windows](#windows) and [macOS](#macos) are below them
+and both are new in v0.1.8 — including what each operating system will say
+about the files when you first run them, which is explained there rather
+than left to surprise you.
 
 ## The test network — live now
 
@@ -176,6 +179,73 @@ money and a registered company, and this project has neither yet. So:
 The node's own first run may show a blue SmartScreen box saying "Windows
 protected your PC" — that is the unsigned-publisher notice, not a virus
 report. `More info` → `Run anyway`, once you have checked the hash.
+
+## macOS
+
+Apple Silicon only — an M1, M2, M3 or M4. An Intel Mac cannot run these and
+has to build its own; [BUILD.md §9](BUILD.md#9-building-on-macos) is twenty
+minutes.
+
+```
+mkdir -p ~/wam && cd ~/wam
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-coin-v0.1.8-arm64-apple-darwin.tar.gz
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-miner-v0.1.8-arm64-apple-darwin.tar.gz
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS.asc
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.sh
+bash verify_release.sh .
+```
+
+`verify_release.sh` needs GnuPG, which macOS does not ship: `brew install
+gnupg` first, or the script will tell you the signature was **not** checked
+and exit without calling the release good. It should end with `this is the
+WAM release, unmodified since it was signed`.
+
+Then:
+
+```
+tar -xzf wam-coin-v0.1.8-arm64-apple-darwin.tar.gz
+tar -xzf wam-miner-v0.1.8-arm64-apple-darwin.tar.gz
+cd wam-coin-v0.1.8/bin
+./wamd -testnet -datadir=$HOME/wam/data -daemon
+./wam-cli -testnet -datadir=$HOME/wam/data createwallet "mine"
+./wam-cli -testnet -datadir=$HOME/wam/data -rpcwallet=mine backupwallet $HOME/wam/wallet-backup.dat
+./wam-cli -testnet -datadir=$HOME/wam/data -rpcwallet=mine getnewaddress
+```
+
+and the miner, from where it unpacked:
+
+```
+./wam-miner -o stratum+tcp://pool.wamcoin.org:13333 -u YOUR_ADDRESS -t 4
+```
+
+### macOS will refuse to run them the first time
+
+Not a virus warning and not the same thing Windows does. You will see
+
+```
+"wamd" cannot be opened because the developer cannot be verified.
+```
+
+or, from the terminal, `killed: 9`. These binaries are not **notarised** —
+Apple's process where a developer uploads each build to Apple, pays for a
+developer account, and receives a stapled approval. This project has no such
+account, so nothing here is stapled, and macOS treats an unstapled binary
+downloaded from the internet as untrusted by default.
+
+The honest position is the same as on Windows: we cannot remove that message,
+so we tell you about it. What to do, once you have run `verify_release.sh`
+and seen it pass:
+
+```
+xattr -d com.apple.quarantine ./wamd ./wam-cli ./wam-miner
+```
+
+That removes the *downloaded-from-the-internet* mark from those three files
+and nothing else. It is not "disable Gatekeeper", it is not `sudo`, and it
+does not change a system setting. Do it only for files whose signature you
+have just checked, and never because a stranger told you to.
 
 ## The one line that is not optional
 
