@@ -73,7 +73,7 @@ hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
 <h1 id="mine-wam">Mine WAM</h1>
 <p>Nine lines, no explanation. If you want the explanation, read <a href="/start/">START_HERE.md</a>.</p>
 <p>This page exists because a tester on 5 September said his friends "want plain jane, step by step, and shortest way to start mining", and he was right that the guide is the wrong shape for that. It explains what a blockchain is, which that reader either knows already or does not care about.</p>
-<p>Linux x86_64, about 2 GB of free memory. Nothing else.</p>
+<p>Linux or Windows, 64-bit Intel or AMD, about 2 GB of free memory. Nothing else. The Linux commands are first because they are the ones that have been run by strangers since August; <a href="#windows">Windows</a> is below them and is new in v0.1.8 — including the antivirus warning you will get, which is explained there rather than left to surprise you.</p>
 <h2 id="the-test-network-live-now">The test network — live now</h2>
 <pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/wam-coin-v0.1.7-x86_64-linux-gnu.tar.gz
 curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/wam-miner-v0.1.7-x86_64-linux-gnu.tar.gz
@@ -99,6 +99,37 @@ ls ~/.wam/testnet3/wallets/              # what exists on disk
 <pre><code>./wam-miner -o stratum+tcp://pool.wamcoin.org:13333 -u YOUR_ADDRESS -t 4</code></pre>
 <p><strong>13333, not 3333.</strong> The testnet pool moved off 3333-3336 on 11 September so those ports stand empty for mainnet on the 15th. <code>pool.wamcoin.org:3333</code> is the mainnet address and answers nothing until then -- pointing a testnet miner at it now gets a connection refused, not a wrong chain, which is the safer of the two ways to be wrong.</p>
 <p><code>-t 4</code> is how many processor cores to use. Without it the miner takes every core but one, which makes the rest of the machine unpleasant to use.</p>
+<h2 id="windows">Windows</h2>
+<p>Since v0.1.8 there are Windows binaries, node and miner, and they need no WSL and no Linux. Open PowerShell and work in a folder you choose:</p>
+<pre><code>mkdir C:\wam ; cd C:\wam
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-coin-v0.1.8-x86_64-w64-mingw32.zip
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-miner-v0.1.8-x86_64-w64-mingw32.zip
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS
+Expand-Archive wam-coin-v0.1.8-x86_64-w64-mingw32.zip -DestinationPath .
+Expand-Archive wam-miner-v0.1.8-x86_64-w64-mingw32.zip -DestinationPath .</code></pre>
+<p>Check the two files against <code>SHA256SUMS</code> before you run anything. <code>certutil</code> is already on every Windows machine:</p>
+<pre><code>certutil -hashfile wam-coin-v0.1.8-x86_64-w64-mingw32.zip SHA256
+type SHA256SUMS</code></pre>
+<p>The lines must match. That compares your copy with our list; to check the list itself is ours you need GnuPG, which Windows does not ship — either install <a href="https://gpg4win.org/">Gpg4win</a> and run <code>gpg --verify SHA256SUMS.asc SHA256SUMS</code>, or run the four lines above from WSL. If you skip that, you are trusting that nobody replaced both files, which is a smaller assumption than skipping the hash entirely and a larger one than checking the signature.</p>
+<p>Then the node, with the directory named explicitly so you always know where the wallet is:</p>
+<pre><code>cd wam-coin-v0.1.8\bin
+.\wamd.exe -testnet -datadir=C:\wam\data -daemon
+.\wam-cli.exe -testnet -datadir=C:\wam\data createwallet "mine"
+.\wam-cli.exe -testnet -datadir=C:\wam\data -rpcwallet=mine backupwallet C:\wam\wallet-backup.dat
+.\wam-cli.exe -testnet -datadir=C:\wam\data -rpcwallet=mine getnewaddress</code></pre>
+<p>and the miner, from the folder it unpacked into:</p>
+<pre><code>.\wam-miner.exe -o stratum+tcp://pool.wamcoin.org:13333 -u YOUR_ADDRESS -t 4</code></pre>
+<h3 id="windows-will-call-the-miner-a-virus-and-it-is-wrong">Windows will call the miner a virus, and it is wrong</h3>
+<p>This is the part nobody tells you, so it is written here before it happens to you. On 12 September, the first time the Windows miner was run on a real desktop, it passed every self-test, connected to the pool, took a job, and started hashing. Fourteen seconds later Windows Defender killed the process and deleted the file:</p>
+<pre><code>Trojan:Win32/Bearfoos.A!ml        Severity: Severe</code></pre>
+<p><code>!ml</code> means a machine-learning guess, and <code>Bearfoos.A</code> is a generic label. The reason is not subtle: a program that opens a network connection and then uses every processor core is behaving exactly like the cryptojacking malware that does this to people without asking. No scanner can tell them apart by behaviour, because the behaviour is identical. The difference is consent — you chose to run it, and it mines to the address on its own command line and nowhere else.</p>
+<p>The thing that removes the warning is a publisher certificate, which costs money and a registered company, and this project has neither yet. So:</p>
+<ol>
+<li><strong>Verify the file instead of trusting a verdict.</strong> The SHA256 above and the signature on <code>SHA256SUMS</code> are evidence that these are the bytes we built. An antivirus verdict is an opinion about behaviour.</li>
+<li><strong>If you want to mine, allow that one file</strong>, by name — Windows Security → Virus &amp; threat protection → Manage settings → Exclusions → Add → File, and pick <code>wam-miner.exe</code>. Not a folder. Not the whole machine. Turning your antivirus off to run a stranger's program is how people actually get robbed, and anyone telling you to do that is not us.</li>
+<li><strong>Or do not mine, and run the node anyway.</strong> <code>wamd.exe</code> is not a miner and is not normally flagged. A node that relays blocks and holds a wallet is a real contribution and costs you no CPU.</li>
+</ol>
+<p>The node's own first run may show a blue SmartScreen box saying "Windows protected your PC" — that is the unsigned-publisher notice, not a virus report. <code>More info</code> → <code>Run anyway</code>, once you have checked the hash.</p>
 <h2 id="the-one-line-that-is-not-optional">The one line that is not optional</h2>
 <pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS.asc
 curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.sh
