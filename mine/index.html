@@ -107,10 +107,14 @@ curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/
 curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS
 Expand-Archive wam-coin-v0.1.8-x86_64-w64-mingw32.zip -DestinationPath .
 Expand-Archive wam-miner-v0.1.8-x86_64-w64-mingw32.zip -DestinationPath .</code></pre>
-<p>Check the two files against <code>SHA256SUMS</code> before you run anything. <code>certutil</code> is already on every Windows machine:</p>
-<pre><code>certutil -hashfile wam-coin-v0.1.8-x86_64-w64-mingw32.zip SHA256
-type SHA256SUMS</code></pre>
-<p>The lines must match. That compares your copy with our list; to check the list itself is ours you need GnuPG, which Windows does not ship — either install <a href="https://gpg4win.org/">Gpg4win</a> and run <code>gpg --verify SHA256SUMS.asc SHA256SUMS</code>, or run the four lines above from WSL. If you skip that, you are trusting that nobody replaced both files, which is a smaller assumption than skipping the hash entirely and a larger one than checking the signature.</p>
+<p><strong>Check it before you run it.</strong> One command, and it is the only step here that cannot be checked afterwards:</p>
+<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS.asc
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
+curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.ps1
+powershell -ExecutionPolicy Bypass -File verify_release.ps1</code></pre>
+<p>It should end with <code>this is the WAM release, unmodified since it was signed</code>. Anything else, and it will say what is wrong and tell you not to run the files.</p>
+<p>This page used to tell you to run <code>certutil -hashfile</code> and compare sixty-four hexadecimal characters against <code>SHA256SUMS</code> by eye. Nobody does that: people check the first four characters and the last four, which is the check an attacker would design for. The script compares every one of them, and then does the part <code>certutil</code> cannot — it verifies that <code>SHA256SUMS</code> itself is ours, by the fingerprint published in <a href="/security/">SECURITY.md</a>.</p>
+<p>That last part needs GnuPG, which Windows does not ship. If you have <a href="https://gitforwindows.org/">Git for Windows</a> you already have one and the script finds it; otherwise install <a href="https://gpg4win.org/">Gpg4win</a>. Without it the script checks the hashes, tells you the signature was <strong>not</strong> checked, and exits without saying the release is good — because a matching hash against an unsigned list proves your download is not corrupt and proves nothing about who wrote the list.</p>
 <p>Then the node, with the directory named explicitly so you always know where the wallet is:</p>
 <pre><code>cd wam-coin-v0.1.8\bin
 .\wamd.exe -testnet -datadir=C:\wam\data -daemon
