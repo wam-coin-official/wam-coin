@@ -78,10 +78,9 @@ hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
 <h2 id="">٢. ماذا تحتاج</h2>
 <ul><li>حاسوب عليه لينكس أو ويندوز، إنتل أو AMD بنظام 64-بِت — حاسوب محمول يكفي</li><li>نحو 2 غيغابايت ذاكرة حرّة و5 غيغابايت على القرص</li><li>اتصال بالإنترنت</li></ul>
 <p>هذا كل شيء. لا كرت شاشة، ولا عتاد خاص، ولا مال لتبدأ.</p>
-<blockquote><p><strong>ويندوز.</strong> من الإصدار <strong>v0.1.8</strong> صار هناك تنزيلان موقَّعان لويندوز — ملفُّ <code>.zip</code> فيه العقدة وآخرُ فيه المعدّن — ولا يحتاجان WSL ولا لينكس. وأقصرُ طريق هو <a href="/mine/#windows">صفحة التعدين</a>: سبعةُ أسطر.</p>
+<blockquote><p><strong>ويندوز.</strong> من الإصدار <strong>v0.1.8</strong> صار هناك تنزيلان موقَّعان لويندوز — ملفُّ <code>.zip</code> فيه العقدة وآخرُ فيه المعدّن — ولا يحتاجان WSL ولا لينكس. وأقصرُ طريق هو <a href="/mine/#windows">MINE.md → Windows</a>: سبعةُ أسطر.</p>
 <p>واقرأ في تلك الصفحة ما يتعلّق <strong>ببرنامج الحماية عندك قبل</strong> أن تشغّل المعدّن لا بعده. فقد حذفه Windows Defender بعد أربعَ عشرةَ ثانيةً من أوّل تشغيلٍ له على حاسوبٍ حقيقيّ وسمّاه حصان طروادة — لأنّ برنامجاً يفتح اتصالاً بالشبكة ثمّ يستهلك كلَّ الأنوية سلوكُه مطابقٌ تماماً لبرمجيّات التعدين الخفيّة التي تُصيب الناس بغير إذنهم. هو إنذارٌ كاذب، ولا نملك شهادةَ ناشرٍ تمنعه، والجوابُ الصادق أن تتحقّق من <code>SHA256</code> ومن التوقيع بنفسك لا أن تثق بتخمينٍ أو تكذّبه.</p>
 <p><strong>وWSL ما زال يعمل</strong> وهو اختيارٌ معقولٌ إن كان عندك أصلاً: الإصدار يُبنى على Ubuntu 22.04، و<code>wsl --install</code> على ويندوز ١١ يعطيك Ubuntu 22.04 — التوزيعة نفسها، فمكتبات النظام التي رُبط بها ملفُّ لينكس هي نفسها التي سيجدها. والذاكرة والقرص المذكوران أعلاه هما ما يحتاجه لينكس داخل WSL، لا ما يحتاجه ويندوز فوقه.</p>
-<pre><code>wsl --install</code></pre>
 <p><strong>ماك.</strong> لا يوجد <code>.dmg</code> بعد، ولن تدّعي هذه الصفحة غير ذلك. والبرنامج يعمل هناك — في ٧ سبتمبر زامن بناءُ ماك على معالج آبل شبكةَ الاختبار من الجينيسيس عبر شبكة الند للند الحقيقيّة، ووافق عُقدَ لينكس عند الارتفاعات ٠ و١ و٥٠٠٠ و٦٠٠٠، والكتلةُ ١ فيها وهي حيث تُطبَّق قاعدة الخزينة أوّلاً، وكلُّ تشغيلةِ <code>platform-build</code> بعدها أعادت الأمر نفسه. والناقصُ هو عينُ ما كان ناقصاً لويندوز حتى v0.1.8: تنزيلٌ محزومٌ وموقَّع. والملفُّ الذي لا تستطيع التحقّق منه ملفٌّ لا يجوز أن تشغّله — ولو كان منّا.</p>
 <p>فابنِه على الماك: <a href="/build/#9-building-on-macos">BUILD.md §9</a> نحو عشرين دقيقة، ويأخذ boost من <code>depends/</code> لا من Homebrew لسببٍ تذكره تلك الصفحة. ومعالجُ آبل هو الذي ثبت؛ أمّا ماك إنتل فلم يُجرَّب — فإن كان عندك واحد، فتشغيلُه أنفعُ لهذا المشروع من تشغيلٍ ثانٍ على معالج آبل.</p>
 <p><strong>ولا تُشغّل ملفّاً لينكسيّاً على معالج آبل عبر حاوية.</strong> تنزيلُ لينكس عندنا x86_64 وذلك المعالج ARM، فسيُحاكى: يصلح للقراءة، ولا يصلح للتعدين.</p>
@@ -90,17 +89,17 @@ hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
 <h2 id="">٣. تشغيل عقدة</h2>
 <p>العقدة برنامج يحتفظ بنسخة من السجل ويفحص كل دفعة عليه. يعمل بهدوء في الخلفية. لستَ مضطراً لتشغيل واحدة لتملك WAM، لكن تشغيلها يعني أنك <strong>تتحقّق من القواعد بنفسك</strong> بدل أن تثق بجواب غيرك.</p>
 <h3 id="">التنزيل</h3>
-<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/wam-coin-v0.1.7-x86_64-linux-gnu.tar.gz
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS</code></pre>
+<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-coin-v0.1.8-x86_64-linux-gnu.tar.gz
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS</code></pre>
 <h3 id="">تأكّد أنه ملفّنا فعلاً</h3>
-<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS.asc
+<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS.asc
 curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.sh
 curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
 bash verify_release.sh .</code></pre>
 <p>يجب أن ترى كلمة <code>OK</code>. وإن رأيت <code>FAILED</code> فالتنزيل تشوّه أو بُدِّل — احذفه ونزّله من جديد. <strong>لا تتخطَّ هذه الخطوة.</strong> تكلّف ثانية واحدة، وهي الشيء الوحيد الفاصل بينك وبين ملف وضعه غيرنا مكانه.</p>
 <h3 id="">الفكّ والتشغيل</h3>
-<pre><code>tar -xzf wam-coin-v0.1.7-x86_64-linux-gnu.tar.gz
-cd wam-coin-v0.1.7/bin
+<pre><code>tar -xzf wam-coin-v0.1.8-x86_64-linux-gnu.tar.gz
+cd wam-coin-v0.1.8/bin
 ./wamd -testnet -printtoconsole</code></pre>
 <p><strong>أو <code>-daemon</code> بدلاً من <code>-printtoconsole</code> إن أردتها أن تعمل في الخلفيّة.</strong> فـ<code>-printtoconsole</code> يُريك العقدةَ تعمل، وبه تلاحظ الخطأَ قبل أن يخبرك به فحصٌ — لكنّها تموت إذا أغلقتَ الطرفيّة. و<code>-daemon</code> ينجو من ذلك ولا يُريك شيئاً. وتستطيع الاثنين: شغّلها بـ<code>-daemon</code> ثمّ <code>tail -f ~/.wam/testnet3/debug.log</code> في أيّ نافذة، فترى النصَّ نفسَه. وملفُّ السجلّ يُكتب في الحالات الثلاث.</p>
 <blockquote><p><strong>وإن لم تبدأ، فالسببُ هذا في الغالب.</strong> التنزيلُ يحتاج أربعةَ أشياء من نظامك، ولا شيء غيرها:</p>
@@ -163,10 +162,10 @@ cp /path/to/your/backup.dat ~/.wam/testnet3/wallets/mine/wallet.dat
 <p>والحاسوب الواحد يفوز نادراً، فالمعدّنون ينضمّون إلى <strong>مجمّع</strong>: يعمل الجميع معاً ويُقسَّم العائد بقدر ما أسهم كلٌّ منهم. دفعات صغيرة منتظمة بدل يانصيب.</p>
 <h3 id="">أولاً: المعدّن تنزيلٌ منفصل</h3>
 <p><strong>المعدّن ليس داخل الأرشيف الذي فككته.</strong> العقدة والمعدّن ملفّان منفصلان، وحتى ١٠ سبتمبر كانت هذه الصفحة تقول لك <code>./wam-miner</code> ولا تقول لك من أين تجلبه. اكتشفها من يعدّن تحت WSL، بعد أن جرّب <code>./wam-cli</code> داخل مجلّد المعدّن فقيل له «لا يوجد ملف بهذا الاسم» — وهو نفس اللبس من الطرف الآخر.</p>
-<table><tr><th>الأرشيف</th><th>ما فيه</th></tr><tr><td><code>wam-coin-v0.1.7-…</code></td><td><code>wamd</code> و<code>wam-cli</code> — العقدة</td></tr><tr><td><code>wam-miner-v0.1.7-…</code></td><td><code>wam-miner</code> — المعدّن وحده</td></tr></table>
-<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/wam-miner-v0.1.7-x86_64-linux-gnu.tar.gz
-tar -xzf wam-miner-v0.1.7-x86_64-linux-gnu.tar.gz
-cd wam-miner-v0.1.7
+<table><tr><th>الأرشيف</th><th>ما فيه</th></tr><tr><td><code>wam-coin-v0.1.8-…</code></td><td><code>wamd</code> و<code>wam-cli</code> — العقدة</td></tr><tr><td><code>wam-miner-v0.1.8-…</code></td><td><code>wam-miner</code> — المعدّن وحده</td></tr></table>
+<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-miner-v0.1.8-x86_64-linux-gnu.tar.gz
+tar -xzf wam-miner-v0.1.8-x86_64-linux-gnu.tar.gz
+cd wam-miner-v0.1.8
 chmod +x wam-miner</code></pre>
 <p>و<code>chmod</code> هنا لأنّ ملفاً يُفكّ على قرص ويندوز — <code>/mnt/c/...</code> تحت WSL — يفقد صلاحية التنفيذ، فيقول لك <code>bash</code> عندها <code>Permission denied</code>، وهي رسالة تُقرأ «تنزيل معطوب» لا «نظام ملفات مرّ به الملف».</p>
 <h3 id="">وجّه معدّنك إلى المجمّع</h3>

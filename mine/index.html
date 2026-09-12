@@ -75,15 +75,15 @@ hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
 <p>This page exists because a tester on 5 September said his friends "want plain jane, step by step, and shortest way to start mining", and he was right that the guide is the wrong shape for that. It explains what a blockchain is, which that reader either knows already or does not care about.</p>
 <p>Linux or Windows, 64-bit Intel or AMD, about 2 GB of free memory. Nothing else. The Linux commands are first because they are the ones that have been run by strangers since August; <a href="#windows">Windows</a> is below them and is new in v0.1.8 — including the antivirus warning you will get, which is explained there rather than left to surprise you.</p>
 <h2 id="the-test-network-live-now">The test network — live now</h2>
-<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/wam-coin-v0.1.7-x86_64-linux-gnu.tar.gz
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/wam-miner-v0.1.7-x86_64-linux-gnu.tar.gz
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS.asc
+<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-coin-v0.1.8-x86_64-linux-gnu.tar.gz
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-miner-v0.1.8-x86_64-linux-gnu.tar.gz
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS.asc
 curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.sh
 curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
 bash verify_release.sh .
-tar -xzf wam-coin-v0.1.7-x86_64-linux-gnu.tar.gz &amp;&amp; tar -xzf wam-miner-v0.1.7-x86_64-linux-gnu.tar.gz
-cd wam-coin-v0.1.7/bin
+tar -xzf wam-coin-v0.1.8-x86_64-linux-gnu.tar.gz &amp;&amp; tar -xzf wam-miner-v0.1.8-x86_64-linux-gnu.tar.gz
+cd wam-coin-v0.1.8/bin
 ./wamd -testnet -daemon
 ./wam-cli -testnet createwallet "mine"
 ./wam-cli -testnet -rpcwallet=mine getnewaddress</code></pre>
@@ -124,14 +124,10 @@ type SHA256SUMS</code></pre>
 <pre><code>Trojan:Win32/Bearfoos.A!ml        Severity: Severe</code></pre>
 <p><code>!ml</code> means a machine-learning guess, and <code>Bearfoos.A</code> is a generic label. The reason is not subtle: a program that opens a network connection and then uses every processor core is behaving exactly like the cryptojacking malware that does this to people without asking. No scanner can tell them apart by behaviour, because the behaviour is identical. The difference is consent — you chose to run it, and it mines to the address on its own command line and nowhere else.</p>
 <p>The thing that removes the warning is a publisher certificate, which costs money and a registered company, and this project has neither yet. So:</p>
-<ol>
-<li><strong>Verify the file instead of trusting a verdict.</strong> The SHA256 above and the signature on <code>SHA256SUMS</code> are evidence that these are the bytes we built. An antivirus verdict is an opinion about behaviour.</li>
-<li><strong>If you want to mine, allow that one file</strong>, by name — Windows Security → Virus &amp; threat protection → Manage settings → Exclusions → Add → File, and pick <code>wam-miner.exe</code>. Not a folder. Not the whole machine. Turning your antivirus off to run a stranger's program is how people actually get robbed, and anyone telling you to do that is not us.</li>
-<li><strong>Or do not mine, and run the node anyway.</strong> <code>wamd.exe</code> is not a miner and is not normally flagged. A node that relays blocks and holds a wallet is a real contribution and costs you no CPU.</li>
-</ol>
+<ol><li><strong>Verify the file instead of trusting a verdict.</strong> The SHA256 above and the signature on <code>SHA256SUMS</code> are evidence that these are the bytes we built. An antivirus verdict is an opinion about behaviour.</li><li><strong>If you want to mine, allow that one file</strong>, by name — Windows Security → Virus &amp; threat protection → Manage settings → Exclusions → Add → File, and pick <code>wam-miner.exe</code>. Not a folder. Not the whole machine. Turning your antivirus off to run a stranger's program is how people actually get robbed, and anyone telling you to do that is not us.</li><li><strong>Or do not mine, and run the node anyway.</strong> <code>wamd.exe</code> is not a miner and is not normally flagged. A node that relays blocks and holds a wallet is a real contribution and costs you no CPU.</li></ol>
 <p>The node's own first run may show a blue SmartScreen box saying "Windows protected your PC" — that is the unsigned-publisher notice, not a virus report. <code>More info</code> → <code>Run anyway</code>, once you have checked the hash.</p>
 <h2 id="the-one-line-that-is-not-optional">The one line that is not optional</h2>
-<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS.asc
+<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS.asc
 curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.sh
 curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
 bash verify_release.sh .</code></pre>
