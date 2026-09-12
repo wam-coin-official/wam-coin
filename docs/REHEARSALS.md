@@ -34,6 +34,7 @@ Three rules, or this becomes a ritual:
 | 11–12 Sep | Repeat whatever found a defect; publish the BitcoinTalk announcement | done 11 Sep |
 | 12 Sep | **Rewrite the 24 marked commit messages** — on a mirror first, verified, then force-pushed | done 11 Sep, a day early |
 | 12 Sep | **Windows, end to end** — cross-build, self-test, pool, a block | done 12 Sep |
+| 12 Sep | **20× hash rate, arriving and leaving** — does DGW absorb it and recover? | done 12 Sep, by a model checked against 8,838 real blocks |
 | 13 Sep | **Freeze.** No change but a critical fix |  |
 | 14 Sep | Full sweep, and read LAUNCH_DAY.md line by line |  |
 | 15 Sep | Launch |  |
@@ -684,3 +685,78 @@ into the binaries, then the binaries themselves, by reading the version string
 out of the file rather than running it -- a PE cannot be executed on the Linux
 runner that cross-compiled it, and the same rule has to hold for both
 platforms.
+
+---
+
+## 12 September: 20× hash rate, arriving and leaving
+
+`docs/ROADMAP.md` section 2.7 has said since the roadmap was written:
+
+```
+2.7 | Point 20× hashrate at it for an hour, then remove it
+    | proves DGWv3 absorbs and recovers
+```
+
+It was never run. It was found by the founder asking, three days out, which
+attacks a chain with no value actually attracts — and the honest answer puts
+this first, because **nobody has to mean us harm for it to happen.** The
+network is about one ordinary desktop's worth of hash rate, RandomX rents by
+the hour, and somebody hunting a cheap coin points real hardware at it,
+difficulty climbs, and then they leave. The difficulty they caused stays
+behind.
+
+### It cannot be bought, so it was computed — and the model was checked first
+
+We cannot rent twenty times our own network to find out. `scripts/dgw_model.py`
+mirrors `DarkGravityWave()` from `src/wam/pow.cpp` exactly: the 24-block
+window, the `(avg·n + t)/(n+1)` running mean walked backwards from the newest
+block, the `[target/3, target·3]` clamp, integer division throughout, and the
+compact encoding's own truncation.
+
+A Python reimplementation of a consensus rule is precisely the shape of thing
+this project distrusts — one fact in two places has bitten it three times. So
+the model is refused unless it can reproduce the past:
+
+```
+does the model reproduce the chain that already exists?
+  ok    8838 blocks, every one predicted exactly
+        heights 24 to 8861
+```
+
+Every block from height 24 to the tip, its nBits computed from its own 24
+predecessors and compared with what the chain actually carries. Eight thousand
+independent comparisons against a chain the C++ produced. One mismatch and the
+file says so and stops.
+
+### What it says
+
+| the visitor | difficulty rises | slowest block after they go | back to 2-minute blocks |
+|---|---|---|---|
+| 20× for 1 hour | 11.6× | 23 min | ~2 hours |
+| 50× for 1 hour | 11.9× | 24 min | ~2 hours |
+| 100× for 1 hour | 12.1× | 24 min | ~2 hours |
+| 20× for 6 hours | 21.1× | 42 min | ~3 hours |
+| **100× for 6 hours** | **105.7×** | **3 h 29 min** | **~14 hours** |
+
+**Duration matters far more than magnitude, and that was not obvious.** A
+hundredfold burst for one hour is nearly harmless: only about thirty blocks
+can enter the 24-block window in that time, and the 3× clamp bounds how far
+one retarget can move, so difficulty gets nowhere near a hundredfold. Somebody
+who *stays* for six hours lets it climb the whole way, and their departure
+leaves a chain that needs most of a day to recover.
+
+So the thing to fear is not a spike. It is a guest.
+
+The ratios are what carry over to mainnet. The model starts from the chain's
+own tail, so the absolute hash rate is today's, but every number in that table
+is a multiple and a multiple does not care what the base is.
+
+### What is NOT being done about it
+
+**No consensus change.** Shortening the window would respond faster and
+oscillate more; an emergency-difficulty rule of the kind some chains carry is
+a consensus rule invented in a hurry two days before launch. Both are worse
+than the thing they fix. DGW's behaviour here is a known property of DGW, it
+is survivable, and every small chain lives with it.
+
+What is in our hands is arithmetic and a written response, and both are now.

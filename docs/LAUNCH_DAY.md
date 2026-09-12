@@ -554,6 +554,59 @@ chain is a promise, and this project does not make those.
 
 ---
 
+## If blocks slow right down, and nobody attacked you
+
+Measured on 12 September, and the most likely disruption of launch week.
+
+Somebody rents RandomX by the hour, finds a coin whose difficulty is low,
+mines it, and leaves. No malice is required. The difficulty they caused stays
+behind, and the chain crawls until DGW walks it back down.
+
+`scripts/dgw_model.py` says what to expect. The numbers are multiples of
+whatever the network's hash rate is at the time, so they carry over from
+testnet:
+
+| the visitor | slowest block after they go | back to 2-minute blocks |
+|---|---|---|
+| 20× for 1 hour | 23 min | ~2 hours |
+| 100× for 1 hour | 24 min | ~2 hours |
+| 20× for 6 hours | 42 min | ~3 hours |
+| 100× for 6 hours | 3 h 29 min | ~14 hours |
+
+**Duration is the danger, not size.** An hour of anything is survivable
+because only about thirty blocks fit in the 24-block window and one retarget
+cannot move more than 3×. Six hours lets difficulty climb the whole way.
+
+**What to do, in order:**
+
+1. **Confirm that is what it is.** A slow chain with rising difficulty behind
+   it is this. A slow chain with *falling* hash rate is our own miners
+   stopping, which is a different problem with a different fix.
+
+   ```bash
+   wam-cli getblockchaininfo     # difficulty, and how it got there
+   wam-cli getmininginfo         # networkhashps now
+   ```
+
+2. **Do not change consensus.** Not the window, not an emergency-difficulty
+   rule, not the clamp. A consensus rule invented at three in the morning is
+   worse than a slow chain, and it splits the network between whoever updated
+   and whoever did not. This is a known property of DGW and it ends by itself.
+
+3. **Add what hash rate we have.** The founder's machine and any seed with
+   spare cores, pointed at the pool. It shortens the recovery in proportion
+   and nothing else does.
+
+4. **Say what is happening, in the channel, while it happens.** A chain that
+   explains a 40-minute block looks like a project with operators. A chain
+   that goes quiet for three hours looks abandoned, and that impression is
+   harder to undo than the delay itself.
+
+5. **Do not restart nodes.** Nothing is wrong with them. A restart adds an
+   outage to a delay and loses the `debug=net` record of who was mining.
+
+---
+
 ## What to do when something fails
 
 | When | What it costs |
