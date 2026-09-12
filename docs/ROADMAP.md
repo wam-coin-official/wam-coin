@@ -241,6 +241,40 @@ is not built; `package_release.sh`, the checksum list and the signature have nev
 a second platform; and RandomX's own reference vectors have not been run on Windows, because
 that test binary is dynamically linked and wants the mingw runtime DLLs.
 
+**Closed, 12 September, measured — and it was three days before launch, not after it.**
+Every item above is now done and the ordering argument below was wrong about one thing:
+step 2 was not worthless before step 1, it was the half that mattered. The founder said so
+on the 12th — most people are on Windows, and somebody who finds nothing he can run on day
+one does not come back — and he was right.
+
+    --self-test          both official RandomX vectors pass on Windows 11
+    pool                 connected, subscribed, authorized
+    hashrate             1.88 kH/s on 8 of 24 cores, 2 GiB dataset in 5.5 s
+    shares               10 accepted, 0 rejected, over five minutes
+    block 8478           solved by the .win11 worker, accepted, paid
+
+Zero rejected shares is the measurement that closes the "reference vectors have not been
+run on Windows" item twice over: the vectors pass, and the network accepted ten pieces of
+work computed by that binary.
+
+The miner is now statically linked, so the mingw runtime DLLs are no longer wanted by
+anything. `build_windows.sh` builds it, strips it, and `package_platform.sh` packages it;
+the workflow runs `--self-test` on a Windows runner before packaging, because a
+cross-compiled binary cannot test itself on the machine that built it.
+
+Two defects surfaced that no amount of reading would have found. The artifact was **197 MB**
+— five unstripped executables, three and a half hours on a 16 KB/s connection — because
+`package_release.sh` had stripped the Linux binaries since the first release and nothing in
+the Windows path ever did. And **Windows Defender deleted the miner fourteen seconds into
+its first run**, as `Trojan:Win32/Bearfoos.A!ml`, Severe. That one has no clean fix: a
+program that opens a socket and then uses every core is behaviourally identical to
+cryptojacking malware, and a publisher certificate is the only thing that removes the
+warning. `miner/wam-miner.rc` gives the binary an identity, which is the strongest
+remaining input to that classifier and was enough in the run that followed; the warning is
+documented in `docs/MINE.md`, in both START_HERE pages and in the archive's own
+`RELEASE.txt`; and a CI step now asks Defender about every binary before it is packaged, so
+a verdict arrives from a workflow rather than from a stranger.
+
 **When a platform passes, the pages have to stop saying otherwise.** Asked for by the
 founder on 7 September: the moment a build passes the consensus gate, say so where readers
 are. Four beginner pages and the README currently tell every visitor the release is Linux
@@ -260,17 +294,25 @@ published release carries zero there, so the live network was never affected; bu
 stopped every newcomer syncing, in the weeks when newcomers are the entire point. That
 was a trap with a date on it, and the date was after the 15th.
 
-**First thing after the chain is stable**, in this order, because each step unblocks the
-next:
+**The order this was planned in, and what happened to it:**
 
-1. `wamd` and `wam-cli` for Windows through `depends` with `HOST=x86_64-w64-mingw32`.
-   This is what makes an address obtainable without WSL.
-2. `wam-miner.exe`. One `g++` invocation and one static RandomX library — the smallest
-   part of the work, and worthless before step 1.
-3. macOS, which has the same shape and a smaller audience.
+1. ~~`wamd` and `wam-cli` for Windows through `depends` with `HOST=x86_64-w64-mingw32`.~~
+   Done 7 September, shipped signed in v0.1.8 on the 12th.
+2. ~~`wam-miner.exe`. One `g++` invocation and one static RandomX library — the smallest
+   part of the work, and worthless before step 1.~~ Done 12 September. It was one `g++`
+   invocation and forty lines of socket compatibility, and calling it worthless before
+   step 1 was the error in this list: a node without a miner is a wallet, and this chain's
+   whole argument is that an ordinary desktop should be able to mine.
+3. **macOS** — still open, and deliberately. It builds and passes the consensus gate on
+   every `platform-build` run, and packaging it is now the same two commands as Windows.
+   What stops it is the miner: `build_macos.sh` does not build one either, and a free
+   public repository gets few macOS runners, so each attempt costs hours of queue three
+   days before launch. Windows is the majority platform and got the time. macOS is the
+   first thing after the chain is stable, and this time that sentence has a date behind
+   it rather than a hope.
 
-Until step 1 ships, WSL is the answer and the pages say so with the commands to do it,
-rather than the word "planned".
+WSL stays documented rather than dropped: it is the path strangers have actually used
+since August, and it is still the answer for anyone who prefers it.
 
 ---
 

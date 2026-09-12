@@ -33,6 +33,7 @@ Three rules, or this becomes a ritual:
 | 10 Sep → 11 Sep | The **third seed** | done: Contabo US-east, not Vultr |
 | 11–12 Sep | Repeat whatever found a defect; publish the BitcoinTalk announcement | done 11 Sep |
 | 12 Sep | **Rewrite the 24 marked commit messages** — on a mirror first, verified, then force-pushed | done 11 Sep, a day early |
+| 12 Sep | **Windows, end to end** — cross-build, self-test, pool, a block | done 12 Sep |
 | 13 Sep | **Freeze.** No change but a critical fix |  |
 | 14 Sep | Full sweep, and read LAUNCH_DAY.md line by line |  |
 | 15 Sep | Launch |  |
@@ -475,3 +476,139 @@ Third consequence of the rewrite that the plan did not name, after the
 signature cascade and the re-run release workflow. None of the three was
 dangerous; all three cost time at the moment of least patience, which is
 the argument for writing them down here.
+
+---
+
+## 12 September: Windows, and the antivirus nobody had asked
+
+Not on the schedule. It was put there on the 12th, three days out, because
+the founder said the thing the schedule had got wrong: RandomX was chosen so
+an ordinary desktop can compete for blocks, most ordinary desktops run
+Windows, and somebody who arrives on launch day and finds nothing he can run
+does not come back later to check. The roadmap had Windows as the first item
+*after* launch. That was the wrong side of the date.
+
+The rehearsal was: build the whole Windows release, run it on a real Windows
+machine, and mine with it against the live pool. Not "does it compile".
+
+### What it found before it found anything else
+
+The node had cross-compiled since 7 September and the miner had never been
+built for Windows at all. `build_windows.sh` copied five node binaries and
+stopped. So the release that was about to be assembled would have given a
+Windows user a wallet and a node and no way to mine — the one thing the
+platform was wanted for.
+
+The reason it had gone unnoticed is worth naming: every previous check asked
+"does this build" and "does this agree with the chain", and both were true.
+Nothing asked "is this a release somebody can use".
+
+Of the miner's 2,600 lines, forty were not portable — a TCP socket in
+`stratum.h`, one `localtime_r`, and the assumption that an ANSI escape
+colours a terminal. They are now in `miner/src/platform.h`, the only file in
+the miner that knows what an operating system is.
+
+Two of the six Winsock differences would have failed silently:
+
+* `SO_RCVTIMEO` takes a `DWORD` of milliseconds, not a `struct timeval`. Pass
+  a `timeval` and Winsock reads its first four bytes: a one-second timeout
+  becomes one millisecond, and the I/O loop spins a thousand times a second
+  burning a core that should be hashing.
+* A receive timeout reports `WSAETIMEDOUT`, where POSIX reports `EAGAIN`.
+  `stratum.h` sets a one-second receive timeout deliberately so the loop
+  always returns and `CheckSilence()` gets to run — so on Windows that
+  timeout fires every single second of normal operation. Tested the POSIX
+  way it is not "nothing to read", it is an error: the miner would tear down
+  a healthy connection once a second, forever, and report a read failure each
+  time. It would have looked like a broken pool.
+
+### Measured on Windows 11, 03:04–03:09
+
+```
+--self-test     SHA-256, byte order, targets, both official RandomX vectors
+connected       pool.wamcoin.org:13333, subscribed, authorized
+randomx         full memory (2 GiB dataset) built in 5.52 s
+1.88 kH/s       8 of 24 cores
+shares          10 accepted, 0 rejected
+block 8478      solved at 03:05:46
+```
+
+and on the pool, on France:
+
+```
+01:05:47  *** BLOCK CANDIDATE at height 8478 by twam1qzrjw…win11 ***
+01:05:48  *** BLOCK 8478 ACCEPTED *** reward 50.00010138 WAM
+01:05:48  block 8478 recorded: 47.02510037 WAM to 7 workers
+```
+
+`.win11` was the worker suffix given to the Windows binary; blocks 8479, 8480
+and 8481 came from `.rig1`, the Linux miner on the same pool. So the
+attribution is from the pool's own log and not inferred from timing.
+
+**Zero rejected shares is the measurement that matters.** One byte-order
+mistake in the header, the nonce or the target comparison gives ten rejected
+and no error message — a miner that hashes correctly and finds nothing, which
+is the most expensive way to be wrong.
+
+### And then Windows deleted it
+
+Fourteen seconds into the first run, before any of the above:
+
+```
+Windows Defender  02:53:21
+  Trojan:Win32/Bearfoos.A!ml     SeverityID 5 (Severe)
+  file:    wam-miner.exe
+  process: pid 35700
+```
+
+It terminated the process and removed the file. The first run looked, from
+the log, like a miner that connected, took a job at height 8474, hashed for
+thirty seconds and then stopped for no reason.
+
+This has no clean fix and pretending otherwise would be the failure. A
+program that opens a socket and then uses every core is behaviourally
+identical to the cryptojacking malware that infects people without asking;
+the difference is consent, which no scanner can see. A publisher certificate
+is the only thing that removes the warning, and it costs money and a
+registered company.
+
+What was in reach was done, in four parts:
+
+1. **`miner/wam-miner.rc`.** The binary carried no company, no product, no
+   description and no version — a property shared by almost nothing a person
+   installs on purpose. The node binaries have all of it because Core's build
+   system adds it; the miner was one `g++` invocation and never had it. With
+   the resource, the same binary mined for five minutes untouched and an
+   on-demand scan passed. One trial is not a guarantee and this file does not
+   claim to be a fix.
+2. **Documented, not defeated** — `docs/MINE.md`, both START_HERE pages, and
+   the `RELEASE.txt` inside the archive. What the message looks like, why a
+   miner triggers it, that the answer is the SHA256 and the signature rather
+   than an opinion, that an exclusion should name one file and never the
+   machine, and that anyone asking a user to switch their antivirus off
+   entirely is not us.
+3. **A CI step that asks Defender first.** `windows-latest` has it, so the
+   workflow scans every binary before packaging and writes the verdict into
+   the run summary. It never fails the build — a false positive must not be
+   able to block a release — but it can never again be a surprise.
+4. **The node is offered separately.** `wamd.exe` is not a miner and is not
+   normally flagged, so a Windows user who does not want to argue with his
+   antivirus can still run a node and hold a wallet.
+
+### 197 MB
+
+`platform-build #10` uploaded `out/windows/` raw: five unstripped
+executables. `package_release.sh` has stripped the Linux binaries since the
+first release — its own comment reads "Debug symbols are most of the size and
+none of the use. 339 MB -> ~30 MB" — and nothing in the Windows path ever
+did. On the connection that had to download it, measured at about 16 KB/s,
+that artifact is three and a half hours. The release could not be assembled
+at all, and the first two hours of the night went on looking for a file that
+had never been downloaded.
+
+`build_windows.sh` now strips **before** the consensus gate rather than
+after. That ordering is the point: the gate unpacks the archive and syncs the
+chain from genesis with the exact bytes a stranger will download, so
+`RELEASE.txt`'s claim that these binaries were tested stays literally true.
+Strip afterwards and the tested file and the shipped file are different
+files.

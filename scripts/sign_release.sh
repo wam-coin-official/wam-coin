@@ -138,7 +138,7 @@ if [ "${#DUPES[@]}" -gt 0 ]; then
     say "Your browser renamed the new download because an older SHA256SUMS was"
     say "already here, so this script would sign the OLD one. Use an empty"
     say "directory:"
-    say "    mkdir ~/Downloads/wam-$(date +%Y%m%d) && move the three files there"
+    say "    mkdir ~/Downloads/wam-$(date +%Y%m%d) && move the downloads there"
     echo; exit 1
 fi
 
@@ -164,8 +164,11 @@ while read -r _hash name; do
         say ""
         say "Every file in the list has to be downloaded before it can be"
         say "signed. Your signature will say these bytes are ours; you cannot"
-        say "say that about a file you have not got. Both packages are on the"
-        say "release page and come to about 11 MB."
+        say "say that about a file you have not got."
+        say ""
+        say "The Linux packages are on the release page. The Windows archives"
+        say "are NOT -- they come from the platform-build workflow and have to"
+        say "be added to SHA256SUMS by hand; docs/RELEASING.md section 3b."
         echo; exit 1
     fi
     count=$((count + 1))

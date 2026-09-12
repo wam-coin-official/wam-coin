@@ -66,14 +66,53 @@ for v0.1.6 is unknown, because nothing measured it.
 
 A draft is not downloadable and does not appear on the releases page.
 
+## 3b. The Windows archives, which the tag does not build
+
+From v0.1.8 a release carries Windows as well as Linux, and `release.yml`
+builds neither Windows nor macOS. They come from `platform-build`, which is
+run by hand:
+
+* Actions → **platform-build** → **Run workflow**, with `Version` set to the
+  same version as the tag
+* when it is green, download the artifact **`wam-windows-x86_64`** from the
+  bottom of the run page — about 14 MB, and it holds the two finished
+  archives, not loose binaries
+* unzip it into the same directory as the Linux files
+
+**Then add them to the list before signing, and compute the lines rather than
+typing them:**
+
+```
+cd ~/Downloads/wam-v0.1.8
+sha256sum wam-coin-v0.1.8-x86_64-w64-mingw32.zip \
+          wam-miner-v0.1.8-x86_64-w64-mingw32.zip >> SHA256SUMS
+```
+
+This is the step that would be easiest to skip and the one whose absence does
+the most damage. `SHA256SUMS.asc` is a signature over `SHA256SUMS` and nothing
+else, so a Windows archive that is not named in that file has **no signed
+proof at all** — a Windows user running `verify_release.sh` would be told
+`OK` about two Linux tarballs he did not download, while the `.zip` he did
+download is covered by nothing. A release nobody can verify is the one thing
+this project has said repeatedly it will not publish, and it would be
+published to the platform most people are on.
+
+Nothing here trusts the hashes in `package_platform.sh`'s output either. They
+are printed for reading; the line above recomputes them from the files on
+disk, and `sign_release.sh` then verifies every line in the list against
+every file before it will sign. A typo cannot survive that, and a swapped
+file cannot either.
+
 ## 4. Sign it, then publish it
 
 On the machine with the USB stick. **Git Bash, not PowerShell** — PowerShell
 has no `gpg` on PATH; the one that works is
 `C:\Program Files\Git\usr\bin\gpg.exe`, which is what Git Bash runs.
 
-From the draft release page, download **all three** files — `SHA256SUMS` and
-both packages, about 11 MB — into one empty directory. Then:
+From the draft release page, download `SHA256SUMS` and **every package** into
+one empty directory — the two Linux tarballs, about 11 MB, plus the two
+Windows archives from §3b, about 14 MB. Then, after the `sha256sum … >>
+SHA256SUMS` line in §3b has been run:
 
 ```
 bash scripts/sign_release.sh ~/Downloads/wam-v0.1.7
