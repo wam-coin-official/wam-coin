@@ -1,0 +1,46 @@
+# ===========================================================================
+#  wam-alert-probe -- fail on purpose, to prove this machine can be heard
+# ===========================================================================
+#
+#      systemctl start wam-alert-probe
+#
+#  Every watcher on a WAM host says OnFailure=wam-alert@%n.service, and that
+#  path has three parts that can each be broken on a new machine: the alert
+#  unit, the credentials it sends with, and the network out. A watcher whose
+#  alert cannot leave the host is not a watcher; it is a log nobody reads.
+#
+#  So this unit does nothing except fail, which fires the same OnFailure= as
+#  a real fault, and the operator either receives a message or learns that he
+#  would not have. It was run on seed3 on 11 September, the day that host
+#  joined, and the message arrived.
+#
+#  WHY IT IS IN THE REPOSITORY NOW
+#
+#  It was not. It was written straight onto the host as a one-off, and then
+#  left in `failed` state for twenty-three hours, where it sat on the
+#  operations panel as a red line on an otherwise healthy machine. The
+#  founder saw it and asked. A permanent red is worse than no red: it teaches
+#  whoever reads the panel to skip that line, and the next red on that line
+#  will be a real one, two days before launch or on the night itself.
+#
+#  ExecStopPost is why it cannot happen again. systemd triggers OnFailure=
+#  when the unit fails, and runs ExecStopPost afterwards -- so the alert is
+#  already on its way by the time the failed state is cleared. The `-` prefix
+#  means that if reset-failed is refused while the unit is still deactivating,
+#  the unit simply stays red as it did before, which is no worse than today.
+#
+#  An undocumented unit on a production host is its own defect. If it is
+#  worth running on a machine, it is worth reading in the repository.
+# ===========================================================================
+[Unit]
+Description=Deliberate failure, to prove this machine can be heard
+Documentation=https://github.com/wam-coin-official/wam-coin/blob/main/deploy/systemd/wam-alert-probe.service
+OnFailure=wam-alert@%n.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/false
+
+# Clear the failed state once the alert has been triggered, so the probe does
+# not leave a red line on the panel for the next person to learn to ignore.
+ExecStopPost=-/usr/bin/systemctl reset-failed %n

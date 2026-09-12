@@ -154,6 +154,11 @@ run "executable bits in index"   bash scripts/test/test_exec_bits.sh
 # it prints says nothing about why. gen_founder_key.py -- run once, from a
 # live USB, by one person -- sat in this repository that way.
 run "line endings are LF"        bash scripts/test/test_line_endings.sh
+# An alarm this project sent had SECURITY.md rendered as a hyperlink, because
+# .md is Moldova's top-level domain -- so a message about checking signatures
+# pointed at a stranger's server. It reached the operator chat rather than the
+# public channel, which is the only reason it cost nothing.
+run "no alert looks like a link" "$PY" scripts/test/test_alert_text.py
 run "embedded python parses"     bash scripts/test/test_embedded_python.sh
 # A comment after a "\" continuation commented out the command it was meant to
 # explain, in this very file, and the harness reported the missing command as

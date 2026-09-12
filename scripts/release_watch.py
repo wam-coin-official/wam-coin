@@ -149,9 +149,18 @@ def main():
     if code == 0:
         if state.get("alarmed"):
             gone = int((now - state.get("since", now)) / 60)
+            # The fingerprint, not the filename.
+            #
+            # This line said "the key in SECURITY.md", and Telegram turned
+            # SECURITY.md into a hyperlink -- .md is Moldova's top-level
+            # domain -- so an alarm from this project pointed at a stranger's
+            # server. scripts/test/test_alert_text.py refuses it now. The
+            # fingerprint is also the more useful thing to be told: it is what
+            # a reader compares, and a filename is only where to find it.
             msg = ("RECOVERED  the published release verifies again, after "
                    f"about {gone} minute(s). SHA256SUMS and its signature "
-                   "agree, and the signature is the key in SECURITY.md.")
+                   "agree, and the signature is "
+                   "4BD4 A8D3 AFD4 3F5C BCB5  00E2 3798 462F E00A DBA4.")
             print(msg)
             notify(msg, a.dry_run)
         state.update(alarmed=False, since=now, last_ok=now)
