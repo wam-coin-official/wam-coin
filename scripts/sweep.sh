@@ -467,6 +467,39 @@ if [ "${#SKIPPED[@]}" -gt 0 ]; then
     echo
     echo " not run -- these are not passes:"
     for s in "${SKIPPED[@]}"; do printf '   - %s\n' "$s"; done
+
+    # Where you are standing is part of the answer.
+    #
+    # On 12 September this sweep was run from the founder's Windows laptop and
+    # reported four checks it could not run. Three of them could not run THERE
+    # and would have run anywhere else:
+    #
+    #   * "DNS seeds answer x9." needs dig, which Git Bash does not ship
+    #   * "published download is this network" downloads 11.7 MB, and that
+    #     connection carries about 16 KB/s, so the check times out
+    #   * the two GitHub checks had hit the 60-calls-an-hour limit that the
+    #     whole household shares through one address
+    #
+    # All three passed from a seed, immediately, and one of them then found
+    # something: the third server had no objdump, so the AVX-512 guard -- which
+    # exists because a published release died with SIGILL on an EPYC -- had
+    # been reporting "not measured" there rather than a result.
+    #
+    # So a sweep run on the laptop is not the full sweep, and on 14 September
+    # the full sweep is the last thing between this project and launch.
+    if ! command -v dig >/dev/null 2>&1 || [ -n "${WINDIR:-}" ]; then
+        echo
+        printf ' %sThis is not the full sweep.%s You are on a machine that cannot ask\n' \
+            "$YLW" "$OFF"
+        echo " some of these questions -- no dig, a slow link, or a shared GitHub"
+        echo " rate limit. Several of the lines above would simply run elsewhere."
+        echo
+        echo " Before launch, run it where the network is:"
+        echo
+        echo "     ssh root@<a seed> 'cd /opt/wam && bash scripts/sweep.sh'"
+        echo
+        echo " and compare. A check that could not run is not a check that passed."
+    fi
 fi
 echo "=================================================================="
 
