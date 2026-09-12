@@ -248,7 +248,33 @@ watch for and why.
 
 Until the first is done, launch night carries a step that must not be
 forgotten: **stop `wam-pool` before starting the mainnet one**, because both
-claim 3333–3336.
+claim 3333–3336. That is the whole cost of not opening four ports: the
+testnet pool — the only working system we have while mainnet is unproven —
+goes down at the moment mainnet starts.
+
+### The functional tests exist and have never been run
+
+`test/functional/feature_wam_devfee.py`, `feature_wam_genesis.py`,
+`feature_wam_pow.py` and `feature_wam_randomx_epoch.py`: 627 lines and 80
+assertions, written 11 August, installed into the upstream tree by
+`patch_upstream.py`. Nothing has ever executed them. They need a configured
+Core build tree, which exists only inside CI, and CI builds releases.
+
+This is stated rather than ticked, and it is not the same as those rules
+being unexercised:
+
+| the rule | what has actually tested it |
+|---|---|
+| genesis, all three chains | every node start since 15 August, and `check_release_matches.sh` reading the hashes out of all three published archives |
+| proof of work and DGW | 8,861 blocks, and `dgw_model.py` reproducing every one of 8,838 retargets exactly |
+| the RandomX epoch | two rotations crossed on testnet, 256 blocks apart, item 2.6 |
+| the dev fee | `consensus_floor.py`, and the founder and treasury addresses verified inside every published binary |
+| all of it, on three platforms | `test_platform_consensus.sh` syncing the chain from genesis on Windows and macOS in CI |
+
+So the suite is a regression net for the changes that come after launch, not
+a gate that launch is missing. It belongs to Phase 3, with a build
+environment that can run it, and writing that here is the only honest way to
+leave it.
 
 ---
 

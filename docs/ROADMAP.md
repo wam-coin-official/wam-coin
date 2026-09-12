@@ -58,7 +58,7 @@ observed failing and succeeding, not assumed.
 | 2.5 | Simulate an orphaned block | confirm nobody is paid for it |
 | 2.6 | **Cross at least two RandomX epoch rotations** | testnet epochs are 256 blocks (~8h) for exactly this |
 | 2.7 | ~~Point extra hashrate at it for an hour, then remove it~~ **Done 5 September**, by the founder and Sparks60 on three machines: difficulty 1.00 → 6.26, the block after they stopped took 35 minutes, back at the floor 79 minutes later. Heights 5586–5620. Larger multiples were computed instead, against a model checked on 8,838 real blocks — see `docs/REHEARSALS.md` | proves DGWv3 absorbs and recovers — it did, unattended |
-| 2.8 | Write functional tests for the WAM rules | none exist yet; regressions are invisible without them |
+| 2.8 | ~~Write functional tests for the WAM rules~~ **written 11 August** — `feature_wam_devfee.py`, `feature_wam_genesis.py`, `feature_wam_pow.py`, `feature_wam_randomx_epoch.py`: 627 lines, 80 assertions, installed into the tree by `patch_upstream.py`. **Never executed here**, and said plainly rather than ticked: running them needs a configured Core build tree, which exists only inside CI, and CI builds releases rather than running the suite. See `docs/REHEARSALS.md` for what covers these rules instead | regressions are invisible without them |
 
 **Exit gate:** two uninterrupted weeks, ≥2 epoch rotations, zero forks, zero payment
 discrepancies.

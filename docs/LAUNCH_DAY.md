@@ -314,6 +314,22 @@ config says network='regtest' but wamd reports chain='test'. Refusing to start.
 systemctl enable --now wam-backup@mainnet.timer
 ```
 
+**And the reorg watch, on all three hosts.** This step was missing from this
+file until 13 September: the runbook turned on the mainnet backup and the
+mainnet Electrum and never turned on the one watcher whose subject is the
+chain itself. Testnet has had it running since August. Mainnet would have
+launched with nobody watching for a reorganisation — on the night when a
+split between our own three nodes is the most consequential thing that can
+happen and the least visible.
+
+```bash
+systemctl enable --now wam-reorg-watch@mainnet.timer
+```
+
+`check_reorg.py --local --network mainnet` is what it runs, and the template
+is installed on all three hosts already. Each carries
+`OnFailure=wam-alert@%n.service`, so the watcher's own death is alarmed too.
+
 The copy above was taken by hand with the node stopped, which is safe, but
 it is one file from one day. From here the wallet that pays miners is in
 the nightly archive like everything else.
