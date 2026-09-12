@@ -612,3 +612,75 @@ chain from genesis with the exact bytes a stranger will download, so
 `RELEASE.txt`'s claim that these binaries were tested stays literally true.
 Strip afterwards and the tested file and the shipped file are different
 files.
+
+### The release would not publish, and the thing that stopped it was right
+
+`release.yml` refused v0.1.8. Everything up to the last step passed -- node,
+RandomX and miner built, packaged, and the artifact verified against its own
+checksums -- and then:
+
+```
+   ok       Verify the artifact before anyone can download it
+   FAILURE  Publish the release
+```
+
+`consensus_floor.py` had reported that v0.1.8 changes a consensus value while
+the tag carried no `MANDATORY:` line, and the workflow stops for that on
+purpose. The reason it stops is written in its own comments: v0.1.5 moved the
+mainnet treasury address, shipped with no warning, and two independent
+operators stayed on v0.1.4 for two days.
+
+The change was real. v0.1.7 shipped `nMinimumChainWork` as `uint256{}` on all
+three networks; testnet now carries a value, set on 7 September so a fresh
+node cannot be walked onto a cheap fabricated history by the first peer it
+meets. Mainnet is still zero, so launch was never affected.
+
+**Both ways out were wrong, which is what made this worth writing down.**
+Write a `MANDATORY:` line and every channel is told UPDATE REQUIRED for a
+release nobody needs to install -- spending, three days before launch, the one
+warning that has to be believed on the night. Or do not publish, and ship no
+Windows release at all.
+
+The answer was in the gate's own definition, one line above the patterns it
+matches: *a node disagreeing about any of these is a node on a different
+chain.* Exactly one field reached through `consensus.` fails that test. Two
+nodes with different `nMinimumChainWork` accept identical blocks; the value
+decides whether a node will begin to trust a header chain at all, which is
+liveness and anti-DoS, and `check_min_chain_work.py` already exists for it. A
+v0.1.7 node has zero there and follows this chain exactly as before.
+
+So the field is excluded by name, after matching rather than by narrowing the
+pattern -- `consensus.\w+` still catches every field by default and an
+exception has to be argued for, because a new consensus value must never be
+missed because a regular expression was tightened to exclude a different one.
+The floor moved to **v0.1.5**, which is what this project's own history
+records as the only consensus change since genesis.
+
+A guard that fires correctly and is classified wrongly looks exactly like a
+guard that is broken. The difference is whether you read it or silence it.
+
+### And the box said v0.1.8 while the binaries said v0.1.7
+
+Found by running the finished artifact rather than by reading anything.
+`platform-build #11` produced `wam-coin-v0.1.8-x86_64-w64-mingw32.zip`, and
+the node inside it answered
+
+```
+WAM Coin version v0.1.7
+```
+
+because `--version` on that workflow is a string typed into a form and nothing
+compared it to anything. The archive was right in every other respect: PE32+,
+stripped, consensus-gated from genesis, miner self-tested on Windows. And the
+command a person runs to answer "am I on the version that moved a consensus
+rule?" would have told him the wrong thing.
+
+`sign_release.sh` catches this from the other end -- it refuses to sign a list
+of v0.1.8 names from a v0.1.7 checkout -- and that guard would have held. But
+it holds at the last possible moment, on the machine with the offline key, at
+the end of a long night. `package_platform.sh` now asks before it packages
+anything: first `patch_upstream.py`, which is the authority the build stamps
+into the binaries, then the binaries themselves, by reading the version string
+out of the file rather than running it -- a PE cannot be executed on the Linux
+runner that cross-compiled it, and the same rule has to hold for both
+platforms.
