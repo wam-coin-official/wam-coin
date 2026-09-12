@@ -80,9 +80,12 @@ done
 [ -d "$FROM" ] || die "no such directory: $FROM"
 
 case "$PLATFORM" in
-    windows)      TRIPLET="x86_64-w64-mingw32"; WANT="PE32+";  ARCHIVE="zip" ;;
-    macos-arm64)  TRIPLET="arm64-apple-darwin"; WANT="Mach-O"; ARCHIVE="tar.gz" ;;
-    macos-x86_64) TRIPLET="x86_64-apple-darwin"; WANT="Mach-O"; ARCHIVE="tar.gz" ;;
+    windows)      TRIPLET="x86_64-w64-mingw32"; WANT="PE32+";  ARCHIVE="zip"
+                  STRIP="x86_64-w64-mingw32-strip" ;;
+    macos-arm64)  TRIPLET="arm64-apple-darwin"; WANT="Mach-O"; ARCHIVE="tar.gz"
+                  STRIP="strip" ;;
+    macos-x86_64) TRIPLET="x86_64-apple-darwin"; WANT="Mach-O"; ARCHIVE="tar.gz"
+                  STRIP="strip" ;;
     *) die "platform must be windows, macos-arm64 or macos-x86_64 (got '$PLATFORM')" ;;
 esac
 case "$VERSION" in v*) ;; *) VERSION="v$VERSION" ;; esac
@@ -144,6 +147,35 @@ for f in COPYING README.md WHITEPAPER.md SECURITY.md; do
 done
 ok "bin/ holds $(find "$NODE/bin" -type f | wc -l | tr -d ' ') file(s)"
 
+# Debug symbols, if whoever built these left them in.
+#
+# package_release.sh has stripped the Linux binaries since the first release --
+# "Debug symbols are most of the size and none of the use. 339 MB -> ~30 MB" --
+# and on 12 September the Windows artifact from platform-build #10 was 197 MB
+# because nothing in the Windows path did the same. On a connection carrying
+# 16 KB/s that is three and a half hours to download a node.
+#
+# build_windows.sh now strips before the consensus gate runs, so binaries that
+# came through the workflow arrive here already stripped and this is a no-op
+# that says so. It stays because this script also accepts a directory somebody
+# built by hand.
+BEFORE_KB=$(du -sk "$NODE/bin" | cut -f1)
+if command -v "$STRIP" >/dev/null 2>&1; then
+    "$STRIP" "$NODE/bin"/* 2>/dev/null || true
+    AFTER_KB=$(du -sk "$NODE/bin" | cut -f1)
+    if [ "$AFTER_KB" -lt "$BEFORE_KB" ]; then
+        ok "stripped      $(( BEFORE_KB / 1024 )) MB -> $(( AFTER_KB / 1024 )) MB"
+    else
+        ok "no symbols to strip -- already $(( AFTER_KB / 1024 )) MB"
+    fi
+else
+    # Not fatal: a 197 MB archive is worse than a small one and better than
+    # none. But it is said in the colour that means "look at this".
+    warn "$STRIP not found, so nothing was stripped: $(( BEFORE_KB / 1024 )) MB"
+    warn "of binaries, most of it debug symbols. On Ubuntu, for Windows:"
+    warn "    sudo apt install binutils-mingw-w64-x86-64"
+fi
+
 cat > "$NODE/RELEASE.txt" <<TXT
 WAM Coin $VERSION -- $TRIPLET
 
@@ -154,13 +186,49 @@ blocks the Linux nodes have held since August: 0, 1, 5000 and 6000. Block 1
 is where the 5% treasury rule is first enforced, so a binary that disagrees
 about consensus disagrees there.
 
+The miner in the separate archive was cross-compiled the same way and then
+ran --self-test on a $PLATFORM machine, which checks SHA-256, stratum byte
+order, the difficulty targets, and RandomX against the two official test
+vectors. A miner whose RandomX disagreed with the network would hash all day,
+find nothing, and report no error at all, so that check is the whole question.
+
 That is what is being claimed, and all of it. What is NOT claimed:
 
   * no human had double-clicked these before the release that carries them
   * the packaging and the signature had never covered a second platform
     before $VERSION, so this path is newer than the Linux one
-  * mining is unaffected either way: wam-miner needs nothing from the node
 
+$(if [ "$PLATFORM" = "windows" ]; then cat <<'WARN'
+YOUR ANTIVIRUS WILL PROBABLY OBJECT TO THE MINER, AND IT IS WRONG.
+
+On 12 September, during testing, Windows Defender deleted wam-miner.exe
+fourteen seconds after it started hashing and called it
+
+    Trojan:Win32/Bearfoos.A!ml      (Severe)
+
+!ml means a machine-learning guess. A program that opens a network
+connection and then uses every core is behaving exactly like the
+cryptojacking malware that infects people's computers without asking, and
+no scanner can tell the two apart by behaviour -- the difference is that
+you chose this one and it mines to your address only.
+
+We have not paid for a publisher certificate, which is the only thing that
+removes the warning, so we are telling you about it instead of letting it
+surprise you. What to do:
+
+  1. Check the file yourself. The SHA256 below and the signature on
+     SHA256SUMS are proof that these are the bytes we built. An antivirus
+     verdict is an opinion; a signature is evidence.
+  2. If you want to run it, allow that one file by name in your antivirus
+     -- not a whole folder, and never the whole machine.
+  3. If you would rather not, do not. The node in the other archive is not
+     a miner and is not usually flagged, and you can run a node without
+     ever mining.
+
+Anyone claiming to be us and asking you to switch your antivirus off
+entirely is not us.
+WARN
+fi)
 VERIFY BEFORE YOU RUN IT. The checksum file is signed with a key kept
 offline, and the fingerprint is published in SECURITY.md in the source
 repository and nowhere else:
@@ -185,11 +253,18 @@ if [ -n "$MINERSRC" ]; then
     MIN="$STAGE/wam-miner-$VERSION"
     mkdir -p "$MIN"
     cp "$MINERSRC" "$MIN/"
+    command -v "$STRIP" >/dev/null 2>&1 && "$STRIP" "$MIN"/* 2>/dev/null || true
     [ -f "$REPO/COPYING" ] && cp "$REPO/COPYING" "$MIN/"
     [ -f "$REPO/miner/README.md" ] && cp "$REPO/miner/README.md" "$MIN/"
     ok "miner packaged separately, as on Linux"
 else
-    warn "no miner in $FROM -- the node archive is made alone"
+    # Loud, because this is the failure that shipped nothing for six days.
+    # RandomX exists in this chain so an ordinary desktop can mine, and most
+    # ordinary desktops are the platform being packaged here. A node without a
+    # miner gives those people a wallet and tells them to install Linux.
+    warn "no miner in $FROM -- the node archive is made alone."
+    warn "For Windows and macOS that is a release that cannot mine. Check that"
+    warn "the build script produced wam-miner$([ "$PLATFORM" = windows ] && echo .exe)."
 fi
 
 # ---------------------------------------------------------------------------

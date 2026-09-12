@@ -8,7 +8,11 @@ jane, step by step, and shortest way to start mining", and he was right that
 the guide is the wrong shape for that. It explains what a blockchain is,
 which that reader either knows already or does not care about.
 
-Linux x86_64, about 2 GB of free memory. Nothing else.
+Linux or Windows, 64-bit Intel or AMD, about 2 GB of free memory. Nothing
+else. The Linux commands are first because they are the ones that have been
+run by strangers since August; [Windows](#windows) is below them and is new in
+v0.1.8 — including the antivirus warning you will get, which is explained
+there rather than left to surprise you.
 
 ## The test network — live now
 
@@ -72,6 +76,91 @@ safer of the two ways to be wrong.
 
 `-t 4` is how many processor cores to use. Without it the miner takes every
 core but one, which makes the rest of the machine unpleasant to use.
+
+## Windows
+
+Since v0.1.8 there are Windows binaries, node and miner, and they need no WSL
+and no Linux. Open PowerShell and work in a folder you choose:
+
+```
+mkdir C:\wam ; cd C:\wam
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-coin-v0.1.8-x86_64-w64-mingw32.zip
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-miner-v0.1.8-x86_64-w64-mingw32.zip
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS
+Expand-Archive wam-coin-v0.1.8-x86_64-w64-mingw32.zip -DestinationPath .
+Expand-Archive wam-miner-v0.1.8-x86_64-w64-mingw32.zip -DestinationPath .
+```
+
+Check the two files against `SHA256SUMS` before you run anything. `certutil`
+is already on every Windows machine:
+
+```
+certutil -hashfile wam-coin-v0.1.8-x86_64-w64-mingw32.zip SHA256
+type SHA256SUMS
+```
+
+The lines must match. That compares your copy with our list; to check the list
+itself is ours you need GnuPG, which Windows does not ship — either install
+[Gpg4win](https://gpg4win.org/) and run `gpg --verify SHA256SUMS.asc
+SHA256SUMS`, or run the four lines above from WSL. If you skip that, you are
+trusting that nobody replaced both files, which is a smaller assumption than
+skipping the hash entirely and a larger one than checking the signature.
+
+Then the node, with the directory named explicitly so you always know where
+the wallet is:
+
+```
+cd wam-coin-v0.1.8\bin
+.\wamd.exe -testnet -datadir=C:\wam\data -daemon
+.\wam-cli.exe -testnet -datadir=C:\wam\data createwallet "mine"
+.\wam-cli.exe -testnet -datadir=C:\wam\data -rpcwallet=mine backupwallet C:\wam\wallet-backup.dat
+.\wam-cli.exe -testnet -datadir=C:\wam\data -rpcwallet=mine getnewaddress
+```
+
+and the miner, from the folder it unpacked into:
+
+```
+.\wam-miner.exe -o stratum+tcp://pool.wamcoin.org:13333 -u YOUR_ADDRESS -t 4
+```
+
+### Windows will call the miner a virus, and it is wrong
+
+This is the part nobody tells you, so it is written here before it happens to
+you. On 12 September, the first time the Windows miner was run on a real
+desktop, it passed every self-test, connected to the pool, took a job, and
+started hashing. Fourteen seconds later Windows Defender killed the process
+and deleted the file:
+
+```
+Trojan:Win32/Bearfoos.A!ml        Severity: Severe
+```
+
+`!ml` means a machine-learning guess, and `Bearfoos.A` is a generic label. The
+reason is not subtle: a program that opens a network connection and then uses
+every processor core is behaving exactly like the cryptojacking malware that
+does this to people without asking. No scanner can tell them apart by
+behaviour, because the behaviour is identical. The difference is consent — you
+chose to run it, and it mines to the address on its own command line and
+nowhere else.
+
+The thing that removes the warning is a publisher certificate, which costs
+money and a registered company, and this project has neither yet. So:
+
+1. **Verify the file instead of trusting a verdict.** The SHA256 above and the
+   signature on `SHA256SUMS` are evidence that these are the bytes we built.
+   An antivirus verdict is an opinion about behaviour.
+2. **If you want to mine, allow that one file**, by name — Windows Security →
+   Virus & threat protection → Manage settings → Exclusions → Add → File, and
+   pick `wam-miner.exe`. Not a folder. Not the whole machine. Turning your
+   antivirus off to run a stranger's program is how people actually get
+   robbed, and anyone telling you to do that is not us.
+3. **Or do not mine, and run the node anyway.** `wamd.exe` is not a miner and
+   is not normally flagged. A node that relays blocks and holds a wallet is a
+   real contribution and costs you no CPU.
+
+The node's own first run may show a blue SmartScreen box saying "Windows
+protected your PC" — that is the unsigned-publisher notice, not a virus
+report. `More info` → `Run anyway`, once you have checked the hash.
 
 ## The one line that is not optional
 

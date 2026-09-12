@@ -21,16 +21,13 @@
 
 #pragma once
 
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
+// Every platform difference the socket layer has is in platform.h, which
+// brings the system headers with it. Nothing below this line should have to
+// know which operating system it was compiled for: the stratum protocol does
+// not change between them.
+#include "platform.h"
 
 #include <array>
-#include <cerrno>
 #include <deque>
 #include <functional>
 #include <mutex>
@@ -115,7 +112,7 @@ public:
     std::function<void(const std::string&)>           onLog;
     std::function<void(const std::string&)>           onError;
 
-    bool IsConnected() const { return m_fd >= 0; }
+    bool IsConnected() const { return m_fd != kInvalidSock; }
     bool IsAuthorized() const { return m_authorized; }
 
     // -----------------------------------------------------------------------
@@ -195,6 +192,13 @@ public:
     {
         Close();
 
+        // On Windows nothing below works until the socket library is running,
+        // getaddrinfo included.
+        if (!SockStartup()) {
+            err = "the system's socket library refused to start";
+            return false;
+        }
+
         addrinfo hints{};
         hints.ai_family   = AF_UNSPEC;
         hints.ai_socktype = SOCK_STREAM;
@@ -207,35 +211,37 @@ public:
             return false;
         }
 
-        int fd = -1;
+        sock_t fd = kInvalidSock;
+        // Captured inside the loop, not after it. freeaddrinfo() is a library
+        // call and is entitled to set errno itself, so reading the error after
+        // it can report the wrong reason for the failure -- and on Windows the
+        // same is true of WSAGetLastError().
+        int lastErr = 0;
         for (addrinfo* ai = res; ai; ai = ai->ai_next) {
             fd = ::socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
-            if (fd < 0) continue;
+            if (fd == kInvalidSock) { lastErr = SockErr(); continue; }
 
-            timeval to{};
-            to.tv_sec = 10;
-            setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &to, sizeof(to));
+            SetSockTimeout(fd, SO_SNDTIMEO, 10);
 
-            if (::connect(fd, ai->ai_addr, ai->ai_addrlen) == 0) break;
+            if (ConnectTo(fd, ai->ai_addr, ai->ai_addrlen) == 0) break;
 
-            ::close(fd);
-            fd = -1;
+            lastErr = SockErr();
+            CloseSock(fd);
+            fd = kInvalidSock;
         }
         freeaddrinfo(res);
 
-        if (fd < 0) {
-            err = "cannot connect to " + m_host + ":" + portStr + ": " + std::strerror(errno);
+        if (fd == kInvalidSock) {
+            err = "cannot connect to " + m_host + ":" + portStr + ": "
+                  + SockErrStr(lastErr);
             return false;
         }
 
-        int one = 1;
-        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
-        setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &one, sizeof(one));
+        SetSockFlag(fd, IPPROTO_TCP, TCP_NODELAY, 1);
+        SetSockFlag(fd, SOL_SOCKET, SO_KEEPALIVE, 1);
 
         // Bounded read so Poll() returns to the caller even on a silent link.
-        timeval rto{};
-        rto.tv_sec  = 1;
-        setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &rto, sizeof(rto));
+        SetSockTimeout(fd, SO_RCVTIMEO, 1);
         m_lastRx = std::chrono::steady_clock::now();
 
         m_fd = fd;
@@ -250,7 +256,7 @@ public:
 
     void Close()
     {
-        if (m_fd >= 0) { ::close(m_fd); m_fd = -1; }
+        if (m_fd != kInvalidSock) { CloseSock(m_fd); m_fd = kInvalidSock; }
         m_authorized = false;
         m_subscribed = false;
     }
@@ -271,7 +277,7 @@ public:
     {
         FlushSubmits();
 
-        if (m_fd < 0) return;
+        if (m_fd == kInvalidSock) return;
 
         // Seconds in which this loop was not listening cannot be charged to
         // the pool.
@@ -351,7 +357,7 @@ public:
         m_lastWall = wall;
 
         char chunk[8192];
-        const ssize_t n = ::recv(m_fd, chunk, sizeof(chunk), 0);
+        const long n = RecvSome(m_fd, chunk, sizeof(chunk));
 
         if (n == 0) {
             Report("the pool closed the connection");
@@ -359,13 +365,14 @@ public:
             return;
         }
         if (n < 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+            const int e = SockErr();
+            if (SockWouldBlock(e)) {
                 // The socket was asked and had nothing to give. That is the
                 // only moment at which silence can honestly be measured.
                 CheckSilence();
                 return;
             }
-            Report(std::string("read failed: ") + std::strerror(errno));
+            Report("read failed: " + SockErrStr(e));
             Close();
             return;
         }
@@ -391,7 +398,7 @@ public:
             while (!line.empty() && (line.back() == '\r' || line.back() == ' ')) line.pop_back();
             if (!line.empty()) HandleLine(line);
 
-            if (m_fd < 0) return;                // a handler disconnected us
+            if (m_fd == kInvalidSock) return;    // a handler disconnected us
         }
         m_buffer.erase(0, start);
     }
@@ -408,15 +415,16 @@ private:
 
     bool SendRaw(const std::string& payload)
     {
-        if (m_fd < 0) return false;
+        if (m_fd == kInvalidSock) return false;
         const std::string line = payload + "\n";
 
         size_t sent = 0;
         while (sent < line.size()) {
-            const ssize_t n = ::send(m_fd, line.data() + sent, line.size() - sent, MSG_NOSIGNAL);
+            const long n = SendSome(m_fd, line.data() + sent, line.size() - sent);
             if (n <= 0) {
-                if (errno == EINTR) continue;
-                Report(std::string("write failed: ") + std::strerror(errno));
+                const int e = SockErr();
+                if (SockInterrupted(e)) continue;
+                Report("write failed: " + SockErrStr(e));
                 Close();
                 return false;
             }
@@ -434,7 +442,7 @@ private:
         }
 
         for (const PendingSubmit& s : batch) {
-            if (m_fd < 0 || !m_authorized) continue;
+            if (m_fd == kInvalidSock || !m_authorized) continue;
 
             const int id = m_nextId++;
             m_submitIds.insert(id);
@@ -638,7 +646,7 @@ private:
     std::string m_user;
     std::string m_pass;
 
-    int         m_fd = -1;
+    sock_t      m_fd = kInvalidSock;
     std::string m_buffer;
 
     bool  m_subscribed = false;

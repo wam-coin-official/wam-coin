@@ -41,6 +41,7 @@
 #include <vector>
 
 #include "json.h"
+#include "platform.h"
 #include "randomx_engine.h"
 #include "sha256.h"
 #include "stratum.h"
@@ -72,7 +73,7 @@ void LogLine(const char* colour, const char* tag, const std::string& msg)
 {
     const std::time_t now = std::time(nullptr);
     std::tm tm{};
-    localtime_r(&now, &tm);
+    LocalTime(now, tm);
 
     char stamp[16];
     std::strftime(stamp, sizeof(stamp), "%H:%M:%S", &tm);
@@ -650,6 +651,11 @@ void OnSignal(int)
 
 int Run(int argc, char** argv)
 {
+    // Before the first line is printed, and before --no-colour is read, so
+    // that the flag can still turn colour off but a console that cannot show
+    // it never gets the chance to print escape bytes as text.
+    if (!EnableAnsiColour()) g_colour = false;
+
     Options opt;
     std::string err;
 
@@ -690,7 +696,14 @@ int Run(int argc, char** argv)
     g_running = &state.running;
     std::signal(SIGINT,  OnSignal);
     std::signal(SIGTERM, OnSignal);
+#ifdef SIGPIPE
+    // Writing to a socket the pool has closed raises SIGPIPE on Unix, and the
+    // default action for it is to kill the process -- so a miner that ignored
+    // this would be killed by its pool restarting rather than reconnecting to
+    // it. Windows has no SIGPIPE: send() returns an error there, which is the
+    // path SendRaw() takes on both systems anyway.
     std::signal(SIGPIPE, SIG_IGN);
+#endif
 
     RandomXEngine engine;
     if (!engine.Init(opt.threads, opt.fullMem, opt.largePages, err)) {

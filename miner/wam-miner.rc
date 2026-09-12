@@ -1,0 +1,85 @@
+// Copyright (c) 2026 The WAM Coin developers
+// Distributed under the MIT software license, see COPYING.
+//
+// ===========================================================================
+//  wam-miner.rc -- the Windows version resource
+// ===========================================================================
+//
+//  WHY A BINARY NEEDS TO SAY WHAT IT IS
+//
+//  On 12 September the first cross-compiled wam-miner.exe was run on Windows
+//  11. It passed every self-test, connected to the pool, authorized, took a
+//  job at height 8474 and hashed at 66.7 H/s. Fourteen seconds later Windows
+//  Defender terminated it and deleted the file:
+//
+//      Trojan:Win32/Bearfoos.A!ml        SeverityID 5 (Severe)
+//
+//  !ml is a machine-learning verdict, and Bearfoos.A is the generic family
+//  label Microsoft gives unsigned executables that behave the way this one
+//  does: statically linked, opening a TCP connection, then using every core.
+//  That is also exactly what cryptojacking malware does, so behaviour alone
+//  cannot separate them -- which means everything else about the file is what
+//  the classifier has left to go on.
+//
+//  An executable with no version resource at all has nothing to go on. It
+//  states no company, no product, no description, no version: a property
+//  shared by almost nothing a person installs on purpose and by almost
+//  everything that arrives unasked. The node binaries carry this information
+//  already, because Bitcoin Core's build system adds it; wam-miner was one
+//  g++ invocation and never had it.
+//
+//  This does not make the warning impossible. A publisher certificate is the
+//  only thing that does, and until this project has one the warning has to be
+//  documented rather than defeated -- see docs/MINE.md. What this file does is
+//  stop the binary from being anonymous, and make it identifiable in Task
+//  Manager, in a SmartScreen prompt, and in the file's own Properties dialog
+//  by somebody deciding whether to trust it.
+//
+//  KEEP THE VERSION IN STEP
+//
+//  The four numbers and the strings are the miner's own version, which is
+//  printed by --help and sent to the pool as the user agent in
+//  miner/src/stratum.h (kUserAgent). All three are 1.0.0 and should move
+//  together; a binary whose Properties dialog disagrees with what it tells
+//  the pool is a small dishonesty that costs more to explain than to avoid.
+// ===========================================================================
+
+#include <windows.h>
+
+#define WAM_MINER_VERSION      1,0,0,0
+#define WAM_MINER_VERSION_STR  "1.0.0"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     WAM_MINER_VERSION
+PRODUCTVERSION  WAM_MINER_VERSION
+FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+FILEFLAGS       0
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_APP
+FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        // 040904b0 -- US English, Unicode. The strings below are ASCII either
+        // way; the project's Arabic documentation lives in docs/, not here.
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName",      "The WAM Coin developers"
+            VALUE "FileDescription",  "WAM Coin RandomX CPU miner"
+            VALUE "FileVersion",      WAM_MINER_VERSION_STR
+            VALUE "InternalName",     "wam-miner"
+            VALUE "LegalCopyright",   "Copyright (c) 2026 The WAM Coin developers. MIT licence."
+            VALUE "OriginalFilename", "wam-miner.exe"
+            VALUE "ProductName",      "WAM Coin"
+            VALUE "ProductVersion",   WAM_MINER_VERSION_STR
+            // Not a marketing line. Somebody who finds this process using
+            // their CPU and opens its Properties should be told in one
+            // sentence what it is doing and that they chose it.
+            VALUE "Comments",         "Mines WAM Coin to the address given on its command line, and takes no fee. Source: https://github.com/wam-coin-official/wam-coin"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 0x04B0
+    END
+END

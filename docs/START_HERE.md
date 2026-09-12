@@ -34,59 +34,56 @@ someone with one computer can take part, not only someone with a warehouse.
 
 ## 2. What you need
 
-- A computer with Linux, or Windows with WSL — a laptop is fine
+- A computer with Linux or Windows, 64-bit Intel or AMD — a laptop is fine
 - About 2 GB of free memory and 5 GB of disk
 - An internet connection
 
 That is all. No graphics card, no special hardware, no money to start.
 
-> **Windows or Mac?** The **downloads** are Linux only. There is no `.exe` and
-> no `.dmg` on the release page, and this page will not pretend otherwise.
+> **Windows.** Since **v0.1.8** there are signed Windows downloads — a `.zip`
+> with the node and a second one with the miner — and they need no WSL and no
+> Linux. [MINE.md → Windows](MINE.md#windows) is the shortest path: seven
+> lines.
 >
-> The software itself runs on both, and that is measured rather than hoped. On
-> 7 September 2026 a Windows build and a macOS build on Apple Silicon each
-> synced the test chain from genesis, over the real peer-to-peer network, and
-> agreed with the Linux nodes at heights 0, 1, 5,000 and 6,000 — block 1
-> included, which is where the treasury rule is first enforced. Neither is a
-> signed download yet: the packaging and the signature have never covered a
-> second platform, and a binary you cannot verify is one you should not run,
-> including one from us. That work comes after launch.
+> Read the part of that page about **your antivirus** before you run the
+> miner, not after. Windows Defender deleted it fourteen seconds into its
+> first run on a real desktop and called it a trojan, because a program that
+> connects to a network and then uses every core is behaviourally identical to
+> the mining malware people get infected with. It is a false positive, we have
+> no publisher certificate to prevent it, and the honest answer is to check
+> the SHA256 and the signature yourself rather than to trust or distrust a
+> guess.
 >
-> So there are three routes today, and the first is the easy one.
+> **WSL still works** and is a reasonable choice if you already have it: the
+> release is built on Ubuntu 22.04 and `wsl --install` on Windows 11 gives you
+> Ubuntu 22.04, so the system libraries the Linux binary was linked against
+> are the ones it finds. The memory and disk above are what Linux needs inside
+> WSL, not what Windows needs on top of it.
 >
-> On Windows 10 or 11 the way in is WSL, which gives you a real Linux inside
-> Windows. In PowerShell as administrator, once:
+> **Mac.** There is still no `.dmg` and this page will not pretend otherwise.
+> The software runs there — on 7 September a macOS build on Apple Silicon
+> synced the test chain from genesis over the real peer-to-peer network and
+> agreed with the Linux nodes at heights 0, 1, 5,000 and 6,000, block 1
+> included, which is where the treasury rule is first enforced — and every
+> `platform-build` run since has repeated it. What is missing is the same
+> thing that was missing for Windows until v0.1.8: a packaged, signed
+> download. A binary you cannot verify is one you should not run, including
+> one from us.
 >
-> ```
-> wsl --install
-> ```
->
-> Restart, open **Ubuntu** from the Start menu, and every command on this page
-> works from there unchanged. The memory and disk above are what Linux needs
-> inside WSL, not what Windows needs on top of it.
->
-> This is not a workaround with a catch in it. The release is built on
-> Ubuntu 22.04, and `wsl --install` on Windows 11 gives you Ubuntu 22.04 — the
-> same distribution, so the system libraries the binary was linked against are
-> the ones it finds.
->
-> **Building it yourself**, on Windows or on a Mac, is the other two routes.
-> [BUILD.md §8](BUILD.md#8-building-for-windows) is the Windows one: about
-> forty minutes, and it needs Ubuntu 24.04 rather than 22.04, for a reason
-> that page gives. [BUILD.md §9](BUILD.md#9-building-on-macos) is the Mac one:
-> the same repository builds natively, in about twenty minutes, and it takes
-> boost from `depends/` rather than Homebrew for a reason that page gives too.
-> Apple Silicon is the one that has been proven; an Intel Mac has not been
-> tried yet, so if you have one, that run is worth more to this project than
-> a second Apple Silicon one.
+> So on a Mac, build it: [BUILD.md §9](BUILD.md#9-building-on-macos) is about
+> twenty minutes, and it takes boost from `depends/` rather than Homebrew for
+> a reason that page gives. Apple Silicon is the architecture that has been
+> proven; an Intel Mac has not been tried, so if you have one, that run is
+> worth more to this project than a second Apple Silicon one.
 >
 > **Do not run a Linux binary on an Apple chip through a container.** Our
-> download is x86_64 and that processor is ARM, so it would be emulated:
+> Linux download is x86_64 and that processor is ARM, so it would be emulated:
 > readable, and useless for mining.
 >
-> A native Windows build is the first thing after launch rather than before
-> it, and macOS follows it; §7 of [the roadmap](ROADMAP.md) gives the order
-> and the reason.
+> **Building on Windows yourself** is also still there, if you prefer your own
+> compiler to our signature: [BUILD.md §8](BUILD.md#8-building-for-windows),
+> about forty minutes, and it needs Ubuntu 24.04 rather than 22.04 for a
+> reason that page gives.
 
 
 ---

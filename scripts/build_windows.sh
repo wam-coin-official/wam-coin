@@ -322,6 +322,92 @@ if [ "$FOUND" -eq 0 ]; then
           in $CORE_DIR/src for what was actually built."
 fi
 
+# ---------------------------------------------------------------------------
+#  5. wam-miner.exe
+# ---------------------------------------------------------------------------
+#
+#  This script built the node for six days before anybody noticed it did not
+#  build the miner, and a Windows release without one is the wrong half. WAM
+#  uses RandomX so that an ordinary desktop can compete for blocks; most
+#  ordinary desktops run Windows; so shipping them a wallet and a node while
+#  the miner stays Linux-only excludes the exact audience the algorithm was
+#  chosen for.
+#
+#  It costs twenty seconds. The miner is one translation unit against the
+#  librandomx.a that step 1 has already cross-compiled, and the only part of
+#  it that was not portable was the socket layer -- now in miner/src/platform.h.
+printf '\n%s5. wam-miner.exe%s\n' "$BLD" "$OFF"
+
+MINER_EXE="$OUT_DIR/wam-miner.exe"
+#   -static, and one file.
+#     A miner is the binary people copy to other machines and run by
+#     double-clicking. Linked against the mingw DLLs it would need
+#     libstdc++-6.dll, libgcc_s_seh-1.dll and libwinpthread-1.dll beside it,
+#     and the failure when they are missing is a dialog box naming a DLL, on a
+#     machine whose owner did not ask to learn what a DLL is.
+#   -lws2_32
+#     Winsock. Without it the link fails on every socket call in stratum.h.
+#   -mtune=generic, never -march=native
+#     Same rule as everywhere else in this project: a published binary must
+#     run on a 2012 laptop. check_isa_baseline.sh enforces it afterwards.
+if CXX="$HOST_TRIPLET-g++" \
+   CXXFLAGS="-O3 -mtune=generic" \
+   LDFLAGS="-static -static-libgcc -static-libstdc++" \
+   LDLIBS="-lws2_32 -lpthread" \
+   RANDOMX_INCLUDE="$RANDOMX_DIR/src" \
+   RANDOMX_LIB="$WIN_RX_BUILD/librandomx.a" \
+   OUT="$MINER_EXE" \
+   RUN_SELF_TEST=0 \
+   bash "$HERE/miner/build.sh" > "$BUILD_DIR/make-miner-windows.log" 2>&1
+then
+    MFMT="$(file -b "$MINER_EXE" 2>/dev/null || echo unknown)"
+    case "$MFMT" in
+        *"for MS Windows"*|*PE32*)
+            ok "wam-miner.exe  $(du -h "$MINER_EXE" | cut -f1)  ($MFMT)"
+            FOUND=$((FOUND + 1)) ;;
+        *)
+            die "wam-miner.exe is $MFMT -- not a Windows executable" ;;
+    esac
+    # Named here rather than left to the reader: the binary that was just
+    # built has not verified its own RandomX, because it cannot run on this
+    # machine. The platform-build workflow runs --self-test on a Windows
+    # runner, and that is the step that has to be green.
+    warn "its self-test has NOT run -- it cannot execute here. A Windows"
+    warn "machine must run 'wam-miner.exe --self-test' before this is shipped."
+else
+    die "the miner did not cross-compile. The last 30 lines:
+$(tail -30 "$BUILD_DIR/make-miner-windows.log" | sed 's/^/          /')
+          Full log: $BUILD_DIR/make-miner-windows.log"
+fi
+
+# ---------------------------------------------------------------------------
+#  6. Debug symbols
+# ---------------------------------------------------------------------------
+#
+#  197 MB, measured, for five executables -- which is what platform-build #10
+#  uploaded and what made the artifact undownloadable on a slow connection.
+#  package_release.sh has stripped the Linux binaries since the first release
+#  ("Debug symbols are most of the size and none of the use. 339 MB -> ~30
+#  MB"); nothing had ever stripped these.
+#
+#  Stripping HERE and not at packaging time is deliberate. The consensus gate
+#  runs on whatever comes out of this directory, so stripping first means the
+#  bytes that synced the chain from genesis are the same bytes that get
+#  published. Strip afterwards and the tested file and the shipped file differ,
+#  and RELEASE.txt's claim that "these binaries were run against the live test
+#  chain" stops being literally true.
+printf '\n%s6. debug symbols%s\n' "$BLD" "$OFF"
+
+if command -v "$HOST_TRIPLET-strip" >/dev/null 2>&1; then
+    BEFORE=$(du -sk "$OUT_DIR" | cut -f1)
+    "$HOST_TRIPLET-strip" "$OUT_DIR"/*.exe 2>/dev/null || true
+    AFTER=$(du -sk "$OUT_DIR" | cut -f1)
+    ok "stripped  $(( BEFORE / 1024 )) MB -> $(( AFTER / 1024 )) MB"
+else
+    warn "$HOST_TRIPLET-strip not found -- shipping $(du -sh "$OUT_DIR" | cut -f1)"
+    warn "of debug symbols. Install binutils-mingw-w64-x86-64."
+fi
+
 echo "=================================================================="
 printf ' %s%d Windows executable(s) in %s%s\n' "$GRN" "$FOUND" "$OUT_DIR" "$OFF"
 echo "=================================================================="

@@ -47,6 +47,11 @@ name: platform-build
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to stamp on the archives, e.g. v0.1.8. Leave empty to use the newest tag.'
+        required: false
+        default: ''
   push:
     branches:
       - 'platform/**'
@@ -92,6 +97,23 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          # Tags, so the version can be read from the repository instead of
+          # being typed into a form that nobody checks.
+          fetch-tags: true
+          fetch-depth: 0
+
+      - name: The version these archives will claim
+        id: ver
+        run: |
+          set -euo pipefail
+          v="${{ github.event.inputs.version }}"
+          if [ -z "$v" ]; then
+            v="$(git describe --tags --abbrev=0 2>/dev/null || echo v0.0.0)"
+            echo "::notice::No version was given, so the newest tag is used: $v"
+          fi
+          echo "v=$v" >> "$GITHUB_OUTPUT"
+          echo "### Packaging as \`$v\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build tools, and the one mingw flag that is not optional
         run: |
@@ -156,10 +178,33 @@ jobs:
           # every age, so it matters more here than it did on a server.
           bash scripts/check_isa_baseline.sh out/windows/*.exe
 
+      # Packaged here, not on a laptop afterwards.
+      #
+      # Run #10 uploaded out/windows/ as it stood: five unstripped executables,
+      # 197 MB. On a connection carrying 16 KB/s -- measured on the machine
+      # that has to download it -- that is three and a half hours, so the
+      # release could not be assembled at all. build_windows.sh now strips
+      # before this point and the archive is a tenth of the size.
+      #
+      # Packaging before the consensus gate is the other half of the reason:
+      # the gate below unpacks THIS archive and syncs the chain with the exact
+      # files a stranger will download. Gate the build output and package
+      # afterwards, and the bytes that were tested are not the bytes that ship.
+      - name: Package it, exactly as it will be published
+        run: |
+          set -euo pipefail
+          bash scripts/package_platform.sh \
+              --platform windows \
+              --version "${{ steps.ver.outputs.v }}" \
+              --from out/windows
+          ls -l out/release/
+
       - uses: actions/upload-artifact@v7
         with:
+          # Same name as before on purpose -- but the contents changed from
+          # loose .exe files to the finished archives plus their SHA256 lines.
           name: wam-windows-x86_64
-          path: out/windows/
+          path: out/release/
           retention-days: 14
 
       - name: Keep the logs whatever happened
@@ -170,6 +215,7 @@ jobs:
           path: |
             build/configure-windows.log
             build/make-windows.log
+            build/make-miner-windows.log
           retention-days: 14
           if-no-files-found: ignore
 
@@ -198,7 +244,104 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           name: wam-windows-x86_64
-          path: bin
+          path: dist
+
+      # Expand-Archive rather than unzip: Git Bash is on this runner but its
+      # unzip is not guaranteed to be, and a release gate is a bad place to
+      # find that out.
+      - name: Unpack the archives a stranger would download
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path unpacked, bin | Out-Null
+          Get-ChildItem dist\*.zip | ForEach-Object {
+              Write-Host "expanding $($_.Name)"
+              Expand-Archive -LiteralPath $_.FullName -DestinationPath unpacked -Force
+          }
+          Get-ChildItem -Recurse -Filter *.exe unpacked |
+              ForEach-Object { Copy-Item $_.FullName bin\ }
+          Get-ChildItem bin | Format-Table Name, Length
+
+      # The miner, before the node.
+      #
+      # It is cross-compiled on Linux and cannot run its own self-test there,
+      # so miner/build.sh skips it and says so -- and this is the step that
+      # makes that acceptable. The two RandomX vectors are the whole question:
+      # a miner whose RandomX disagrees with the network hashes all day, finds
+      # nothing, and reports no error at all.
+      - name: The miner verifies its own RandomX, on Windows
+        run: |
+          set -euo pipefail
+          ls -l bin/wam-miner.exe
+          ./bin/wam-miner.exe --self-test --no-colour
+
+      # What Microsoft's own scanner thinks of what we are about to publish.
+      #
+      # On 12 September the first Windows miner was run on a real desktop. It
+      # passed every self-test, connected, authorized, took a job and hashed --
+      # and fourteen seconds later Defender terminated the process and deleted
+      # the file:
+      #
+      #     Trojan:Win32/Bearfoos.A!ml      SeverityID 5 (Severe)
+      #
+      # It is a false positive from a machine-learning classifier, and that
+      # changes nothing about what it costs: a stranger who downloads a WAM
+      # release on launch day, runs it, and is told by Windows that it is a
+      # trojan does not come back. We cannot stop Microsoft from saying it. We
+      # can refuse to learn it from him.
+      #
+      # This step never fails the build. A false positive must not be able to
+      # block a release, but it must never again be a surprise -- so the
+      # verdict is written into the run summary either way. The exit code is
+      # swallowed deliberately and the reason is this sentence.
+      - name: What Defender says about these binaries
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $files = Get-ChildItem bin\*.exe -ErrorAction SilentlyContinue
+          if (-not $files) { "::warning::no binaries to scan"; exit 0 }
+
+          $before = @(Get-MpThreatDetection -ErrorAction SilentlyContinue).Count
+          foreach ($f in $files) {
+              Write-Host "scanning $($f.Name) ($([math]::Round($f.Length/1MB,1)) MB)"
+              Start-MpScan -ScanType CustomScan -ScanPath $f.FullName -ErrorAction SilentlyContinue
+          }
+          $found = @(Get-MpThreatDetection -ErrorAction SilentlyContinue)
+
+          "## Windows Defender" | Out-File -Append $env:GITHUB_STEP_SUMMARY
+          $sig = (Get-MpComputerStatus -ErrorAction SilentlyContinue).AntivirusSignatureVersion
+          "Signature version: ``$sig``" | Out-File -Append $env:GITHUB_STEP_SUMMARY
+
+          if ($found.Count -gt $before) {
+              $new = $found | Sort-Object InitialDetectionTime -Descending |
+                     Select-Object -First ($found.Count - $before)
+              foreach ($d in $new) {
+                  $line = "FLAGGED: ThreatID $($d.ThreatID) on $($d.Resources -join '; ')"
+                  Write-Host "::warning::$line"
+                  "- $line" | Out-File -Append $env:GITHUB_STEP_SUMMARY
+              }
+              "" | Out-File -Append $env:GITHUB_STEP_SUMMARY
+              ("A flag here is expected for the miner and is a false positive. " +
+               "It must be submitted to Microsoft before the release is announced, " +
+               "and docs/MINE.md must still describe the warning a user will see.") |
+                  Out-File -Append $env:GITHUB_STEP_SUMMARY
+          } else {
+              Write-Host "no new detections"
+              "- No new detections on $($files.Count) binaries." |
+                  Out-File -Append $env:GITHUB_STEP_SUMMARY
+              ("This is an on-demand file scan. The detection seen on 12 September " +
+               "was behavioural, raised while the miner was hashing, which no scan " +
+               "of a file at rest can reproduce.") |
+                  Out-File -Append $env:GITHUB_STEP_SUMMARY
+          }
+          # Files Defender removed would break the gate below with a confusing
+          # error, so say it plainly here instead.
+          foreach ($f in $files) {
+              if (-not (Test-Path $f.FullName)) {
+                  Write-Host "::error::$($f.Name) was removed from disk by Defender during the scan"
+              }
+          }
+          exit 0
 
       - name: Sync the test chain from genesis, on Windows
         run: |
