@@ -1,0 +1,34 @@
+DESTINATION: a public comment on Block DX PR #197
+https://github.com/blocknetdx/blockchain-configuration-files/pull/197
+SEND: now
+---------------------------------------------------------------------------
+
+Update on the binaries, since the offer to test the wallet in docker is
+still open.
+
+Signed releases now exist for all three desktop platforms — Linux x86_64,
+Windows x86_64 and macOS arm64 — with SHA256SUMS signed by the release key:
+
+  https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.8
+
+`manifest-entry.json` in this PR now lists v0.1.6, v0.1.7 and v0.1.8. The
+conf file is unchanged and still keyed to `wam--v0.1.6`, since nothing in
+the RPC interface, the data directory layout or the address encoding has
+moved across those releases.
+
+Two things worth knowing before the docker test:
+
+  - Mainnet opens 2026-09-15 00:00 UTC. Until then a mainnet node refuses
+    to start: the genesis block is dated in the future, so a node built
+    today accepts it once from an empty datadir and refuses on every start
+    afterwards. That is upstream Bitcoin Core behaviour, not something we
+    added, and it is the reason a pre-launch test of the mainnet wallet
+    looks broken.
+  - Testnet is running and has been since August, if you would rather test
+    against a live chain today. `wamd -testnet` reaches it with no further
+    configuration; the seeds are in chainparams.
+
+I will comment here again once mainnet has blocks, so the wallet test runs
+against something real. Happy to answer anything in the meantime, and the
+full parameter set is at
+https://github.com/wam-coin-official/wam-coin/blob/main/docs/LISTING_PACKAGE.md

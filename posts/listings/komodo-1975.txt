@@ -1,0 +1,36 @@
+DESTINATION: a public comment on GLEECBTC/coins PR #1975
+https://github.com/GLEECBTC/coins/pull/1975
+SEND: on 15 September, and only after check_electrum.py reports both
+      endpoints serving MAINNET — this comment invites someone to connect,
+      so it must not precede the thing it invites them to
+---------------------------------------------------------------------------
+
+Mainnet is live as of 2026-09-15 00:00 UTC, and the two Electrum servers
+named in `electrums/WAM` are now answering on it.
+
+  electrum.wamcoin.org:50002    SSL      ws 50004
+  electrum2.wamcoin.org:50002   SSL      ws 50004
+
+  server.version                <<SERVERVER>>
+  genesis reported by both      d8d3debea987b62a0934c3980d62bffbb6e16aa797d19891d4fcc9b9fb11d7e9
+  height when checked           <<HEIGHT>>
+  measured at                   <<UTC>>
+
+They are two different machines at two different providers, both running
+ElectrumX against their own full node, and the certificates are Let's
+Encrypt rather than self-signed.
+
+The coin entry itself is unchanged: rpcport 9554, pubtype 73, p2shtype 135,
+wiftype 190, bech32_hrp "wam", segwit true, avg_blocktime 120,
+required_confirmations 60 — which at two-minute blocks is two hours, chosen
+deliberately high for a young chain rather than copied from a larger one.
+
+Signed binaries for Linux, Windows and macOS:
+
+  https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.8
+
+Full parameter set:
+https://github.com/wam-coin-official/wam-coin/blob/main/docs/LISTING_PACKAGE.md
+
+Happy to answer anything, or to add a third Electrum endpoint if two is
+thin for your purposes.

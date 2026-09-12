@@ -145,6 +145,12 @@ Everything here is irreversible once the first block is mined. Work through it i
 
 ### The listings that were told to come back
 
+**The drafts are written and in `posts/listings/`, one file per venue, each
+naming its destination and the moment it may be sent.** Two go now and two
+wait for the chain to answer, because a reviewer who tests a claim and finds
+nothing closes the thread a second time — and a second closure is much
+harder to undo than the first.
+
 Three venues closed our pull request on timing, not on the code. Each is a
 promise made to a stranger who is now waiting, and until 6 September 2026 that
 promise lived in one paragraph of `integration/README.md` and in one person's

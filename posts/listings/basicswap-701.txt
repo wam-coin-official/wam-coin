@@ -1,0 +1,37 @@
+DESTINATION: a public comment on BasicSwap PR #701 (and a request to reopen)
+https://github.com/basicswap/basicswap/pull/701
+SEND: on 15 September, only after Phase D has verified the chain
+      — the numbers below are filled in from the live chain, not typed early
+---------------------------------------------------------------------------
+
+This was closed with "mainnet is scheduled for 2026-09-15". That date has
+arrived and the chain is running.
+
+  mainnet genesis   d8d3debea987b62a0934c3980d62bffbb6e16aa797d19891d4fcc9b9fb11d7e9
+  genesis time      1789430400   (2026-09-15 00:00:00 UTC)
+  height now        <<HEIGHT>>
+  best block        <<BESTHASH>>
+  measured at       <<UTC>>
+
+  P2P port          9555
+  DNS seeds         seed1.wamcoin.org, seed2.wamcoin.org, seed3.wamcoin.org
+                    three nodes, three providers, three continents
+  RPC port          9554
+  block time        120 s, DarkGravityWave v3, retargeting every block
+  proof of work     RandomX (CPU)
+  address prefixes  PUBKEY 73 (W...), SCRIPT 135 (w...), WIF 190 (V...)
+  bech32 HRP        wam
+  supply            22,000,000 WAM, 50 WAM initial subsidy,
+                    halving every 200,000 blocks
+
+Signed binaries for Linux, Windows and macOS, with SHA256SUMS signed by the
+release key:
+
+  https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.8
+
+The files in this PR — `chainparams.py` and `wam.py` — are unchanged from
+the review, except that the ports and prefixes above are now live rather
+than planned. Everything a reviewer normally asks for is collected at
+https://github.com/wam-coin-official/wam-coin/blob/main/docs/LISTING_PACKAGE.md
+
+Could this be reopened, or would you rather I submit it fresh?

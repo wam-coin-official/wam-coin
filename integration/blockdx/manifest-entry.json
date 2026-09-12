@@ -10,7 +10,8 @@
   "repo_url": "https://github.com/wam-coin-official/wam-coin",
   "versions": [
     "v0.1.6",
-    "v0.1.7"
+    "v0.1.7",
+    "v0.1.8"
   ],
   "xbridge_conf": "wam--v0.1.6.conf",
   "wallet_conf": "wam--v0.1.6.conf"
