@@ -270,110 +270,19 @@ else
     warn "    sudo apt install binutils-mingw-w64-x86-64"
 fi
 
-# Built into a variable BEFORE the heredoc below, not inside it.
+# The note itself is scripts/release_note.sh, and it is a separate file for
+# the reason written at the top of it: this text was wrong four times in one
+# evening, and the root of all four was that the packaging is parameterised
+# by platform while only one branch of it was ever exercised, on Linux.
 #
-# It was a heredoc nested inside a command substitution nested inside
-# another heredoc. bash 5 on the Linux runner produced the right file; the
-# macOS runner ships bash 3.2, produced NOTHING, and this script then printed
-#
-#     ok    RELEASE.txt written -- it says what was tested and what was not
-#
-# about a file of zero bytes. It shipped that way in the first macOS archive:
-# the one file whose whole job is to state what was tested and what was not,
-# empty, with a line claiming it had been written. The smoke test that would
-# have caught it ran on Linux only.
-# Three plain heredocs, appended in order, and not one of them nested.
-#
-# This began as a heredoc inside a command substitution inside another
-# heredoc: bash 5 on the Linux runner built the right file and bash 3.2 on
-# the macOS runner produced NOTHING, and the script announced that it had
-# written it. Hoisting it to WINWARN=$(cat <<WARN ...) fixed the emptiness
-# and broke the parse instead -- bash 3.2 cannot read a heredoc inside $( ),
-# so the whole script died with exit 2 before it did anything, which the
-# annotator could only report as "Process completed with exit code 2".
-#
-# That failure was better than the first one: it stopped. But two portability
-# bugs in one construction is the construction telling you something. A
-# heredoc at the top level of a script is understood by every bourne shell
-# there has ever been, so there are three of them and no cleverness.
-cat > "$NODE/RELEASE.txt" <<TXT
-WAM Coin $VERSION -- $TRIPLET
-
-These binaries were $HOW.
-
-They were then run against the live test chain on a $PRETTY machine, which
-synced from the genesis block over the real peer-to-peer protocol and
-compared four blocks the Linux nodes have held since August: 0, 1, 5000 and
-6000. Block 1 is where the 5% treasury rule is first enforced, so a binary
-that disagrees about consensus disagrees there.
-
-The chain was synced with the files in THIS archive, after stripping and
-packaging, not with an earlier build of them.
-
-The miner in the separate archive was $MINER_HOW.
-
-That check covers SHA-256, stratum byte order, the difficulty targets, and
-RandomX against the two official test vectors. A miner whose RandomX
-disagreed with the network would hash all day, find nothing, and report no
-error at all, so it is the whole question.
-
-That is what is being claimed, and all of it. What is NOT claimed:
-
-  * no human had double-clicked these before the release that carries them
-  * before $VERSION the packaging and the signature covered Linux and
-    nothing else, so this path is newer and less worn than that one
-
-TXT
-
-if [ "$PLATFORM" = "windows" ]; then
-    cat >> "$NODE/RELEASE.txt" <<'WARN'
-YOUR ANTIVIRUS WILL PROBABLY OBJECT TO THE MINER, AND IT IS WRONG.
-
-On 12 September, during testing, Windows Defender deleted wam-miner.exe
-fourteen seconds after it started hashing and called it
-
-    Trojan:Win32/Bearfoos.A!ml      (Severe)
-
-!ml means a machine-learning guess. A program that opens a network
-connection and then uses every core is behaving exactly like the
-cryptojacking malware that infects people's computers without asking, and
-no scanner can tell the two apart by behaviour -- the difference is that
-you chose this one and it mines to your address only.
-
-We have not paid for a publisher certificate, which is the only thing that
-removes the warning, so we are telling you about it instead of letting it
-surprise you. What to do:
-
-  1. Check the file yourself. The SHA256 below and the signature on
-     SHA256SUMS are proof that these are the bytes we built. An antivirus
-     verdict is an opinion; a signature is evidence.
-  2. If you want to run it, allow that one file by name in your antivirus
-     -- not a whole folder, and never the whole machine.
-  3. If you would rather not, do not. The node in the other archive is not
-     a miner and is not usually flagged, and you can run a node without
-     ever mining.
-
-Anyone claiming to be us and asking you to switch your antivirus off
-entirely is not us.
-WARN
+# Separated, it needs no binaries and no runner -- a platform name and a
+# version are enough -- so scripts/test/test_release_note.sh can exercise
+# every platform this project supports, in a second, before anything is
+# pushed to a runner.
+if ! bash "$REPO/scripts/release_note.sh" \
+        --platform "$PLATFORM" --version "$VERSION" > "$NODE/RELEASE.txt"; then
+    die "release_note.sh failed for $PLATFORM. Nothing was packaged."
 fi
-
-cat >> "$NODE/RELEASE.txt" <<TXT
-
-VERIFY BEFORE YOU RUN IT. The checksum file is signed with a key kept
-offline, and the fingerprint is published in SECURITY.md in the source
-repository and nowhere else:
-
-  4BD4 A8D3 AFD4 3F5C BCB5  00E2 3798 462F E00A DBA4
-
-  curl -LO .../SHA256SUMS
-  curl -LO .../SHA256SUMS.asc
-  curl -LO .../scripts/verify_release.sh
-  curl -LO .../SIGNING-KEY.asc
-  bash verify_release.sh .
-
-A release without SHA256SUMS.asc beside it cannot be checked. Do not run it.
-TXT
 # Measured, not asserted. The line above used to print whatever happened,
 # including for an empty file, which is how a zero-byte RELEASE.txt reached
 # an archive somebody could download. 1500 bytes is well under the real size

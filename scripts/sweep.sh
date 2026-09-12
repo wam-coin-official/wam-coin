@@ -159,6 +159,11 @@ run "line endings are LF"        bash scripts/test/test_line_endings.sh
 # pointed at a stranger's server. It reached the operator chat rather than the
 # public channel, which is the only reason it cost nothing.
 run "no alert looks like a link" "$PY" scripts/test/test_alert_text.py
+# The release note inside a platform archive was wrong four times in one
+# evening, each time found by downloading the finished artifact. The root was
+# that the packaging is parameterised by platform and only one branch was ever
+# run -- on Linux. This exercises all three, needing none of them.
+run "each platform note is true of it" bash scripts/test/test_release_note.sh
 run "embedded python parses"     bash scripts/test/test_embedded_python.sh
 # A comment after a "\" continuation commented out the command it was meant to
 # explain, in this very file, and the harness reported the missing command as
