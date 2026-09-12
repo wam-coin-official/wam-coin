@@ -271,9 +271,46 @@ fi
 # the one file whose whole job is to state what was tested and what was not,
 # empty, with a line claiming it had been written. The smoke test that would
 # have caught it ran on Linux only.
-WINWARN=""
+# Three plain heredocs, appended in order, and not one of them nested.
+#
+# This began as a heredoc inside a command substitution inside another
+# heredoc: bash 5 on the Linux runner built the right file and bash 3.2 on
+# the macOS runner produced NOTHING, and the script announced that it had
+# written it. Hoisting it to WINWARN=$(cat <<WARN ...) fixed the emptiness
+# and broke the parse instead -- bash 3.2 cannot read a heredoc inside $( ),
+# so the whole script died with exit 2 before it did anything, which the
+# annotator could only report as "Process completed with exit code 2".
+#
+# That failure was better than the first one: it stopped. But two portability
+# bugs in one construction is the construction telling you something. A
+# heredoc at the top level of a script is understood by every bourne shell
+# there has ever been, so there are three of them and no cleverness.
+cat > "$NODE/RELEASE.txt" <<TXT
+WAM Coin $VERSION -- $TRIPLET
+
+These binaries were cross-compiled on Linux by the platform-build workflow
+and then run against the live test chain on a $PRETTY runner, which synced
+from the genesis block over the real peer-to-peer protocol and compared four
+blocks the Linux nodes have held since August: 0, 1, 5000 and 6000. Block 1
+is where the 5% treasury rule is first enforced, so a binary that disagrees
+about consensus disagrees there.
+
+The miner in the separate archive was cross-compiled the same way and then
+ran --self-test on a $PRETTY machine, which checks SHA-256, stratum byte
+order, the difficulty targets, and RandomX against the two official test
+vectors. A miner whose RandomX disagreed with the network would hash all day,
+find nothing, and report no error at all, so that check is the whole question.
+
+That is what is being claimed, and all of it. What is NOT claimed:
+
+  * no human had double-clicked these before the release that carries them
+  * the packaging and the signature had never covered a second platform
+    before $VERSION, so this path is newer than the Linux one
+
+TXT
+
 if [ "$PLATFORM" = "windows" ]; then
-    WINWARN=$(cat <<'WARN'
+    cat >> "$NODE/RELEASE.txt" <<'WARN'
 YOUR ANTIVIRUS WILL PROBABLY OBJECT TO THE MINER, AND IT IS WRONG.
 
 On 12 September, during testing, Windows Defender deleted wam-miner.exe
@@ -303,32 +340,9 @@ surprise you. What to do:
 Anyone claiming to be us and asking you to switch your antivirus off
 entirely is not us.
 WARN
-)
 fi
 
-cat > "$NODE/RELEASE.txt" <<TXT
-WAM Coin $VERSION -- $TRIPLET
-
-These binaries were cross-compiled on Linux by the platform-build workflow
-and then run against the live test chain on a $PRETTY runner, which synced
-from the genesis block over the real peer-to-peer protocol and compared four
-blocks the Linux nodes have held since August: 0, 1, 5000 and 6000. Block 1
-is where the 5% treasury rule is first enforced, so a binary that disagrees
-about consensus disagrees there.
-
-The miner in the separate archive was cross-compiled the same way and then
-ran --self-test on a $PRETTY machine, which checks SHA-256, stratum byte
-order, the difficulty targets, and RandomX against the two official test
-vectors. A miner whose RandomX disagreed with the network would hash all day,
-find nothing, and report no error at all, so that check is the whole question.
-
-That is what is being claimed, and all of it. What is NOT claimed:
-
-  * no human had double-clicked these before the release that carries them
-  * the packaging and the signature had never covered a second platform
-    before $VERSION, so this path is newer than the Linux one
-
-$WINWARN
+cat >> "$NODE/RELEASE.txt" <<TXT
 
 VERIFY BEFORE YOU RUN IT. The checksum file is signed with a key kept
 offline, and the fingerprint is published in SECURITY.md in the source

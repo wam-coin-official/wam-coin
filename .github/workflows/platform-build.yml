@@ -445,6 +445,22 @@ jobs:
       # package first, and the bytes that sync the chain from genesis are the
       # bytes a stranger downloads. Package afterwards and RELEASE.txt's claim
       # that these binaries were tested stops being literally true.
+
+      # macOS ships bash 3.2, and these scripts are written for any bourne
+      # shell rather than for bash 5.
+      #
+      # Run 14 exited 2 before doing anything, because bash 3.2 cannot parse a
+      # heredoc inside a command substitution. "Process completed with exit
+      # code 2" was the whole of what the annotator had to report, and the
+      # failure it then blamed -- "the macOS binary agreeing with the chain" --
+      # had never run at all. A parse error should say that it is one.
+      - name: Do these scripts even parse under this shell?
+        run: |
+          bash --version | head -1
+          for f in scripts/package_platform.sh scripts/build_macos.sh miner/build.sh; do
+              bash -n "$f" && echo "  parses: $f"
+          done
+
       - name: Package it, exactly as it will be published
         run: |
           set -euo pipefail
