@@ -1,0 +1,30 @@
+# ===========================================================================
+#  Every ten minutes.
+#
+#  Ten minutes is how long a release page telling people our binaries are
+#  forged should be allowed to live. A release is published by hand, and the
+#  window that matters is the few minutes after somebody finishes uploading
+#  assets -- which is exactly when they are most tired and least likely to
+#  re-read the page.
+#
+#  The cost is one GitHub API call and two small downloads, six times an hour,
+#  well inside the sixty unauthenticated calls an hour a single address gets.
+#
+#  Persistent=true, unlike wam-peer-watch. A peer list that was not read an
+#  hour ago no longer exists and there is nothing to catch up on; a broken
+#  release page is still broken, so a host that was off should ask the moment
+#  it comes back rather than at the next ten-minute boundary.
+# ===========================================================================
+[Unit]
+Description=Ask every ten minutes whether the published release verifies
+Documentation=https://github.com/wam-coin-official/wam-coin/blob/main/scripts/release_watch.py
+
+[Timer]
+OnBootSec=4min
+OnUnitActiveSec=10min
+AccuracySec=30s
+Persistent=true
+Unit=wam-release-watch.service
+
+[Install]
+WantedBy=timers.target

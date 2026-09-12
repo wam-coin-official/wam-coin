@@ -1,0 +1,79 @@
+# ===========================================================================
+#  wam-release-watch -- is what the world can download actually signed?
+# ===========================================================================
+#
+#  On 12 September 2026 v0.1.8 was published with its Windows archives
+#  attached by hand. SHA256SUMS.asc was uploaded and SHA256SUMS was not
+#  replaced, so the signature covered a four-line list while the page served
+#  the runner's two-line one, and every reader following this project's own
+#  instructions was told the signature was not valid and not to run the
+#  binaries.
+#
+#  check_release_signed.sh had asked that question correctly since the day it
+#  was written. Nothing asked it at the moment it mattered. This is the timer
+#  that asks.
+#
+#  It is the backstop, not the gate. bots/announce.js now refuses to announce
+#  a release that does not verify, which stops the public being pointed at a
+#  broken page in the first place. This catches the cases that gate cannot: a
+#  release already announced, one published before the gate existed, or one
+#  that broke afterwards because an asset was re-uploaded.
+#
+#  INSTALLED ON EVERY SEED, AND THE COST OF THAT IS ACCEPTED
+#
+#  Three hosts asking the same question of GitHub means three identical
+#  alarms for one broken release. That is real noise and it is still the right
+#  trade: on 11 September France was stopped for eight minutes and the only
+#  alarm that arrived was sent by France, about a helper script, because every
+#  watcher and every credential lived on the machine that had died. A watcher
+#  that exists on one host is a watcher that is absent exactly when that host
+#  is the problem. Each host alarms once per incident, not once per run.
+# ===========================================================================
+[Unit]
+Description=Does the published WAM release verify for a stranger?
+Documentation=https://github.com/wam-coin-official/wam-coin/blob/main/scripts/release_watch.py
+After=network-online.target
+Wants=network-online.target
+
+# If the watcher itself fails, say so. A timer stays active however often the
+# service under it fails, and every panel here was reading the timer.
+OnFailure=wam-alert@%n.service
+
+[Service]
+Type=oneshot
+
+# gpg is called, and gpg reads $HOME. systemd sets no HOME for a service with
+# no User=, and the failure that causes is silent and reads like something
+# else entirely -- see scripts/test/test_service_home.sh.
+Environment=HOME=/root
+WorkingDirectory=/opt/wam
+ExecStart=/usr/bin/python3 /opt/wam/scripts/release_watch.py
+
+# Exit 1 is the answer, not a failure of this unit: it means the published
+# release does not verify, and the alarm has already been sent. Marking the
+# unit failed would fire wam-alert on top of it and say the same thing twice
+# in two voices. Exit 2 means the question could not be asked, which is also
+# an answer and also not a crash.
+SuccessExitStatus=0 1 2
+
+# Its memory of whether it has already alarmed. Without this it would alarm
+# every ten minutes for as long as the page stayed broken, which is how a
+# watcher teaches people to ignore it.
+StateDirectory=wam-release-watch
+StateDirectoryMode=0750
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/wam-release-watch
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryMax=256M
+TasksMax=64
