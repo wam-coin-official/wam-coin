@@ -46,7 +46,7 @@
 #  A line carrying `wam:quote-line` is exempt by itself, for the common case
 #  of one sentence:
 #
-#      Never write Co-Authored-By: Claude in a commit.   # wam:quote-line
+#      The old password was hunter2, and is not any more.   # wam:quote-line
 #
 #  WHAT IT IS NOT
 #
