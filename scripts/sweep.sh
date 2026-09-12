@@ -494,29 +494,45 @@ if [ "${#SKIPPED[@]}" -gt 0 ]; then
     # the full sweep is the last thing between this project and launch.
     if ! command -v dig >/dev/null 2>&1 || [ -n "${WINDIR:-}" ]; then
         echo
-        printf ' %sThis is not the full sweep.%s You are on a machine that cannot ask\n' \
-            "$YLW" "$OFF"
-        echo " some of these questions -- no dig, a slow link, or a shared GitHub"
-        echo " rate limit. Several of the lines above would simply run elsewhere."
         echo
-        # Not "a seed". Seed3 was tried on 12 September and produced TWELVE red
-        # lines, none of them a fault: it holds no key to the other hosts, so
-        # every cross-host check failed with "Permission denied", and it has no
-        # node, so preflight reported the payout tests as failing payout code.
-        # That is a worse answer than the laptop's, and the wrong host is a
-        # harder mistake to see than the wrong command.
+        printf ' %sThis is not the full sweep, and neither is a run on a
+' "$YLW"
+        printf ' server.%s Two machines see different halves of it.
+' "$OFF"
+        echo
+        # Measured on 12 September, after two wrong guesses in one day.
         #
-        # France runs the pool, so it has node; it holds the key the other
-        # hosts accept; and it has dig and a fast link.
-        echo " Before launch, run it where the tools and the keys are -- the"
-        echo " pool host, which has node, dig, a fast link, and the key the"
-        echo " other seeds accept:"
+        # First I said "run it from a seed". Seed3 produced twelve red lines,
+        # none of them a fault. Then I said "run it from the pool host",
+        # because that one has node and dig. It produced ten, and every one
+        # said the same thing:
+        #
+        #     root@169.58.159.165: Permission denied (publickey).
+        #
+        # No seed holds a key to any other seed, including to itself. That is
+        # deliberate and it is the safer arrangement -- daily_report.py says
+        # why in its own header: a key on France is a key that goes with
+        # France if France is ever taken. peer_watch.py exists precisely so
+        # that the seeds can watch each other WITHOUT one.
+        #
+        # So the cross-host checks can only run where the operator key is,
+        # which is the laptop, and the host-local ones run better on a server
+        # with dig, a fast link and an unspent GitHub quota. Neither machine
+        # can give the whole answer and no amount of choosing between them
+        # will change that.
+        echo " The cross-host checks need the operator key, which lives on"
+        echo " the laptop and nowhere else -- no seed can reach another, by"
+        echo " design. The host-local ones need dig, a fast link and an"
+        echo " unspent GitHub quota, which the laptop has none of."
         echo
-        echo "     ssh root@169.58.159.165 'cd /opt/wam && bash scripts/sweep.sh \\"
-        echo "         --nodes \"169.58.159.165 5.223.52.200 13.140.33.187\"'"
+        echo " Run both, and read them together:"
         echo
-        echo " A seed that holds no cross-host key will fail every check that"
-        echo " needs one, and those failures are about the host, not the chain."
+        echo "   here:      bash scripts/sweep.sh --nodes \\"
+        echo "                  \"169.58.159.165 5.223.52.200 13.140.33.187\""
+        echo
+        echo "   on a seed: ssh root@13.140.33.187 \\"
+        echo "                  'cd /opt/wam && bash scripts/sweep.sh'"
+        echo
         echo " A check that could not run is not a check that passed, and a"
         echo " check that ran from the wrong place is not one either."
     fi
