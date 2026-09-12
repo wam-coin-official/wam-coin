@@ -34,6 +34,7 @@ Three rules, or this becomes a ritual:
 | 11–12 Sep | Repeat whatever found a defect; publish the BitcoinTalk announcement | done 11 Sep |
 | 12 Sep | **Rewrite the 24 marked commit messages** — on a mirror first, verified, then force-pushed | done 11 Sep, a day early |
 | 12 Sep | **Windows, end to end** — cross-build, self-test, pool, a block | done 12 Sep |
+| 12 Sep | **Phase A and B again, on v0.1.8** — the release that will create mainnet is not the one rehearsed on the 7th | done 12 Sep: right genesis on all three hosts, and Phase A step 1 was examining one archive in three |
 | 5 Sep | **Hash rate arriving and leaving** — does DGW absorb it and recover? | done 5 Sep with Sparks60 on three machines: 7× the network, peak difficulty 6.26× the floor, the chain back in 79 min unattended. Extended on 12 Sep by a model checked against 8,838 real blocks |
 | 13 Sep | **Freeze.** No change but a critical fix |  |
 | 14 Sep | Full sweep, and read LAUNCH_DAY.md line by line |  |
@@ -685,6 +686,123 @@ into the binaries, then the binaries themselves, by reading the version string
 out of the file rather than running it -- a PE cannot be executed on the Linux
 runner that cross-compiled it, and the same rule has to hold for both
 platforms.
+
+---
+
+## 12 September: Phase B, on the binaries that will actually do it
+
+Phases A→D were rehearsed in full on 7 September, on v0.1.6. The release
+that will create mainnet is v0.1.8, and it is a different build of every
+binary — Windows and macOS were added to it, `depends` was rebuilt, and the
+Linux node was relinked. The genesis block is constructed by that code from
+`chainparams.cpp` at runtime, so the question "does this build produce the
+right genesis" has one honest answer and it is not "it did in v0.1.6".
+
+Asked on all three hosts, in a sandbox datadir, with no peers and no
+listening socket:
+
+```
+WAM Coin version v0.1.8
+  chain                                main
+  height                               0
+  genesis hash matches chainparams     d8d3debea987b62a...  yes
+  tip is genesis                       yes
+  second start refused                 "block which appears to be from the future"
+  genesis_gate.sh declines             exit 78
+  real datadirs untouched, sandbox removed
+```
+
+All three. The second-start refusal is the property from 28 August, and it
+still holds on v0.1.8 — which matters, because it is the thing that stops a
+mainnet node being left "ready" before the date and found crash-looping on
+the morning it counts.
+
+### And two things the sandbox run had no reason to find
+
+**None of the three `/root/.wam-mainnet` datadirs holds a `blocks/` or a
+`chainstate/`.** Launch night starts from nothing, which is what it should
+do, and now that is measured rather than assumed.
+
+**Singapore held a `txindex` from 28 August, for a chain that does not
+exist yet.** 24 KB of LevelDB, written by a v0.1.6-era node during the
+Phase A/B rehearsal, sitting in the datadir that will be used at 00:00 UTC
+on the 15th. An index whose best block was recorded before the chain it
+indexes exists is not a thing to meet at 00:05 on launch night, and it is
+derivable from nothing, so it is now outside the datadir at
+`/root/mainnet-txindex-leftover-20260912T200839Z` rather than deleted.
+
+**France's mainnet pool wallet is there and it opens.** Checked offline, on
+a copy, with `wam-wallet info` — because loading it in a node would mean
+starting a mainnet node, which is the one thing that must not happen before
+the date:
+
+```
+Name: pool        Format: sqlite      Descriptors: yes
+HD seed: yes      Keypool: 8000       Transactions: 0     Address Book: 1
+```
+
+Mode 600, one address, no transactions. It was created on 30 August through
+the gate's override and this is the first time since that it has been
+proved to still open.
+
+---
+
+## 12 September: Phase A was checking one archive in three
+
+`check_release_matches.sh` is step 1 of Phase A, and the question it asks is
+the one that matters most to a stranger: **is the file on the release page
+this network?** It answered it for one architecture.
+
+It took the first release asset whose name starts with `wam-coin` and ends
+in `.tar.gz`. That was the Linux tarball for as long as Linux was the only
+platform. macOS joined the release this morning and sorts ahead of it
+alphabetically, so from that moment the single artifact the check examined
+was the **arm64 Mac** build — and the Linux tarball that every seed and
+every Linux miner downloads stopped being examined at all. No output
+changed. Nothing went red. The check kept passing, about a different file.
+
+It now walks every published archive. All three carry the right genesis and
+the right consensus addresses, and the Linux binaries carry zero AVX-512 —
+measured, on France, which is the first time that question has been answered
+about a published release rather than skipped.
+
+### Three defects had to be fixed before it could be
+
+Each of them was the same shape: **something that could not be measured,
+reported as though it had been.**
+
+**`check_isa_baseline.sh` printed the wrong tool's name.** When GNU objdump
+cannot read a Mach-O file it said so and advised `OBJDUMP=llvm-objdump` —
+and then called `objdump` regardless. Advice that can be followed exactly
+and change nothing.
+
+**It exited 1 both for "AVX-512 found" and for "no binary was examined".**
+Those are opposites. Callers read 1 as the finding, so a glob that matched
+no file produced *"the published binaries carry instructions many CPUs do
+not have"* in red, about binaries nobody had opened. Nothing examined is an
+exit 2 now, with a reason, which is what this project's convention has said
+since the sweep learned the difference.
+
+**And `file(1)` was missing on the Singapore seed.** Without it, every
+argument fell through the format filter and was skipped in silence: the
+check examined nothing, exited 1, and Phase A step 1 went red on a clean
+release. One absent 100 KB utility, three links of chain, and a
+launch-stopping claim. Installing `file` fixes today; reading the magic
+bytes with `od` would remove the dependency, and that is written in the
+script as the thing to do after launch rather than three days before it.
+
+### The line that reported all of this was itself unreadable
+
+The warn quoted `head -1` of the check's output, which on any host with
+objdump is the box-drawing banner:
+
+```
+  warn   the CPU baseline was NOT checked: ==================================
+```
+
+Both scripts now print one `reason:` line when they cannot run, and the
+caller quotes that. A check that cannot say why it did not run is a check
+that gets ignored, and this one had been ignored all day.
 
 ---
 
