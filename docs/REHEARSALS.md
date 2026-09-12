@@ -243,14 +243,19 @@ watch for and why.
 
 | | Blocked on |
 |---|---|
-| TCP 13333–13336 in the Contabo panel, then `scripts/move_testnet_pool.sh` | **nothing any more.** The panel was down on 4 September and has been used repeatedly since |
+| ~~TCP 13333–13336 in the Contabo panel, then `scripts/move_testnet_pool.sh`~~ | **done 11 September.** The four rules are ACTIVE in the panel, the testnet pool listens on 13333–13336, 3333–3336 answer nothing, and all of that was measured from outside on the 13th |
 | ~~The third server, so `seed3.wamcoin.org` stops being a name with no machine~~ | done 11 Sep, at Contabo. Vultr took the money and never delivered a server, and refunded it |
 
-Until the first is done, launch night carries a step that must not be
-forgotten: **stop `wam-pool` before starting the mainnet one**, because both
-claim 3333–3336. That is the whole cost of not opening four ports: the
-testnet pool — the only working system we have while mainnet is unproven —
-goes down at the moment mainnet starts.
+**This table said the first row was open for two days after it was closed**,
+and on 13 September the founder was told a finished task was what remained.
+He had done it himself and had the screenshots. The fault is not the stale
+row -- rows go stale -- it is that the answer to "what is left" was read out
+of a document instead of measured on the machines, which is the one thing
+this project does not do anywhere else.
+
+`scripts/launch_ready.sh` is the correction: every pre-launch condition asked
+of the three hosts directly, with nothing remembered. What it prints is the
+list.
 
 ### The functional tests exist and have never been run
 

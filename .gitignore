@@ -6,6 +6,12 @@ founder*.txt
 *.key
 wallet.dat
 pool/config.json
+# The live mainnet pool config: real RPC and Redis credentials, on the pool
+# host only. docs/LAUNCH_DAY.md says it must not be in this repository, and
+# until 13 September nothing enforced that -- one `git add -A` would have
+# published the mainnet RPC password. The reviewable copy is
+# pool/config.mainnet.json, with the credentials replaced.
+pool/config-mainnet.json
 explorer/config.json
 telegram/config.json
 telegram/config.*.json

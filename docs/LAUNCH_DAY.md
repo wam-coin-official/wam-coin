@@ -428,7 +428,7 @@ Three things were found by doing it rather than reading it:
         electrum.wamcoin.org electrum2.wamcoin.org
     ```
 
-### The pool's ports collide — found 2026-09-04, not yet resolved
+### The pool's ports collide — found 2026-09-04, closed 2026-09-11
 
 `pool/config.json` (testnet) and `pool/config-mainnet.json` both claim **3333,
 3334, 3335 and 3336**. They cannot both run. On the night, starting the
