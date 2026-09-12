@@ -314,6 +314,60 @@ function fromMarkdown(text) {
 // So the release notes carry the distinction and the bot repeats it loudly.
 const MANDATORY = /^[ \t>*_]*MANDATORY:[ \t]*(.+)$/im;
 
+/**
+ * Is the published release actually signed, and does the signature cover what
+ * is on the page?
+ *
+ * This calls scripts/check_release_signed.sh rather than verifying in JS, on
+ * purpose. That script is the project's one definition of the question -- it
+ * asks GitHub what the release carries, downloads SHA256SUMS and its
+ * signature, and checks them against the fingerprint in SECURITY.md. A second
+ * implementation here would be a second answer to the same question, and this
+ * repository has been bitten three times by one fact living in two places.
+ *
+ * Its exit codes are this project's convention:
+ *     0  verified
+ *     1  a finding -- it is published and it does not verify
+ *     2  the check could not run (no curl, no gpg, GitHub unreachable)
+ *
+ * 2 is not a pass and is not a finding. It returns ok:false with a reason
+ * that says so, and the caller neither announces nor records the tag, so the
+ * question is asked again on the next tick.
+ */
+function verifyPublishedRelease(tag, scriptPath) {
+    const script = scriptPath
+        || path.join(__dirname, '..', 'scripts', 'check_release_signed.sh');
+    if (!fs.existsSync(script)) {
+        return { ok: false, reason: `check_release_signed.sh is not at ${script}, `
+                                    + `so nothing could be verified.` };
+    }
+    let r;
+    try {
+        // 180s: it downloads two small files over whatever link the host has.
+        r = require('child_process').spawnSync('bash', [script, tag], {
+            timeout: 180000, encoding: 'utf8'
+        });
+    } catch (e) {
+        return { ok: false, reason: `could not run the check: ${e.message}` };
+    }
+    if (r.error) return { ok: false, reason: `could not run the check: ${r.error.message}` };
+    if (r.status === 0) return { ok: true, reason: 'verified' };
+
+    // The script's own words, stripped of colour, are more use than a summary
+    // of them -- it names which asset is wrong.
+    const said = String((r.stdout || '') + (r.stderr || ''))
+        .replace(/\[[0-9;]*m/g, '')
+        .split('\n').filter((l) => /FAIL|!!|could not/i.test(l))
+        .slice(0, 4).map((l) => l.trim()).join('\n');
+
+    return {
+        ok: false,
+        reason: (r.status === 2
+                 ? 'The check could not run, which is not a pass:\n'
+                 : 'check_release_signed.sh says:\n') + (said || `exit ${r.status}`)
+    };
+}
+
 function releaseMessage(release) {
     const raw = String(release.body || '');
     const flag = raw.match(MANDATORY);
@@ -513,10 +567,58 @@ async function tick(cfg, rpc, state, log) {
     if (cfg.githubRepo) {
         const release = await latestRelease(cfg.githubRepo);
         if (release && release.tag && release.tag !== state.lastReleaseTag) {
-            // The first observation is not news: it is whatever was already
-            // published before the bot existed.
-            if (state.lastReleaseTag !== undefined) out.push(releaseMessage(release));
-            state.lastReleaseTag = release.tag;
+            // Nothing is said about a release until what the world can
+            // actually download has been verified.
+            //
+            // On 12 September v0.1.8 was published with the Windows archives
+            // added by hand. SHA256SUMS.asc was uploaded and SHA256SUMS was
+            // not replaced, so the signature covered a four-line list and the
+            // page carried the runner's two-line one. This bot announced it to
+            // Telegram and Discord SIXTY-ONE SECONDS later, and for as long as
+            // that stood, every reader who followed our own instructions was
+            // told:
+            //
+            //     FAIL  the signature over SHA256SUMS is NOT valid
+            //           Do not run the binaries.
+            //
+            // Which is the verifier working correctly and is the worst sentence
+            // a coin project can put in front of a stranger. The upload is a
+            // manual step -- check_release_signed.sh has said in its own header
+            // since it was written that manual steps get half-done -- and the
+            // detector for exactly this existed the whole time and ran only
+            // when somebody ran the sweep.
+            //
+            // So the announcement waits for it. Deliberately fail-closed: an
+            // unverifiable release is not announced at all, the tag is NOT
+            // marked as seen, and the operator is told. When the page is fixed
+            // the next tick announces it normally, once.
+            const v = verifyPublishedRelease(release.tag);
+
+            if (v.ok) {
+                // The first observation is not news: it is whatever was already
+                // published before the bot existed.
+                if (state.lastReleaseTag !== undefined) out.push(releaseMessage(release));
+                state.lastReleaseTag = release.tag;
+            } else if (state.releaseHeldTag !== release.tag) {
+                // Once per tag, to the operator, not to the public. Repeating
+                // it every minute would bury it in its own noise.
+                state.releaseHeldTag = release.tag;
+                const m = [
+                    `\u{1F6D1} ${b('a release was published that does not verify')}`,
+                    ``,
+                    t(`${release.tag} is on the releases page and has NOT been announced.`),
+                    t(v.reason),
+                    ``,
+                    t('Nothing was said in the channels, and nothing will be until '
+                      + 'this passes. Check it by hand with:'),
+                    code(`bash scripts/check_release_signed.sh ${release.tag}`),
+                    ``,
+                    t('The usual cause is a half-finished upload: SHA256SUMS.asc '
+                      + 'replaced while SHA256SUMS was not, or an archive named in '
+                      + 'the list that was never attached.')
+                ].join('\n');
+                out.push(m); opsOnly.add(m);
+            }
         }
     }
 
@@ -688,7 +790,8 @@ async function main() {
 module.exports = {
     heartbeat, halvingMessage, rotationMessage, releaseMessage,
     milestoneMessage, stallMessage, recoveredMessage, networkLabel, applyBanner,
-    loadConfig, tick, num, wam, hashrate, duration
+    loadConfig, tick, num, wam, hashrate, duration,
+    verifyPublishedRelease
 };
 
 if (require.main === module) {
