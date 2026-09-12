@@ -562,9 +562,16 @@ Somebody rents RandomX by the hour, finds a coin whose difficulty is low,
 mines it, and leaves. No malice is required. The difficulty they caused stays
 behind, and the chain crawls until DGW walks it back down.
 
-`scripts/dgw_model.py` says what to expect. The numbers are multiples of
-whatever the network's hash rate is at the time, so they carry over from
-testnet:
+**This has happened to us once already, deliberately.** On 5 September the
+founder and Sparks60 pointed three machines at the testnet — about 7× the
+network. Difficulty rose to 6.26× the minimum, the block after they stopped
+took 35 minutes, and the chain was back to normal 79 minutes later with nobody
+touching anything. Heights 5248 to 5618 carry it, and `docs/REHEARSALS.md` has
+the measurements.
+
+`scripts/dgw_model.py` extends that to multiples we cannot rent. The numbers
+are multiples of whatever the network's hash rate is at the time, so they
+carry over from testnet:
 
 | the visitor | slowest block after they go | back to 2-minute blocks |
 |---|---|---|
@@ -577,16 +584,24 @@ testnet:
 because only about thirty blocks fit in the 24-block window and one retarget
 cannot move more than 3×. Six hours lets difficulty climb the whole way.
 
+Those numbers assume **our own** miners keep running when the visitor leaves.
+If ours stop at the same moment, the slowest block stretches by whatever
+fraction we lost — which is precisely why 5 September left a 35-minute block
+where the model said twelve. On launch night the miners are other people's,
+so that is less likely than it was in the test; if the pool is also quiet,
+expect the longer figure.
+
 **What to do, in order:**
 
-1. **Confirm that is what it is.** A slow chain with rising difficulty behind
-   it is this. A slow chain with *falling* hash rate is our own miners
-   stopping, which is a different problem with a different fix.
-
-   ```bash
-   wam-cli getblockchaininfo     # difficulty, and how it got there
-   wam-cli getmininginfo         # networkhashps now
-   ```
+1. **Confirm that is what it is, and the difficulty tells you.** A slow chain
+   with difficulty well above the minimum is this, and it passes. A slow chain
+   sitting AT the minimum is our own miners stopping, and that is the outage
+   this network has actually had, every time: the ten longest gaps in the
+   testnet chain are 203, 170, 120, 118, 113, 105, 103 and 96 minutes, and
+   **every one of them happened at the minimum difficulty.** Meanwhile the
+   longest gap ever recorded while difficulty was elevated is 35 minutes. At
+   the minimum there is nothing to wait out — difficulty cannot fall further,
+   so something of ours is off.
 
 2. **Do not change consensus.** Not the window, not an emergency-difficulty
    rule, not the clamp. A consensus rule invented at three in the morning is

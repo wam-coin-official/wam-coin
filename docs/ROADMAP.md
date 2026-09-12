@@ -57,7 +57,7 @@ observed failing and succeeding, not assumed.
 | 2.4 | Run a full pool payment cycle end to end | share → block → maturity → `sendmany` |
 | 2.5 | Simulate an orphaned block | confirm nobody is paid for it |
 | 2.6 | **Cross at least two RandomX epoch rotations** | testnet epochs are 256 blocks (~8h) for exactly this |
-| 2.7 | Point 20× hashrate at it for an hour, then remove it | proves DGWv3 absorbs and recovers |
+| 2.7 | ~~Point extra hashrate at it for an hour, then remove it~~ **Done 5 September**, by the founder and Sparks60 on three machines: difficulty 1.00 → 6.26, the block after they stopped took 35 minutes, back at the floor 79 minutes later. Heights 5586–5620. Larger multiples were computed instead, against a model checked on 8,838 real blocks — see `docs/REHEARSALS.md` | proves DGWv3 absorbs and recovers — it did, unattended |
 | 2.8 | Write functional tests for the WAM rules | none exist yet; regressions are invisible without them |
 
 **Exit gate:** two uninterrupted weeks, ≥2 epoch rotations, zero forks, zero payment

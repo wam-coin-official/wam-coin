@@ -34,7 +34,7 @@ Three rules, or this becomes a ritual:
 | 11–12 Sep | Repeat whatever found a defect; publish the BitcoinTalk announcement | done 11 Sep |
 | 12 Sep | **Rewrite the 24 marked commit messages** — on a mirror first, verified, then force-pushed | done 11 Sep, a day early |
 | 12 Sep | **Windows, end to end** — cross-build, self-test, pool, a block | done 12 Sep |
-| 12 Sep | **20× hash rate, arriving and leaving** — does DGW absorb it and recover? | done 12 Sep, by a model checked against 8,838 real blocks |
+| 5 Sep | **Hash rate arriving and leaving** — does DGW absorb it and recover? | done 5 Sep with Sparks60 on three machines: 7× the network, peak difficulty 6.26× the floor, the chain back in 79 min unattended. Extended on 12 Sep by a model checked against 8,838 real blocks |
 | 13 Sep | **Freeze.** No change but a critical fix |  |
 | 14 Sep | Full sweep, and read LAUNCH_DAY.md line by line |  |
 | 15 Sep | Launch |  |
@@ -688,24 +688,55 @@ platforms.
 
 ---
 
-## 12 September: 20× hash rate, arriving and leaving
+## 5 September, and 12 September: hash rate arriving and leaving
 
-`docs/ROADMAP.md` section 2.7 has said since the roadmap was written:
+**Correction first.** This was written saying the rehearsal had never been
+run, because nothing in `docs/REHEARSALS.md` recorded it and I trusted the
+absence of a document over the founder. He said it had been done, with
+Sparks60, on three machines — and he was right. It is in the chain, which is
+a better record than this file, and no amount of missing paperwork erases it.
+
+Everything below is measured from our own blocks rather than remembered.
+Difficulty is quoted as a **multiple of the testnet `powLimit` floor**, because
+the raw numbers are unreadable: the floor is difficulty 0.000244, and the chain
+sits on it whenever nothing unusual is happening.
+
+### What actually happened, read out of the chain
 
 ```
-2.7 | Point 20× hashrate at it for an hour, then remove it
-    | proves DGWv3 absorbs and recovers
+04 Sep 22:49   h5248   difficulty leaves the floor -- 1.05x
+               ....    intermittent for fourteen hours, 1.6x the network overall
+05 Sep 12:20   h5586   the concentrated push: 5.8x for the final 39 minutes
+05 Sep 12:59   h5608   they stop
+05 Sep 13:35   h5609   the next block takes 35 minutes
+05 Sep 14:55   h5618   back on the floor -- 9 blocks, 79 minutes, unattended
 ```
 
-It was never run. It was found by the founder asking, three days out, which
-attacks a chain with no value actually attracts — and the honest answer puts
-this first, because **nobody has to mean us harm for it to happen.** The
-network is about one ordinary desktop's worth of hash rate, RandomX rents by
-the hour, and somebody hunting a cheap coin points real hardware at it,
-difficulty climbs, and then they leave. The difficulty they caused stays
-behind.
+Three machines against a network of about that size: **7.0× the network** over
+the fastest stretch and 5.8× across the final thirty-nine minutes, measured as
+`sum(difficulty) / sum(seconds)` and not from any one block, because block
+times are exponentially distributed and a single lucky four-second block means
+nothing. At six times the floor they were still finding a block every 84
+seconds — at the floor that is one every fourteen.
 
-### It cannot be bought, so it was computed — and the model was checked first
+Difficulty peaked at **6.26× the floor** at height 5609. Across the chain's
+whole life the median is 1.00× and the 90th percentile 1.24×, so that peak is
+the largest excursion this network has ever had, and it was ours.
+
+**DGW absorbed it and gave the chain back in 79 minutes with nobody touching
+anything** — and it did so under worse conditions than the question assumed,
+because the machines that stopped were also part of our ordinary hash rate.
+Through the recovery the network ran at about **half** its normal rate
+(0.0035 against a baseline of 0.0072 floor-units per second), which is exactly
+why the worst block was 35 minutes: 2.3 minutes × 6.26 difficulty × 2 for the
+missing half is about 29, and the rest is luck. That is what 2.7 was asking
+for, and it was already on disk.
+
+### Then the part that could not be bought was computed
+
+Three machines is six or seven times this network. The roadmap asked about
+twenty, and a stranger renting RandomX by the hour can bring more than that,
+so the rest of the answer has to be arithmetic.
 
 We cannot rent twenty times our own network to find out. `scripts/dgw_model.py`
 mirrors `DarkGravityWave()` from `src/wam/pow.cpp` exactly: the 24-block
@@ -746,6 +777,56 @@ who *stays* for six hours lets it climb the whole way, and their departure
 leaves a chain that needs most of a day to recover.
 
 So the thing to fear is not a spike. It is a guest.
+
+### Held against the real episode
+
+The only check that matters for a model of the future is whether it describes a
+past it was not fitted to. Asked for 7× for one hour, the closest setting to
+what actually happened, it says:
+
+```
+                          the model       5 September
+slowest block after       11 min 57 s     35 min
+back to 2-min blocks      ~96 min         79 min
+```
+
+**The recovery time is right.** The slowest block is three times too
+optimistic, and the reason is in the measurement above: the model assumes our
+own hash rate keeps running after the visitor leaves, and on 5 September half
+of it left with them. Corrected for that, the model gives about 29 minutes
+against the 35 measured.
+
+So the table is honest about shape and about recovery, and **optimistic about
+the worst single block by roughly the fraction of our own hash rate that stops
+at the same moment.** On launch night, when the miners are other people's,
+that fraction is smaller than it was in the test.
+
+### The more common failure is the opposite one, and the chain is emphatic
+
+The ten longest gaps in the chain's history, ignoring the nineteen days between
+genesis and block 1, all happened at difficulty **1.00× — the floor**:
+
+```
+height 4900   203 min        height 6065   113 min
+height 4916   170 min        height  238   105 min
+height 5120   120 min        height 4297   103 min
+height  631   118 min        height 5186    96 min
+```
+
+Not one was a departing visitor. And the other side of the same measurement:
+difficulty has been above 1.5× the floor for only 4% of the chain's blocks, and
+**the longest gap ever recorded while it was up there is 35 minutes** — the
+5 September block.
+
+Difficulty overhang has never cost this chain more than 35 minutes. Our own
+miners stopping has cost it 203. At the floor difficulty cannot fall any
+further, so a slow chain there means one thing only: **something of ours is
+off** — a power cut, a node restart, a laptop closed. It looks
+identical from outside to the thing we were afraid of, and it is far more
+likely.
+
+Which is why the first step of the launch-night response is to tell them apart,
+and the difficulty is what tells you.
 
 The ratios are what carry over to mainnet. The model starts from the chain's
 own tail, so the absolute hash rate is today's, but every number in that table
