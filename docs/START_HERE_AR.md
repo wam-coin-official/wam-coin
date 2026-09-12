@@ -89,14 +89,14 @@ WAM نقودٌ لا تُصدرها شركة ولا يحفظها مصرف.
 ### التنزيل
 
 ```bash
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/wam-coin-v0.1.7-x86_64-linux-gnu.tar.gz
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-coin-v0.1.8-x86_64-linux-gnu.tar.gz
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS
 ```
 
 ### تأكّد أنه ملفّنا فعلاً
 
 ```bash
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/SHA256SUMS.asc
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS.asc
 curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.sh
 curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
 bash verify_release.sh .
@@ -109,8 +109,8 @@ bash verify_release.sh .
 ### الفكّ والتشغيل
 
 ```bash
-tar -xzf wam-coin-v0.1.7-x86_64-linux-gnu.tar.gz
-cd wam-coin-v0.1.7/bin
+tar -xzf wam-coin-v0.1.8-x86_64-linux-gnu.tar.gz
+cd wam-coin-v0.1.8/bin
 ./wamd -testnet -printtoconsole
 ```
 
@@ -340,13 +340,13 @@ cp /path/to/your/backup.dat ~/.wam/testnet3/wallets/mine/wallet.dat
 
 | الأرشيف | ما فيه |
 |---|---|
-| `wam-coin-v0.1.7-…` | `wamd` و`wam-cli` — العقدة |
-| `wam-miner-v0.1.7-…` | `wam-miner` — المعدّن وحده |
+| `wam-coin-v0.1.8-…` | `wamd` و`wam-cli` — العقدة |
+| `wam-miner-v0.1.8-…` | `wam-miner` — المعدّن وحده |
 
 ```bash
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.7/wam-miner-v0.1.7-x86_64-linux-gnu.tar.gz
-tar -xzf wam-miner-v0.1.7-x86_64-linux-gnu.tar.gz
-cd wam-miner-v0.1.7
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-miner-v0.1.8-x86_64-linux-gnu.tar.gz
+tar -xzf wam-miner-v0.1.8-x86_64-linux-gnu.tar.gz
+cd wam-miner-v0.1.8
 chmod +x wam-miner
 ```
 

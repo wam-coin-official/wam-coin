@@ -130,6 +130,85 @@ EOF
 ok "$found file(s), all $WANT"
 
 # ---------------------------------------------------------------------------
+#  Does the binary agree with the name on the box?
+# ---------------------------------------------------------------------------
+#
+#  On 12 September this script packaged wam-coin-v0.1.8-x86_64-w64-mingw32.zip
+#  from binaries that answer
+#
+#      WAM Coin version v0.1.7
+#
+#  because --version is a string typed into a form and nothing compared it to
+#  anything. The archive was correct in every other respect: right format,
+#  stripped, consensus-gated, self-tested. And a user who downloaded v0.1.8 and
+#  ran `wamd -version` would have been told he had v0.1.7, which in a project
+#  where the answer to "am I on the version that changed a consensus rule?" is
+#  that command is not a cosmetic disagreement.
+#
+#  sign_release.sh catches the same class of error from the other end -- it
+#  refuses to sign a list of v0.1.8 file names from a v0.1.7 checkout -- and
+#  that guard did its job here. This one moves the stop earlier, to before the
+#  archive exists, and states the cause instead of the symptom.
+#
+#  Read out of the file, not run. A PE cannot be executed on the Linux runner
+#  that cross-compiled it, and `-version` would be the wrong question anyway:
+#  the same rule has to hold for both platforms, and grep does.
+echo
+echo "${BLD}1b. the version in the binaries${OFF}"
+
+# patch_upstream.py is the authority: it is what the build stamps into the
+# binaries, and what sign_release.sh consults. Asked first, because if this
+# disagrees then every binary will too and the cause is one line in one file.
+WANT_VER="$(sed -n 's/^WAM_CLIENT_VERSION *= *"\([0-9.]*\)".*/\1/p' \
+            "$REPO/scripts/patch_upstream.py" 2>/dev/null | head -1)"
+CLAIM="${VERSION#v}"
+
+if [ -z "$WANT_VER" ]; then
+    warn "could not read WAM_CLIENT_VERSION from scripts/patch_upstream.py"
+elif [ "$WANT_VER" != "$CLAIM" ]; then
+    die "this checkout builds v$WANT_VER, and you asked for $VERSION.
+
+          scripts/patch_upstream.py : $WANT_VER
+          --version                 : $CLAIM
+
+          The archive name is not the version. Move the version first --
+          docs/RELEASING.md section 1 --
+
+              python3 scripts/set_version.py $CLAIM
+
+          then rebuild, because the binaries carry the old number until
+          they are compiled again."
+else
+    ok "patch_upstream.py says $WANT_VER, which is what was asked"
+fi
+
+# And then the files themselves, which is the part that cannot be argued with.
+# The miner is skipped: it carries its own version (wam-miner 1.0.0), which
+# moves independently of the release and is checked by its own self-test.
+vbad=0
+for f in "$FROM"/*; do
+    [ -f "$f" ] || continue
+    case "${f##*/}" in
+        wam-miner|wam-miner.exe|*.log|*.txt|*.md) continue ;;
+    esac
+    seen="$(grep -aoE 'v[0-9]+\.[0-9]+\.[0-9]+' "$f" 2>/dev/null | sort -u | tr '\n' ' ')"
+    if [ -z "$seen" ]; then
+        warn "$(printf '%-16s no version string found -- not checked' "${f##*/}")"
+    elif printf '%s' " $seen" | grep -q " $VERSION "; then
+        ok "$(printf '%-16s says %s' "${f##*/}" "$VERSION")"
+    else
+        bad "$(printf '%-16s says %s, not %s' "${f##*/}" "$seen" "$VERSION")"
+        vbad=$((vbad + 1))
+    fi
+done
+[ "$vbad" -eq 0 ] || die "$vbad binary(ies) report a different version than $VERSION.
+
+          These were compiled before the version was moved. Nothing was
+          packaged, because an archive whose name and contents disagree is
+          worse than no archive: it is wrong in a way the person holding it
+          cannot see."
+
+# ---------------------------------------------------------------------------
 echo
 echo "${BLD}2. the same layout as the Linux archive${OFF}"
 
