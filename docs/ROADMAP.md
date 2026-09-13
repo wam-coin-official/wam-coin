@@ -93,6 +93,74 @@ the first block, so anyone can verify what they were promised against what shipp
 
 ---
 
+## After the night — the three machines as adoption grows
+
+Written on 13 September, two days before launch, because the founder asked
+the right question about a memory fix: *does this push the danger a few days
+away and bring it back when more people run nodes?*
+
+The honest answer is that a systemd limit does not stop the machine being
+**asked** for more work. Two things on a seed grow with the number of people
+running nodes, and neither is bounded by memory policy:
+
+- **Connections.** These are DNS seeds. Every new node's first connection
+  attempt arrives at one of them, so inbound pressure scales with the network
+  rather than with us.
+- **The mempool they relay.** Bitcoin Core's default is 300 MB, chosen for a
+  desktop, and it was the default on a host with 1914 MB.
+
+`scripts/apply_host_limits.sh` sizes both to the machine — 39 peers and a
+100 MB mempool on Singapore, 110 and 300 MB on the two roomy hosts — so the
+smallest host now carries about a seventh of our connection capacity, which
+is the share it can actually serve. That is a real division of load and not a
+patch. What it is **not** is a promise that 1914 MB is enough forever.
+
+### The division of roles that holds while the network grows
+
+| host | memory | what it does | what it must never do |
+|---|---|---|---|
+| France, Contabo | 12 GB | pool, explorer, announcer, Electrum #1, node | — |
+| US-east, Contabo | 8 GB | node, and **Electrum #2 after launch** | — |
+| Singapore, Hetzner | 1.9 GB | **seed node only** | serve wallets |
+
+The one change to make, and deliberately not on launch night: **move the
+second published Electrum endpoint off the smallest host.** `electrum2.wamcoin.org`
+resolves to Singapore today, which means wallet queries and seed duty compete
+on the weakest machine — and wallet queries are the half that grows with
+adoption. US-east has 8 GB, 93 GB of disk and nothing on it but a node.
+
+It is not done before launch for the reason the pool port move taught on
+4 September: a published endpoint that changes the day before is a published
+endpoint that can be broken on the day, and the Komodo review names
+`electrum2.wamcoin.org:50002` explicitly. It goes in the first week after
+launch, with DNS and a certificate, the same way the pool move went.
+
+### When to spend money, measured rather than felt
+
+An upgrade or a fourth machine is the answer when the numbers say so, and
+these are the numbers:
+
+```
+available memory on Singapore stays under   300 MB
+swap in use there stays over                200 MB
+the mainnet node's RSS approaches           783 MB   (its MemoryHigh)
+```
+
+The operations dashboard already shows memory and swap per host, and prints
+`none` in amber where there is no swap at all. The day those three lines go
+yellow and stay yellow is the day the decision is made — not before, and not
+on a feeling that a small machine looks small.
+
+**What measuring first already saved:** the plan an hour earlier was to move
+ElectrumX off that host immediately, on the assumption it wanted 300–500 MB.
+It uses **50 MB**, and its database is 3.2 MB. The whole launch-night load
+there is about 1.2 GB of 1914. The problem was never the amount of memory —
+it was that `MemoryMax=2G` on a 1914 MB machine bounded nothing, so the
+kernel would have chosen what to kill, by size, and the largest process on
+that host is the node itself.
+
+---
+
 ## Phase 5 — the part that actually decides whether WAM survives
 
 Everything above is engineering, and engineering is the part you control. What follows is

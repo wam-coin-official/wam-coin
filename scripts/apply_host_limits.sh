@@ -3,12 +3,12 @@
 # Distributed under the MIT software license, see COPYING.
 #
 # ===========================================================================
-#  apply_memory_policy.sh -- decide in advance which service dies first
+#  apply_host_limits.sh -- fit the services to the machine they are on
 # ===========================================================================
 #
-#      bash scripts/apply_memory_policy.sh                  # the three seeds
-#      bash scripts/apply_memory_policy.sh HOST [HOST...]
-#      bash scripts/apply_memory_policy.sh --show HOST      # read, change nothing
+#      bash scripts/apply_host_limits.sh                  # the three seeds
+#      bash scripts/apply_host_limits.sh HOST [HOST...]
+#      bash scripts/apply_host_limits.sh --show HOST      # read, change nothing
 #
 #  WHY THIS EXISTS
 #
@@ -122,7 +122,7 @@ write() {   # unit  high  max  oom
     d=/etc/systemd/system/\$1.d
     mkdir -p \"\$d\"
     cat > \"\$d/20-memory.conf\" <<EOF
-# Written by scripts/apply_memory_policy.sh from this host's own MemTotal.
+# Written by scripts/apply_host_limits.sh from this host's own MemTotal.
 # Do not hand-edit: run the script again instead, or the next host to be
 # rebuilt gets different numbers for no recorded reason.
 [Service]
@@ -147,6 +147,63 @@ echo reloaded
         continue
     fi
     printf '%s\n' "$OUT" | sed 's/^/  /'
+
+    # ------------------------------------------------------------------
+    # And the half that systemd cannot do anything about.
+    #
+    # A MemoryHigh stops one service eating the machine. It does not stop
+    # the machine being asked for more work, and the two things on a seed
+    # that grow with the number of people running nodes are the number of
+    # peers connecting to it -- it is a DNS seed, so everybody's first
+    # connection attempt arrives here -- and the size of the mempool they
+    # relay. Both are capped by defaults chosen for a desktop: 64 peers and
+    # a 300 MB mempool, on a host with 1914 MB.
+    #
+    # So the caps are sized to the host as well, and the smallest host
+    # takes the fewest strangers while the roomy ones take more. The DNS
+    # seed rotation spreads the arrivals across all three either way.
+    conn=$((MEM / 48));   [ "$conn" -lt 24  ] && conn=24
+                          [ "$conn" -gt 110 ] && conn=110
+    mpool=$((MEM / 20));  [ "$mpool" -lt 50  ] && mpool=50
+                          [ "$mpool" -gt 300 ] && mpool=300
+    mpool=$(( (mpool + 25) / 50 * 50 ))
+
+    # Sent over stdin with the numbers as arguments, rather than pasted into
+    # a quoted string. The first attempt at this hand-escaped a nested
+    # double-quoted command, one \" came out as a bare " , the argument
+    # ended early, and all three hosts reported "no node config was
+    # written" -- with the reason swallowed by the 2>/dev/null in rsh().
+    # Nothing below needs escaping, so nothing below can be mis-escaped.
+    CONF_OUT="$(timeout 120 ssh "${SSH_OPTS[@]}" "root@$h" \
+        "bash -s -- $conn $mpool" 2>&1 <<'REMOTE'
+set -e
+conn="$1"; mpool="$2"
+for d in /root/.wam /root/.wam-mainnet; do
+    f="$d/wam.conf"
+    [ -f "$f" ] || continue
+    cp -p "$f" "$f.before-host-limits" 2>/dev/null || true
+    # Drop any block this script wrote before, and any hand-set duplicate of
+    # the two keys it owns: Bitcoin Core takes the FIRST occurrence of an
+    # option, so a leftover line above ours would silently win.
+    sed -i '/^# --- host limits, written by apply_host_limits/,/^# --- end host limits/d' "$f"
+    sed -i '/^maxconnections=/d;/^maxmempool=/d' "$f"
+    {
+        echo "# --- host limits, written by apply_host_limits.sh from this MemTotal"
+        echo "maxconnections=$conn"
+        echo "maxmempool=$mpool"
+        echo "# --- end host limits"
+    } >> "$f"
+    echo "$f  maxconnections=$conn  maxmempool=$mpool"
+done
+REMOTE
+)"
+    if printf '%s' "$CONF_OUT" | grep -q "maxconnections="; then
+        printf '%s\n' "$CONF_OUT" | sed 's/^/  /'
+    else
+        printf '  %sno node config was written%s: %s\n' "$RED" "$OFF" \
+            "$(printf '%s' "$CONF_OUT" | head -2 | tr '\n' ' ')"
+        FAIL=1
+    fi
 
     # What is in effect now, which is not the same as what was written: a
     # running unit keeps its old limits until it restarts.
