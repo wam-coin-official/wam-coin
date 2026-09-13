@@ -1,36 +1,55 @@
 DESTINATION: a public comment on GLEECBTC/coins PR #1975
 https://github.com/GLEECBTC/coins/pull/1975
-SEND: on 15 September, and only after check_electrum.py reports both
-      endpoints serving MAINNET — this comment invites someone to connect,
-      so it must not precede the thing it invites them to
----------------------------------------------------------------------------
+SEND: part 1 on 14 September, part 2 on 15 September once check_electrum.py
+      reports both endpoints serving MAINNET
+WHY: cipig asked "Do we need to wait till 15.09.?" and we answered yes. He
+is waiting on a date we set, so the 15th message must be exact — he will
+connect to the two servers named in the entry, and if they do not answer he
+is right to close it.
+===========================================================================
+PART 1 — send 14 September
+===========================================================================
 
-Mainnet is live as of 2026-09-15 00:00 UTC, and the two Electrum servers
-named in `electrums/WAM` are now answering on it.
+Short update ahead of tomorrow, since 15.09 is the date we agreed on here.
+
+Mainnet opens 2026-09-15 00:00:00 UTC — that is the timestamp inside the
+genesis block, not a schedule, so it cannot move. The two Electrum servers
+in `electrums/WAM` begin serving mainnet at that moment:
 
   electrum.wamcoin.org:50002    SSL      ws 50004
   electrum2.wamcoin.org:50002   SSL      ws 50004
 
-  server.version                <<SERVERVER>>
-  genesis reported by both      d8d3debea987b62a0934c3980d62bffbb6e16aa797d19891d4fcc9b9fb11d7e9
-  height when checked           <<HEIGHT>>
-  measured at                   <<UTC>>
+They are on two different providers on purpose — two servers at one
+provider are one outage — and the certificates are Let's Encrypt, not
+self-signed. Both machines are up today; their mainnet ports are
+deliberately empty until launch, which is why connecting before tomorrow
+will get nothing.
 
-They are two different machines at two different providers, both running
-ElectrumX against their own full node, and the certificates are Let's
-Encrypt rather than self-signed.
+I will comment here with the height, the genesis hash they report and the
+exact UTC time as soon as both are answering, so you can test rather than
+take my word for it.
 
-The coin entry itself is unchanged: rpcport 9554, pubtype 73, p2shtype 135,
+===========================================================================
+PART 2 — send 15 September, only after both endpoints answer on mainnet
+Fill from the check. Do not send before it passes.
+===========================================================================
+
+Both Electrum servers are now serving mainnet.
+
+  electrum.wamcoin.org:50002    SSL, ws 50004
+  electrum2.wamcoin.org:50002   SSL, ws 50004
+
+  server.version         <<SERVERVER>>
+  genesis, from both     d8d3debea987b62a0934c3980d62bffbb6e16aa797d19891d4fcc9b9fb11d7e9
+  height when checked    <<HEIGHT>>
+  measured               <<UTC>>
+
+The coin entry is unchanged: rpcport 9554, pubtype 73, p2shtype 135,
 wiftype 190, bech32_hrp "wam", segwit true, avg_blocktime 120,
-required_confirmations 60 — which at two-minute blocks is two hours, chosen
-deliberately high for a young chain rather than copied from a larger one.
+required_confirmations 60 — two hours at two-minute blocks, set high
+deliberately for a young chain rather than copied from a larger one.
 
-Signed binaries for Linux, Windows and macOS:
+The icon is in `icons_original/` as you asked, 256x256, so `icons_resize.sh`
+has a clean source.
 
-  https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.8
-
-Full parameter set:
-https://github.com/wam-coin-official/wam-coin/blob/main/docs/LISTING_PACKAGE.md
-
-Happy to answer anything, or to add a third Electrum endpoint if two is
-thin for your purposes.
+Happy to add a third Electrum endpoint if two is thin for your purposes.

@@ -1,37 +1,56 @@
-DESTINATION: a public comment on BasicSwap PR #701 (and a request to reopen)
+DESTINATION: a public comment on BasicSwap PR #701
 https://github.com/basicswap/basicswap/pull/701
-SEND: on 15 September, only after Phase D has verified the chain
-      — the numbers below are filled in from the live chain, not typed early
----------------------------------------------------------------------------
+SEND: part 1 on 14 September, part 2 on 15 September after the chain is verified
+WHY TWO PARTS: part 1 starts their queue and claims nothing that is not
+true when it is sent. Part 2 is the proof, and it can only exist after
+00:00 UTC on the 15th.
+===========================================================================
+PART 1 — send 14 September
+===========================================================================
 
-This was closed with "mainnet is scheduled for 2026-09-15". That date has
-arrived and the chain is running.
+This was closed with "Mainnet is scheduled for 2026-09-15". That date is
+tomorrow: the chain opens at 2026-09-15 00:00:00 UTC, which is the
+timestamp inside the genesis block rather than a plan — a node started
+before it refuses to run, so the date cannot slip quietly.
+
+Everything except the running chain can be checked today:
 
   mainnet genesis   d8d3debea987b62a0934c3980d62bffbb6e16aa797d19891d4fcc9b9fb11d7e9
+  merkle root       230fc579dfbad4cec208c43392e3178760fcd74617e4ef22903eae7bf7fcff29
   genesis time      1789430400   (2026-09-15 00:00:00 UTC)
-  height now        <<HEIGHT>>
-  best block        <<BESTHASH>>
-  measured at       <<UTC>>
-
-  P2P port          9555
-  DNS seeds         seed1.wamcoin.org, seed2.wamcoin.org, seed3.wamcoin.org
-                    three nodes, three providers, three continents
-  RPC port          9554
-  block time        120 s, DarkGravityWave v3, retargeting every block
-  proof of work     RandomX (CPU)
+  network magic     0x57 0x41 0x4d 0x21   ("WAM!")
+  P2P port          9555        RPC port 9554
   address prefixes  PUBKEY 73 (W...), SCRIPT 135 (w...), WIF 190 (V...)
-  bech32 HRP        wam
-  supply            22,000,000 WAM, 50 WAM initial subsidy,
-                    halving every 200,000 blocks
+  bech32 HRP        wam         (twam on testnet)
+  proof of work     RandomX, CPU
+  block time        120 s, DarkGravityWave v3, retargeting every block
+  supply            22,000,000 WAM, 50 WAM subsidy, halving every 200,000
 
-Signed binaries for Linux, Windows and macOS, with SHA256SUMS signed by the
+Signed binaries for Linux, Windows and macOS, SHA256SUMS signed with the
 release key:
 
   https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.8
 
-The files in this PR — `chainparams.py` and `wam.py` — are unchanged from
-the review, except that the ports and prefixes above are now live rather
-than planned. Everything a reviewer normally asks for is collected at
-https://github.com/wam-coin-official/wam-coin/blob/main/docs/LISTING_PACKAGE.md
+`chainparams.py` and `wam.py` in this PR are unchanged from your review.
+Testnet has been running since August if any of it is easier to check
+against a live chain today.
 
-Could this be reopened, or would you rather I submit it fresh?
+Would you rather reopen this, or shall I open a fresh PR? Either is fine —
+I will post the live height and best block hash here within hours of the
+first block, so whoever picks it up has something to connect to.
+
+===========================================================================
+PART 2 — send 15 September, after Phase D
+Fill from the chain. Do not send these numbers before they are true.
+===========================================================================
+
+Mainnet is live.
+
+  height           <<HEIGHT>>
+  best block       <<BESTHASH>>
+  genesis          d8d3debea987b62a0934c3980d62bffbb6e16aa797d19891d4fcc9b9fb11d7e9
+  measured         <<UTC>>
+  seeds            seed1.wamcoin.org, seed2.wamcoin.org, seed3.wamcoin.org
+                   three nodes, three providers, three continents
+
+Ready for review whenever it suits you.

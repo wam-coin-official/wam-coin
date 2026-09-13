@@ -1,40 +1,41 @@
 DESTINATION: a public comment on Bisq PR #8030
 https://github.com/bisq-network/bisq/pull/8030
-SEND: now
----------------------------------------------------------------------------
+SEND: part 1 on 14 September, part 2 on 15 September
+NOTE: the replay-protection answer is already in the thread and a
+maintainer marked it 👍, so this does not re-argue it. If #8030 is closed
+rather than open, part 1 asks whether to reopen or resubmit; the altcoin
+policy is theirs and we said we would not push against it.
+===========================================================================
+PART 1 — send 14 September
+===========================================================================
 
-Following up, and leading with the identifiers rather than the name, since
-the name is what caused the confusion.
+Mainnet opens tomorrow, 2026-09-15 00:00:00 UTC. That is the timestamp
+inside the genesis block rather than a plan — a node started before it
+refuses to run — so the date is fixed.
 
-This is not the WAM gaming token and is not a fork of any coin Bisq
-already lists. It is a Bitcoin Core v28.1 fork with its own genesis:
+Everything an address-validation review needs is already checkable:
 
   mainnet genesis   d8d3debea987b62a0934c3980d62bffbb6e16aa797d19891d4fcc9b9fb11d7e9
-  merkle root       230fc579dfbad4cec208c43392e3178760fcd74617e4ef22903eae7bf7fcff29
   network magic     0x57 0x41 0x4d 0x21   ("WAM!")
-  P2P port          9555
-  bech32 HRP        wam
-  PUBKEY_ADDRESS    73   — addresses begin with W
+  base58 prefixes   73 / 135 / 190   — addresses W..., w..., WIF V...
+  bech32 HRP        wam              (twam on testnet)
   source            https://github.com/wam-coin-official/wam-coin
-  licence           MIT
+  binaries          https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.8
+                    Linux, Windows, macOS — SHA256SUMS signed
 
-Proof of work is RandomX, so it is CPU-mined; there is no premine, no ICO,
-no token sale and no smart contract. Nothing about it exists on another
-chain, which is why searching the name finds something else entirely.
+`WAMCoin.java` and `WAMCoinTest.java` are unchanged, with the test vectors
+generated from this chain.
 
-The `WAMCoin.java` and `WAMCoinTest.java` in this PR follow the same shape
-as the other altcoin entries: address validation against the mainnet
-prefixes above, with the test vectors generated from this chain.
+If this PR should be reopened for the review, say so and I will rebase it;
+if you would rather have a fresh one now that mainnet exists, I will open
+that instead. And the altcoin policy is yours — I said I would not push
+against it and I am not doing so now.
 
-Signed binaries for Linux, Windows and macOS:
+===========================================================================
+PART 2 — send 15 September, after the chain is verified
+===========================================================================
 
-  https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.8
-
-Mainnet opens 2026-09-15 00:00 UTC. Testnet has been running since August
-if anything is easier to check against a live chain. The complete parameter
-set, including everything an address-validation review usually asks for, is
-at
-https://github.com/wam-coin-official/wam-coin/blob/main/docs/LISTING_PACKAGE.md
-
-If the answer is still no, that is a fine answer — but I would rather it
-were about this chain than about the one with the same three letters.
+Mainnet is live: height <<HEIGHT>>, best block <<BESTHASH>>, measured
+<<UTC>>, genesis
+d8d3debea987b62a0934c3980d62bffbb6e16aa797d19891d4fcc9b9fb11d7e9 on all
+three seed nodes.
