@@ -161,17 +161,25 @@ nothing is listening — and before launch nothing listens on any mainnet
 port, so an ordinary probe says "shut" and proves nothing at all. Each port
 was given a temporary listener and knocked on from the other host:
 
-| Port | Contabo | Hetzner | |
-|---|---|---|---|
-| 9555 | through | through | mainnet P2P |
-| 50001 / 50002 / 50004 | through | through | mainnet Electrum, as published |
-| 51001 / 51002 / 51004 | **blocked** | **blocked** | testnet Electrum, since the move |
+**Re-measured 2026-09-13, and one row of this table was wrong.**
 
-So nothing mainnet needs is waiting on a firewall. The three blocked ports
-are testnet's, and they are blocked with ElectrumX listening on them — which
-is the proof, since a port with a daemon behind it that still cannot be
-reached is being dropped upstream. ufw allows all three on both hosts; the
-providers' own panels do not.
+| Port | France | Singapore | US-east | |
+|---|---|---|---|---|
+| 9555 | open | open | open | mainnet P2P |
+| 50001 / 50002 / 50004 | open | open | open | mainnet Electrum, as published |
+| 51001 / 51002 / 51004 | open | open | open | testnet Electrum |
+
+Twelve host-and-port pairs, each given a temporary listener and knocked on
+from the founder's laptop — outside every one of our networks, which is
+where a stranger stands.
+
+The old row said the three testnet Electrum ports were **blocked at both
+providers**, and used that as evidence: a port with a daemon behind it that
+still cannot be reached is being dropped upstream. That was true on
+30 August. The panels have been used repeatedly since — for 13333–13336 on
+the 11th, among others — and the ports are open now. The conclusion the row
+supported still holds and is now measured directly rather than inferred:
+**nothing mainnet needs is waiting on a firewall.**
 
 5. **Start one node on mainnet.** One, not three.
 
@@ -411,15 +419,19 @@ Three things were found by doing it rather than reading it:
     empty since — so nothing answers on a mainnet port with a testnet chain,
     which is the state a listing reviewer would have found a defect in.
 
-    The mainnet instance is installed on both machines, configured against
-    the published ports, and was proved end to end on rehearsal ports:
-    plain, TLS and WebSocket-over-TLS all answered and reported the mainnet
-    genesis hash. So on the day there is nothing to install and nothing to
-    decide:
+    **Two hosts, and not the third — changed 2026-09-13.**
+    `electrum.wamcoin.org` is France and `electrum2.wamcoin.org` is now
+    **US-east**, not Singapore. Wallet queries are the half of the load that
+    grows with adoption, and Singapore has 1914 MB against US-east's 7941;
+    it is a seed node and nothing else now. The command runs on those two:
 
     ```bash
-    systemctl enable --now wam-electrumx@mainnet
+    systemctl enable --now wam-electrumx@mainnet     # France and US-east
     ```
+
+    On Singapore the instance is installed and **disabled**, so an absent
+    step is not a missing capability — it is a decision, and the unit is
+    there if the decision changes.
 
     Then, from somewhere else entirely:
 

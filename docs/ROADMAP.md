@@ -120,20 +120,42 @@ patch. What it is **not** is a promise that 1914 MB is enough forever.
 | host | memory | what it does | what it must never do |
 |---|---|---|---|
 | France, Contabo | 12 GB | pool, explorer, announcer, Electrum #1, node | — |
-| US-east, Contabo | 8 GB | node, and **Electrum #2 after launch** | — |
-| Singapore, Hetzner | 1.9 GB | **seed node only** | serve wallets |
+| US-east, Contabo | 8 GB | node, **Electrum #2** — `electrum2.wamcoin.org` since 13 Sep | — |
+| Singapore, Hetzner | 1.9 GB | **seed node only**, since 13 Sep | serve wallets |
 
-The one change to make, and deliberately not on launch night: **move the
-second published Electrum endpoint off the smallest host.** `electrum2.wamcoin.org`
-resolves to Singapore today, which means wallet queries and seed duty compete
-on the weakest machine — and wallet queries are the half that grows with
-adoption. US-east has 8 GB, 93 GB of disk and nothing on it but a node.
+### Done 13 September, and the founder was right about when
 
-It is not done before launch for the reason the pool port move taught on
-4 September: a published endpoint that changes the day before is a published
-endpoint that can be broken on the day, and the Komodo review names
-`electrum2.wamcoin.org:50002` explicitly. It goes in the first week after
-launch, with DNS and a certificate, the same way the pool move went.
+I argued for moving the second published Electrum endpoint off the smallest
+host **after** launch: a published endpoint that changes the day before is
+one that can be broken on the day, and the Komodo review names
+`electrum2.wamcoin.org:50002` explicitly.
+
+He argued the opposite and the argument is better. **Today that endpoint
+serves testnet only** — the mainnet ports are deliberately empty until
+launch. So a mistake today breaks a test network with 45 hours left to fix
+it; the same mistake next week breaks a live wallet server that real people
+and a reviewer depend on. Same work, a tenth of the risk, and the risk falls
+on the half that does not matter.
+
+It was done in an order that was reversible at every step:
+
+```
+cert copied to US-east            invisible outside
+ElectrumX installed, both nets    invisible outside
+testnet instance started          indexed 9,040 blocks in 4 seconds, 2.8 MB
+knocked from the laptop           51001/51002/51004 all open
+electrum2 -> US-east in DNS       both hosts served at once, TTL 600
+verified by name                  certificate verified, chain and height right
+Singapore disabled                a seed node and nothing else
+```
+
+The founder added the new A record rather than replacing it, which made the
+name resolve to both machines for a few minutes — and that turned out to be
+the best possible intermediate state: every wallet was served by one host or
+the other throughout, and there was no moment when the answer was nothing.
+
+Singapore keeps its ElectrumX files and its 3.2 MB index for a week. Going
+back is one `systemctl enable` and one DNS row.
 
 ### When to spend money, measured rather than felt
 
