@@ -253,12 +253,28 @@ curl -s localhost:8080/api/health | jq
 Alert on `ok: false`. The three conditions it reports are: no block template, a template
 older than 120 seconds (the daemon is wedged or unreachable), and zero connected miners.
 
-`/api/miners` lists connected miners with their payout address **truncated**
-(`twam1qtekd…a7ljs.server`). It used to return the address in full, publicly,
-which let anyone produce a list of who mines here and — since an address on a
-public chain reveals everything it has received — what each of them has earned.
-A miner looks up his own figures by giving his own address to `/api/miner`.
-Knowing an address finds its row; nothing enumerates the others.
+**Every** endpoint truncates payout addresses (`twam1qtekd…a7ljs.server`),
+because an address on a public chain reveals everything it has ever received,
+and a list of them is a list of who mines here and what each one earned. A
+miner reads his own figures by giving his own address to
+`/api/miner?address=…` — knowing an address finds its row, and nothing
+enumerates the others.
+
+**That sentence was not true until 2026-09-13, and an outsider is the reason
+it is.** `/api/miners` truncated. `/api/hashrate`, `/api/blocks` and
+`/api/payments` did not: the first keys its workers map by
+`<address>.<rig label>`, the second names the finding address of every block,
+the third returns full addresses beside their txids. The API port is not open
+from outside — and did not need to be, because `pool.wamcoin.org` fronts it,
+so one unauthenticated GET returned the founder's own testnet address and the
+name he had given his machine. It was found by static review of the published
+repository, reported privately to the address in `SECURITY.md` with no reward
+expected, and this page was already claiming the opposite while it was true.
+
+The fix is where he said to put it: redaction now happens **where the response
+leaves the process**, before the cache, rather than in each handler — so a
+fifth endpoint cannot forget it. `pool/test/api-redaction.test.js` asks the
+question of every shape a response can take, and `preflight.sh` runs it.
 
 Other endpoints: `/api/stats`, `/api/blocks`, `/api/miners`, `/api/hashrate`,
 `/api/payments`, `/api/miner?address=W...`, `/api/network`.

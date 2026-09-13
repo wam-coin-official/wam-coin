@@ -481,3 +481,10 @@ class ApiServer {
 }
 
 module.exports = ApiServer;
+
+// Exported so the redaction can be tested as the pure question it is, without
+// Redis, a node or a config. The first version of that test pulled these two
+// out of the source with eval() -- which fails under 'use strict', and would
+// have kept passing against a stale copy of the code if it had not.
+module.exports.redactWorker = redactWorker;
+module.exports.redactIdentities = redactIdentities;
