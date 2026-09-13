@@ -133,6 +133,8 @@ powershell -ExecutionPolicy Bypass -File verify_release.ps1</code></pre>
 <p>The node's own first run may show a blue SmartScreen box saying "Windows protected your PC" — that is the unsigned-publisher notice, not a virus report. <code>More info</code> → <code>Run anyway</code>, once you have checked the hash.</p>
 <h2 id="macos">macOS</h2>
 <p>Apple Silicon only — an M1, M2, M3 or M4. An Intel Mac cannot run these and has to build its own; <a href="/build/#9-building-on-macos">BUILD.md §9</a> is twenty minutes.</p>
+<p><strong>And one thing you should know before you start, because we would want to know it.</strong> These binaries are built on an Apple machine — a macOS runner — and on that machine they sync this chain from its genesis block before the archive is allowed to be published. What has <strong>not</strong> happened is a person sitting at a Mac they own, opening them, and using the wallet. Nobody on this project owns a Mac.</p>
+<p>So if you are that person: tell us what happened, whether it worked or not. The security contact is in <code>SECURITY.md</code>, and the channels are on the website. A first report from a platform we do not own is worth more to us than anything we can measure ourselves.</p>
 <pre><code>mkdir -p ~/wam &amp;&amp; cd ~/wam
 curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-coin-v0.1.8-arm64-apple-darwin.tar.gz
 curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-miner-v0.1.8-arm64-apple-darwin.tar.gz
