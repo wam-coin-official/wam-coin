@@ -157,6 +157,27 @@ the other throughout, and there was no moment when the answer was nothing.
 Singapore keeps its ElectrumX files and its 3.2 MB index for a week. Going
 back is one `systemctl enable` and one DNS row.
 
+### The macOS witness, decided 13 September
+
+We publish an Apple Silicon build that no human being has ever used. It is
+compiled on an Apple runner and it syncs the chain from genesis there before
+the archive may be published, so it is not untested — but CI is not a person,
+and nobody on this project owns a Mac.
+
+The founder's decision: **ask the people who own one, after launch.** Not a
+purchase, and not a CI step bought at the cost of touching the build during a
+freeze. `docs/MINE.md` now says plainly that no person has run it and asks
+whoever does to report back, which is also the cheapest way to gain something
+we cannot buy — a witness on a platform we do not own.
+
+The measurement it would replace is narrow and worth naming so it is not
+mistaken for the whole question: `check_isa_baseline.sh` cannot ask its
+question of an arm64 binary at all, because AVX-512 does not exist on ARM.
+It reports "does not apply" and exits 2, and our convention prints that as
+could-not-ask rather than a pass. On a Mac, or with `OBJDUMP=llvm-objdump` on
+the macOS runner, the arm64 equivalent of that question could be asked. It
+has not been, and that is a decision rather than an impossibility.
+
 ### When to spend money, measured rather than felt
 
 An upgrade or a fourth machine is the answer when the numbers say so, and

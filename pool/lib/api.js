@@ -46,6 +46,53 @@ function redactWorker(worker) {
     return addr.slice(0, 10) + '…' + addr.slice(-5) + rest;
 }
 
+
+// Redaction happens once, on the way out, and not endpoint by endpoint.
+//
+// Reported 2026-09-13 by an independent reviewer, and every line of it was
+// true: /api/miners ran redactWorker() and its three siblings did not.
+// /api/hashrate handed out `<payout address>.<rig label>` as the keys of its
+// workers map, /api/blocks named the finding address of every retained block,
+// and /api/payments returned full addresses beside their txids. One
+// unauthenticated GET through pool.wamcoin.org returned the founder's own
+// testnet address and the label he gave his machine.
+//
+// The control existed and was applied at one call site out of four. Worse,
+// site/pool/index.html already told the world the addresses were truncated
+// and that "nothing enumerates the others" -- a published claim ahead of the
+// code, which is the one kind of defect this project treats as urgent.
+//
+// So the rule is structural now: identity fields are redacted where the
+// response leaves the process, which is the only place that cannot be
+// forgotten when a fifth endpoint is added.
+//
+// Two deliberate exemptions, both stated rather than implied:
+//   /api/miner?address=X   the caller supplied X. It is a lookup, not an
+//                          enumeration, and redacting it would break the one
+//                          endpoint a miner uses to read his own figures.
+//   labels after the dot   a rig name identifies nothing on the chain.
+const IDENTITY_FIELDS = new Set(['worker', 'finder']);
+const IDENTITY_MAPS = new Set(['workers', 'payouts']);
+
+function redactIdentities(value, keyName = null) {
+    if (Array.isArray(value)) {
+        return value.map((v) => redactIdentities(v, keyName));
+    }
+    if (value && typeof value === 'object') {
+        const out = {};
+        for (const [k, v] of Object.entries(value)) {
+            // A map keyed BY identity: the address is the key itself.
+            const key = IDENTITY_MAPS.has(keyName) ? redactWorker(k) : k;
+            out[key] = redactIdentities(v, k);
+        }
+        return out;
+    }
+    if (typeof value === 'string' && IDENTITY_FIELDS.has(keyName)) {
+        return redactWorker(value);
+    }
+    return value;
+}
+
 class ApiServer {
     constructor({ config, logger, jobManager, stratumServer, shareProcessor, daemon }) {
         this.config = config;
@@ -192,6 +239,11 @@ class ApiServer {
             return this._json(res, 404, { error: 'unknown endpoint' });
         }
 
+        // Before the cache, so a cached hit cannot serve what a fresh
+        // response would not. /api/miner is the stated exemption above.
+        if (pathname !== '/api/miner') {
+            body = redactIdentities(body);
+        }
         this._cacheSet(cacheKey, body);
         return this._json(res, 200, body);
     }

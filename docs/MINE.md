@@ -186,6 +186,18 @@ Apple Silicon only — an M1, M2, M3 or M4. An Intel Mac cannot run these and
 has to build its own; [BUILD.md §9](BUILD.md#9-building-on-macos) is twenty
 minutes.
 
+**And one thing you should know before you start, because we would want to
+know it.** These binaries are built on an Apple machine — a macOS runner —
+and on that machine they sync this chain from its genesis block before the
+archive is allowed to be published. What has **not** happened is a person
+sitting at a Mac they own, opening them, and using the wallet. Nobody on
+this project owns a Mac.
+
+So if you are that person: tell us what happened, whether it worked or not.
+The security contact is in `SECURITY.md`, and the channels are on the
+website. A first report from a platform we do not own is worth more to us
+than anything we can measure ourselves.
+
 ```
 mkdir -p ~/wam && cd ~/wam
 curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-coin-v0.1.8-arm64-apple-darwin.tar.gz
