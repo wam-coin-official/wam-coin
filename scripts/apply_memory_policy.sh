@@ -1,0 +1,176 @@
+#!/usr/bin/env bash
+# Copyright (c) 2026 The WAM Coin developers
+# Distributed under the MIT software license, see COPYING.
+#
+# ===========================================================================
+#  apply_memory_policy.sh -- decide in advance which service dies first
+# ===========================================================================
+#
+#      bash scripts/apply_memory_policy.sh                  # the three seeds
+#      bash scripts/apply_memory_policy.sh HOST [HOST...]
+#      bash scripts/apply_memory_policy.sh --show HOST      # read, change nothing
+#
+#  WHY THIS EXISTS
+#
+#  deploy/systemd carries MemoryMax=2G for the mainnet node and 4G for
+#  ElectrumX. Those are sensible on a 12 GB machine and meaningless on the
+#  Singapore seed, which has 1914 MB in total: a ceiling above the machine's
+#  own memory bounds nothing at all.
+#
+#  So when memory runs short there, nothing we wrote decides anything. The
+#  kernel's OOM killer decides, and it picks by size -- which means it picks
+#  `wamd`, the largest process on the box at 580 MB. On launch night that is
+#  the mainnet seed, and losing it is losing a third of the network's
+#  visibility to anyone syncing from genesis.
+#
+#  The fix costs nothing and is not an upgrade: bound every service well
+#  below total memory, and state the order of sacrifice ourselves.
+#
+#      testnet ElectrumX    +900   goes first, and nobody notices
+#      testnet node         +700   testnet also runs on two other hosts
+#      mainnet ElectrumX    +200   wallets lose one of two servers
+#      mainnet node         -500   last, and only if nothing else is left
+#
+#  MEASURED, NOT GUESSED
+#
+#  The numbers come from what these services actually use:
+#
+#      wamd, testnet, dbcache=100     580 MB
+#      electrumx, either network       50 MB   (its database is 3.2 MB)
+#
+#  An earlier plan for this file assumed ElectrumX wanted 300-500 MB and
+#  concluded the small host needed replacing. It does not. Measuring first
+#  turned a server purchase into four drop-in files.
+#
+#  MemoryHigh throttles and reclaims; MemoryMax kills. Setting High below
+#  what a service genuinely needs causes constant reclaim -- slow, not
+#  safe -- so each floor here sits above the measured figure with headroom.
+# ===========================================================================
+
+set -uo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$HERE"
+
+SHOW_ONLY=0
+if [ "${1:-}" = "--show" ]; then SHOW_ONLY=1; shift; fi
+
+HOSTS=("$@")
+if [ "${#HOSTS[@]}" -eq 0 ]; then
+    HOSTS=(169.58.159.165 5.223.52.200 13.140.33.187)
+fi
+
+GRN=$'\033[32m'; RED=$'\033[31m'; YLW=$'\033[33m'; BLD=$'\033[1m'; OFF=$'\033[0m'
+FAIL=0
+
+SSH_OPTS=(-o BatchMode=yes -o ConnectTimeout=15
+          -o ServerAliveInterval=15 -o ServerAliveCountMax=3)
+rsh() { timeout 120 ssh "${SSH_OPTS[@]}" "root@$1" "$2" 2>/dev/null; }
+
+echo "=================================================================="
+echo " Which service dies first, decided here rather than by the kernel"
+echo "=================================================================="
+
+for h in "${HOSTS[@]}"; do
+    printf '\n%s%s%s\n' "$BLD" "$h" "$OFF"
+
+    MEM="$(rsh "$h" "awk '/^MemTotal:/{print int(\$2/1024)}' /proc/meminfo")"
+    if ! [ "${MEM:-0}" -gt 0 ] 2>/dev/null; then
+        printf '  %sno answer -- nothing changed here%s\n' "$YLW" "$OFF"
+        FAIL=1
+        continue
+    fi
+    printf '  %s MB of memory\n' "$MEM"
+
+    # Shares of the machine, with floors from the measured figures above.
+    # 35/25/10/10 leaves the operating system, fail2ban, the journal and the
+    # watchers about a fifth, which is what they use today.
+    hi_main=$((MEM * 35 / 100));  [ "$hi_main" -lt 650 ] && hi_main=650
+    hi_test=$((MEM * 25 / 100));  [ "$hi_test" -lt 650 ] && hi_test=650
+
+    # And the floor that matters more than any share: what the node on THIS
+    # host is using right now, plus a third. A MemoryHigh below actual usage
+    # does not protect anything -- it makes the kernel reclaim continuously
+    # from a process that needs the memory, which is a slow node rather than
+    # a safe one. Singapore's testnet node sits at 580 MB, so a 650 MB
+    # ceiling left it 70 MB of room; measured, it gets 783.
+    RSS="$(rsh "$h" "ps -eo rss,comm --no-headers | awk '\$2==\"wamd\"{s+=\$1} END{print int(s/1024)}'")"
+    if [ "${RSS:-0}" -gt 0 ] 2>/dev/null; then
+        need=$((RSS * 135 / 100))
+        [ "$hi_test" -lt "$need" ] && hi_test="$need"
+        [ "$hi_main" -lt "$need" ] && hi_main="$need"
+        printf '  the node here is using %s MB, so no ceiling goes below %s MB
+' "$RSS" "$need"
+    fi
+    hi_exm=$((MEM * 10 / 100));   [ "$hi_exm"  -lt 200 ] && hi_exm=200
+    hi_ext=$((MEM * 10 / 100));   [ "$hi_ext"  -lt 200 ] && hi_ext=200
+    cap=$((MEM * 80 / 100))
+    mx() { local v=$(( $1 * 14 / 10 )); [ "$v" -gt "$cap" ] && v="$cap"; echo "$v"; }
+
+    if [ "$SHOW_ONLY" -eq 1 ]; then
+        for u in wamd.service wamd-mainnet.service \
+                 wam-electrumx@testnet.service wam-electrumx@mainnet.service; do
+            printf '  %-32s %s\n' "$u" \
+                "$(rsh "$h" "systemctl show $u -p MemoryHigh -p MemoryMax -p OOMScoreAdjust 2>/dev/null | tr '\n' ' '")"
+        done
+        continue
+    fi
+
+    OUT="$(rsh "$h" "
+set -e
+write() {   # unit  high  max  oom
+    d=/etc/systemd/system/\$1.d
+    mkdir -p \"\$d\"
+    cat > \"\$d/20-memory.conf\" <<EOF
+# Written by scripts/apply_memory_policy.sh from this host's own MemTotal.
+# Do not hand-edit: run the script again instead, or the next host to be
+# rebuilt gets different numbers for no recorded reason.
+[Service]
+MemoryHigh=\$2M
+MemoryMax=\$3M
+OOMScoreAdjust=\$4
+EOF
+    echo \"wrote \$d/20-memory.conf  high=\$2M max=\$3M oom=\$4\"
+}
+[ -f /etc/systemd/system/wamd.service ]          && write wamd.service          $hi_test $(mx $hi_test) 700
+[ -f /etc/systemd/system/wamd-mainnet.service ]  && write wamd-mainnet.service  $hi_main $(mx $hi_main) -500
+if [ -f /etc/systemd/system/wam-electrumx@.service ]; then
+    write wam-electrumx@testnet.service $hi_ext $(mx $hi_ext) 900
+    write wam-electrumx@mainnet.service $hi_exm $(mx $hi_exm) 200
+fi
+systemctl daemon-reload
+echo reloaded
+")"
+    if [ -z "$OUT" ]; then
+        printf '  %snothing was written -- ssh said nothing%s\n' "$RED" "$OFF"
+        FAIL=1
+        continue
+    fi
+    printf '%s\n' "$OUT" | sed 's/^/  /'
+
+    # What is in effect now, which is not the same as what was written: a
+    # running unit keeps its old limits until it restarts.
+    for u in wamd.service wamd-mainnet.service; do
+        eff="$(rsh "$h" "systemctl show $u -p MemoryHigh -p OOMScoreAdjust -p ActiveState 2>/dev/null | tr '\n' ' '")"
+        case "$eff" in
+            *"ActiveState=active"*)
+                printf '  %sin effect after a restart%s  %s\n' "$YLW" "$OFF" "$u" ;;
+            *) printf '  %sin effect at next start%s     %s\n' "$GRN" "$OFF" "$u" ;;
+        esac
+    done
+done
+
+echo
+echo "=================================================================="
+if [ "$FAIL" -eq 0 ]; then
+    printf ' %severy host carries its own numbers now%s\n' "$GRN" "$OFF"
+    echo
+    echo ' The mainnet units are not running, so their limits apply the moment'
+    echo ' they start on launch night. A running testnet node keeps its old'
+    echo ' limits until it is restarted, which is not worth doing tonight.'
+    echo "=================================================================="
+    exit 0
+fi
+printf ' %sat least one host was not reached -- it has no policy%s\n' "$RED" "$OFF"
+echo "=================================================================="
+exit 1
