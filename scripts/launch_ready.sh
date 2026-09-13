@@ -64,10 +64,19 @@ SSH_OPTS=(-o BatchMode=yes -o ConnectTimeout=15
           -o ServerAliveInterval=15 -o ServerAliveCountMax=3)
 rsh() { timeout 90 ssh "${SSH_OPTS[@]}" "root@$1" "$2" 2>/dev/null; }
 
-# The date the chain opens, read from the gate rather than typed here.
-OPENS="$(grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}T?[0-9:]*Z?' scripts/genesis_gate.sh 2>/dev/null \
-         | head -1)"
-OPENS_EPOCH="$(date -u -d "2026-09-15 00:00:00" +%s 2>/dev/null || echo 0)"
+# The moment the chain opens, read from the one place that decides it: the
+# genesis timestamp the binary is built with.
+#
+# The first version of this grepped genesis_gate.sh for anything shaped like
+# a date and printed the first match -- which was 2026-08-28, a date in one
+# of its comments. The countdown beside it was right because the epoch was
+# typed in by hand, and that is the other half of the same mistake: a
+# guessed fact and a retyped one, side by side, in the file whose whole
+# purpose is that nothing here is remembered.
+OPENS_EPOCH="$(grep -oE 'WAM_GENESIS_TIME = [0-9]+' src/wam/wam-params.h 2>/dev/null \
+               | grep -oE '[0-9]+' | head -1)"
+OPENS_EPOCH="${OPENS_EPOCH:-0}"
+OPENS="$(date -u -d "@$OPENS_EPOCH" '+%Y-%m-%d %H:%M:%S UTC' 2>/dev/null)"
 NOW_EPOCH="$(date -u +%s)"
 
 echo "=================================================================="
@@ -77,7 +86,7 @@ printf '    measured  %s UTC\n' "$(date -u '+%Y-%m-%d %H:%M:%S')"
 if [ "$OPENS_EPOCH" -gt 0 ] && [ "$OPENS_EPOCH" -gt "$NOW_EPOCH" ]; then
     LEFT=$(( OPENS_EPOCH - NOW_EPOCH ))
     printf '    the chain opens %s -- %dh %dm from now\n' \
-        "${OPENS:-2026-09-15T00:00:00Z}" "$((LEFT/3600))" "$(((LEFT%3600)/60))"
+        "$OPENS" "$((LEFT/3600))" "$(((LEFT%3600)/60))"
 fi
 
 WANT_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"

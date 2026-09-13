@@ -31,7 +31,8 @@ release key:
 
   https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.8
 
-`chainparams.py` and `wam.py` in this PR are unchanged from your review.
+The two files in this PR — `basicswap/interface/wam/chainparams.py` and
+`basicswap/interface/wam/wam.py` — are unchanged from your review.
 Testnet has been running since August if any of it is easier to check
 against a live chain today.
 
