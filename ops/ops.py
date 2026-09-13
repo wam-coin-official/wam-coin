@@ -388,21 +388,29 @@ FAST_EVERY = 60
 # the two agree sooner and the reader has less to reconcile.
 SLOW_EVERY = 600
 
+# The host list above is the one list of machines. Until 13 September these
+# checks carried their own, written when there were two seeds, and the third
+# joined on the 11th -- so "nodes agree" compared two of three nodes and
+# called it agreement, and "deployed code is origin/main" could not see a
+# divergence on US-east at all. The panel showed the third host's checkout in
+# its card and no check ever read it.
+#
+# Derived from HOSTS now, so a fourth machine is one line in one place.
+ALL_IPS = [ip for _, ip in HOSTS]
+
 CHECKS = [
-    ("backups", [sys.executable, "scripts/check_backups.py",
-                 "169.58.159.165", "5.223.52.200"], 150),
+    ("backups", [sys.executable, "scripts/check_backups.py"] + ALL_IPS, 150),
     ("no block was un-confirmed", [sys.executable, "scripts/check_reorg.py",
                                    "--network", "testnet", "--state-dir",
-                                   os.path.expanduser("~/.wam-reorg"),
-                                   "169.58.159.165", "5.223.52.200"], 180),
+                                   os.path.expanduser("~/.wam-reorg")]
+                                  + ALL_IPS, 180),
     ("everyone can follow mainnet", [sys.executable,
                                      "scripts/check_peer_versions.py",
                                      "--node", "169.58.159.165",
                                      "--network", "testnet"], 200),
-    ("nodes agree", ["bash", "scripts/check_nodes_agree.sh",
-                     "169.58.159.165", "5.223.52.200"], 150),
-    ("deployed code is origin/main", ["bash", "scripts/check_deployed_code.sh",
-                                      "169.58.159.165", "5.223.52.200"], 150),
+    ("nodes agree", ["bash", "scripts/check_nodes_agree.sh"] + ALL_IPS, 150),
+    ("deployed code is origin/main",
+     ["bash", "scripts/check_deployed_code.sh"] + ALL_IPS, 150),
     ("the repository agrees with itself", ["bash", "scripts/audit_repo.sh"], 200),
     ("listing entries match source", [sys.executable,
                                       "scripts/check_listing_entry.py"], 120),
