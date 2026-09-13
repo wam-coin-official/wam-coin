@@ -184,17 +184,46 @@ supported still holds and is now measured directly rather than inferred:
 5. **Start one node on mainnet.** One, not three.
 
    ```bash
-   systemctl start wamd        # mainnet unit, not wamd-testnet
-   journalctl -u wamd -f
+   systemctl start wamd-mainnet
+   journalctl -u wamd-mainnet -f
    ```
+
+   **Read the unit name twice.** On all three hosts `wamd.service` is the
+   **testnet** node — it is running now, it stays running, and starting it
+   again does nothing at all while looking like success. There is no
+   `wamd-testnet.service`. Until 13 September this step said
+   `systemctl start wamd`, and following it at 00:00 UTC would have left
+   mainnet unstarted with a healthy testnet journal scrolling past as proof
+   that everything was fine.
+
+### Every command below carries the mainnet flags, and here is why
+
+`/root/.wam/wam.conf` contains `testnet=1`. So a bare `wam-cli` on any of
+these machines talks to **testnet** — it answers every question in this
+document, in the right format, about the wrong chain. Define this once, at
+the top of the night, and use it for everything:
+
+```bash
+M='wam-cli -chain=main -datadir=/root/.wam-mainnet'
+$M getblockchaininfo        # must say  "chain": "main"
+```
+
+Measured, not assumed: those flags reach 127.0.0.1:**9554**, which is
+`WAM_MAINNET_RPC_PORT`. A bare `wam-cli` reaches 19554 and reports
+`"chain": "test"`.
 
 6. **Genesis must be the hash you published.** This is the check the whole
    day rests on:
 
    ```bash
-   wam-cli getblockhash 0
-   # must equal the assertion in src/wam/chainparams.cpp
+   $M getblockhash 0
+   # must equal the assertion in src/wam/chainparams.cpp:
+   # d8d3debea987b62a0934c3980d62bffbb6e16aa797d19891d4fcc9b9fb11d7e9
    ```
+
+   Without the flags this prints the **testnet** genesis, it will not match,
+   and the instruction below will stop a launch that had nothing wrong with
+   it.
 
    If it does not match, **stop here**. Nothing has been mined. The chain
    does not exist yet and you have lost nothing but an hour.
@@ -202,7 +231,7 @@ supported still holds and is now measured directly rather than inferred:
 7. **The money must be where you said it would be.**
 
    ```bash
-   wam-cli getsupplyinfo
+   $M getsupplyinfo
    # circulating              2,000,000
    # founder_vesting.unlocked 0
    # founder_vesting.locked   2,000,000
@@ -211,7 +240,7 @@ supported still holds and is now measured directly rather than inferred:
 8. **The five premine outputs must exist and must be locked.**
 
    ```bash
-   wam-cli getblock $(wam-cli getblockhash 0) 2
+   $M getblock $($M getblockhash 0) 2
    # five outputs, every one a 32-byte scriptPubKey, none spendable today
    ```
 
@@ -226,8 +255,8 @@ abandoned with no consequence to anyone.
    agrees on genesis before starting the next.
 
    ```bash
-   wam-cli getconnectioncount
-   wam-cli getblockhash 0        # on every host, the same hash
+   $M getconnectioncount
+   $M getblockhash 0        # on every host, the same hash
    ```
 
 10. **Confirm the seeds answer with mainnet nodes.**
@@ -307,6 +336,26 @@ cp /opt/wam/pool/config-mainnet.json /opt/wam/pool/config.json
 systemctl restart wam-pool
 ```
 
+**What that command does to testnet, said plainly.** There is one
+`wam-pool.service`, so copying the mainnet config over `config.json` and
+restarting **converts** the pool rather than adding one: the testnet pool
+stops serving 13333-13336 at that moment, and the founder's own miner —
+most of the testnet hash rate — has nowhere to point. Phase A says stop
+nothing; this is the one thing that does stop. Running both at once needs a
+second unit, which is a change and not a step, and it is not made on the
+night.
+
+**And the accounting collision that was found reading this line on
+13 September.** Both pool configs carried `redisPrefix: "wam"` and
+`redis.db: 0`, and `lib/shareProcessor.js` builds every key as
+`prefix:part:part` with **no network in it**. So the copy above would have
+started the mainnet pool on a Redis database holding testnet shares, rounds
+and balances — real coins owed against test work, on the first payout
+cycle. The mainnet config now uses `redisPrefix: "wam-main"`, `redis.db: 1`
+and `apiPort: 8081`; the testnet one is untouched on `wam`, db 0, 8080.
+Nothing here is shared any more, which is also what would make two
+simultaneous pools possible.
+
 The four values that differ are already in that file — `network`,
 `poolAddress`, and `daemons[0].port` and credentials. It is `daemons[0]`, an
 array, not `daemon`: a rehearsal edited the wrong key, the pool connected to
@@ -360,14 +409,14 @@ systemctl start wam-backup@mainnet.service && ls -1t /root/backups/wam-backup-ma
     the whitepaper says:
 
     ```bash
-    wam-cli getdevfeeinfo "$(wam-cli getblockhash 1)"
+    $M getdevfeeinfo "$($M getblockhash 1)"
     ```
 
 14. **Blocks 1 to 30, every one of them.** Not a sample.
 
     ```bash
     for h in $(seq 1 30); do
-        wam-cli getdevfeeinfo "$(wam-cli getblockhash $h)"
+        $M getdevfeeinfo "$($M getblockhash $h)"
     done
     ```
 

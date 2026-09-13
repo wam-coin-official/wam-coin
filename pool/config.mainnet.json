@@ -11,7 +11,16 @@
     "retyping them from memory on the worst possible night.",
     "",
     "user and password are the placeholder 't', the same convention",
-    "config.testnet.json uses. Nothing here is a secret."
+    "config.testnet.json uses. Nothing here is a secret.",
+    "",
+    "redisPrefix and redis.db were 'wam' and 0 in both this and the testnet",
+    "config until 13 September. The pool builds every Redis key as",
+    "prefix:part:part with no network in it (lib/shareProcessor.js), so the",
+    "two networks shared one keyspace -- and launch night's plan is to copy",
+    "this file over config.json and restart, which would have pointed the",
+    "MAINNET pool at a database full of testnet shares, rounds and balances.",
+    "Real coins against test shares. They are separate namespaces now, and",
+    "apiPort differs too, so both pools can run at once if we ever want that."
   ],
   "network": "mainnet",
   "_poolAddress": "The pool's own wallet address. Every block reward (minus the consensus treasury output) is paid here first, then distributed from the wallet. MUST start with 'W' on mainnet.",
@@ -77,7 +86,7 @@
   "_randomxFullMemory": "false = light mode, 256 MiB, correct for a VERIFYING pool. true = 2 GiB per live seed; only useful if this process also mines.",
   "randomxFullMemory": false,
   "randomxVmCount": 4,
-  "apiPort": 8080,
+  "apiPort": 8081,
   "apiBind": "127.0.0.1",
   "apiCacheMs": 3000,
   "apiCorsOrigin": "*",
@@ -85,10 +94,10 @@
   "redis": {
     "host": "127.0.0.1",
     "port": 6379,
-    "db": 0,
+    "db": 1,
     "password": "t"
   },
-  "redisPrefix": "wam",
+  "redisPrefix": "wam-main",
   "logLevel": "info",
   "logFile": "logs/pool.log",
   "daemons": [
