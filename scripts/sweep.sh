@@ -46,7 +46,15 @@ cd "$HERE"
 NODES=""
 while [ $# -gt 0 ]; do
     case "$1" in
-        --nodes) NODES="${2:?--nodes needs a value}"; shift 2 ;;
+        # Commas are accepted and turned into spaces. ops.py, check_backups
+        # and half the other entry points in this project take a
+        # comma-separated list, so a comma here is the natural mistake -- and
+        # it was a silent one: every use of $NODES below relies on word
+        # splitting, so "a,b,c" became ONE host named "a,b,c". On 2026-09-14
+        # that produced "wam-announce is unreachable | FAIL" and "the deployed
+        # nodes DISAGREE | FAIL" out of a sweep against three healthy servers,
+        # ten hours before mainnet. Three false reds from one comma.
+        --nodes) NODES="$(printf '%s' "${2:?--nodes needs a value}" | tr ',' ' ')"; shift 2 ;;
         -h|--help) sed -n '5,32p' "$0"; exit 0 ;;
         *) printf 'unknown option: %s\n' "$1" >&2; exit 2 ;;
     esac

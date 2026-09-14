@@ -163,7 +163,20 @@ def main():
     flag = _wamcli_flags(args.network)
     # --- the unit ---------------------------------------------------------
     head("the announcer is running")
-    rc, active, _ = rsh(args.host, "systemctl is-active wam-announce")
+    rc, active, err = rsh(args.host, "systemctl is-active wam-announce")
+    # ssh answers 255 when the connection itself failed, and systemctl answers
+    # 3 for "inactive" -- so a non-zero rc alone says nothing. Only the first
+    # is a question that was never put, and it used to come out of here as
+    # "wam-announce is unreachable | FAIL", followed by two more failures about
+    # a host that had not been reached at all. Three red lines, nothing
+    # measured. Exit 2 is this project's word for that.
+    if rc == 255 or (not active and err):
+        print(f"  {YEL}??{OFF}    could not reach {args.host} "
+              f"({err.splitlines()[0] if err else 'ssh failed'}). Nothing "
+              f"about the announcer was established, either way.")
+        UNREACHED.append(args.host)
+        print()
+        return 2
     rc2, enabled, _ = rsh(args.host, "systemctl is-enabled wam-announce")
     if active != "active":
         bad(f"wam-announce is {active or 'unreachable'}")

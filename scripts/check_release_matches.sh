@@ -139,10 +139,13 @@ for r in rs:
     for a in r.get('assets', []):
         n = a.get('name', '')
         if n.startswith('wam-coin') and (n.endswith('.tar.gz') or n.endswith('.zip')):
-            out.append((rank(n), n, a.get('browser_download_url'), r.get('tag_name')))
+            out.append((rank(n), n, a.get('browser_download_url'),
+                        r.get('tag_name'), a.get('size') or 0))
     if out:
-        for _, n, u, t in sorted(out):
-            print(t, n, u)
+        # The size is carried out so the shell can tell a download that
+        # arrived from a download that merely returned. See check_artifact.
+        for _, n, u, t, sz in sorted(out):
+            print(t, n, u, sz)
         sys.exit()
 " 2>/dev/null)
 
@@ -162,12 +165,24 @@ trap 'rm -rf "$TMP"' EXIT
 # it carry this network, and will it start on an ordinary CPU.
 # ---------------------------------------------------------------------------
 check_artifact() {
-    local name="$1" url="$2"
-    local d="$TMP/$name" bin got str isa_rc isa_reason isa_remote h
+    local name="$1" url="$2" want_size="${3:-0}"
+    local d="$TMP/$name" bin got str isa_rc isa_reason isa_remote h http
     mkdir -p "$d"
     printf '\n%s%s%s\n' "$BLD" "$name" "$OFF"
 
-    if ! curl -sSL -m 300 -o "$d/$name" "$url" 2>/dev/null; then
+    # -f matters. Without it curl writes the error PAGE into the file and
+    # exits 0, so on 2026-09-14 this check downloaded 92 bytes of
+    #
+    #     <html><body><h1>504 Gateway Time-out</h1>
+    #
+    # unpacked nothing from it, found no wamd in nothing, and announced "the
+    # published download is NOT this network -- anyone who downloads it gets a
+    # node that cannot join" about the macOS archive. That archive is whole:
+    # sha256 b0e5561c... matches the published SHA256SUMS and it carries
+    # bin/wamd. A gateway between here and GitHub had timed out, and the
+    # loudest sentence this script owns was spent on it.
+    http="$(curl -fsSL -m 300 -o "$d/$name" -w '%{http_code}' "$url" 2>/dev/null)"
+    if [ $? -ne 0 ]; then
         # Not a finding. This file argues the distinction itself further down:
         # exit 2 means the check could not run, and a fault that cannot be
         # measured must not look like a fault that was measured.
@@ -178,9 +193,20 @@ check_artifact() {
         # published download were wrong. A red that appears every time because
         # of somebody's connection is a red that stops being read.
         got="$(wc -c < "$d/$name" 2>/dev/null || echo 0)"
-        warn "NOT downloaded: $got byte(s) in 300s -- that is this connection,
-           not the release. Run this check from one of the servers, or accept
-           that it was not measured here."
+        warn "NOT downloaded: HTTP ${http:-none}, $got byte(s) in 300s -- that
+           is this connection or a gateway in front of GitHub, not the
+           release. Run this check from one of the servers, or accept that it
+           was not measured here."
+        COULD_NOT_CHECK=1
+        return 0
+    fi
+
+    # And an HTTP 200 that stops early is still not the file. GitHub tells us
+    # how big each asset is; compare, before any sentence about its contents.
+    got="$(wc -c < "$d/$name" 2>/dev/null || echo 0)"
+    if [ "$want_size" -gt 0 ] && [ "$got" != "$want_size" ]; then
+        warn "NOT examined: $got of $want_size byte(s) arrived. That is this
+           connection, not the release."
         COULD_NOT_CHECK=1
         return 0
     fi
@@ -201,6 +227,21 @@ check_artifact() {
 
     bin="$(find "$d" -type f \( -name 'wamd' -o -name 'wamd.exe' \) | head -1)"
     if [ -z "$bin" ]; then
+        # With the right number of bytes in hand, ask the release's own
+        # SHA256SUMS whether these are the right bytes. If they are, an
+        # archive with no wamd is a real, published fault and says so. If
+        # they are not, the copy here is damaged and this check has measured
+        # nothing about the release.
+        if [ -n "${PUBLISHED_SHA:-}" ] && command -v sha256sum >/dev/null 2>&1; then
+            h="$(sha256sum "$d/$name" | cut -d' ' -f1)"
+            if ! printf '%s' "$PUBLISHED_SHA" | grep -qF "$h"; then
+                warn "NOT examined: the copy downloaded here does not match the
+           release's own SHA256SUMS, so it is a damaged copy and not evidence
+           about what is published."
+                COULD_NOT_CHECK=1
+                return 0
+            fi
+        fi
         bad "$name contains no wamd"
         return 0
     fi
@@ -261,7 +302,10 @@ check_artifact() {
                 command -v file    >/dev/null 2>&1 || exit 3
                 [ -f $WAM_REMOTE_REPO/scripts/check_isa_baseline.sh ] || exit 3
                 D=\$(mktemp -d); trap 'rm -rf \"\$D\"' EXIT; cd \"\$D\"
-                curl -sSL --max-time 180 -O '$url' || exit 3
+                # -f for the same reason as the local download above: without
+                # it a 504 page is written to disk and curl exits 0, and the
+                # question gets answered about an error page.
+                curl -fsSL --max-time 180 -O '$url' || exit 3
                 case '$name' in
                     *.tar.gz) tar -xzf *.tar.gz || exit 3 ;;
                     *.zip)    command -v unzip >/dev/null 2>&1 || exit 3
@@ -307,9 +351,18 @@ check_artifact() {
 }
 
 printf '\n%sdoes each published archive carry this network?%s\n' "$BLD" "$OFF"
+
+# The checksums a user is told to verify against. Fetched once, and its
+# absence is not fatal: it is only used to tell a damaged download from a
+# damaged release, above.
+PUBLISHED_SHA="$(curl -fsSL -m 60 \
+    "https://github.com/$REPO/releases/download/$TAG/SHA256SUMS" 2>/dev/null)"
+[ -n "$PUBLISHED_SHA" ] || printf '    (SHA256SUMS was not fetched)\n'
+
 for _row in "${ASSETS[@]}"; do
     check_artifact "$(printf '%s' "$_row" | cut -d' ' -f2)" \
-                   "$(printf '%s' "$_row" | cut -d' ' -f3)"
+                   "$(printf '%s' "$_row" | cut -d' ' -f3)" \
+                   "$(printf '%s' "$_row" | cut -d' ' -f4)"
 done
 
 # ---------------------------------------------------------------------------

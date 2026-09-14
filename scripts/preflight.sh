@@ -43,7 +43,11 @@ NODES=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --host)  HOST="$2";  shift 2 ;;
-        --nodes) NODES="$2"; shift 2 ;;
+        # Commas accepted, for the reason written at the same place in
+        # sweep.sh: every use of $NODES here word-splits, so one comma makes
+        # three hosts into a single hostname nobody can reach, and the failure
+        # is a red line about the nodes rather than about the argument.
+        --nodes) NODES="$(printf '%s' "$2" | tr ',' ' ')"; shift 2 ;;
         -h|--help) sed -n '5,28p' "$0"; exit 0 ;;
         *) printf 'unknown option: %s\n' "$1" >&2; exit 2 ;;
     esac
@@ -333,8 +337,18 @@ sect "Single points of failure"
 # a node says about itself can find this, so it is checked between nodes or
 # not at all. Not passing --nodes is reported, never assumed harmless.
 if [ -n "$NODES" ]; then
-    if bash scripts/check_nodes_agree.sh $NODES >/dev/null 2>&1; then
+    bash scripts/check_nodes_agree.sh $NODES >/dev/null 2>&1
+    AGREE_RC=$?
+    # 0 agree, 1 they differ, 2 they were never compared. Collapsing 2 into
+    # the else branch printed "the deployed nodes DISAGREE" for an ssh that
+    # timed out -- and for a host list this script itself had mangled. Every
+    # layer has to carry the distinction or the bottom one keeping it is
+    # pointless.
+    if [ "$AGREE_RC" -eq 0 ]; then
         ok "every deployed node runs the same binaries and the same chain"
+    elif [ "$AGREE_RC" -eq 2 ]; then
+        unchecked "the deployed nodes could not be compared -- run and read it:
+           bash scripts/check_nodes_agree.sh $NODES"
     else
         bad "the deployed nodes DISAGREE -- run:
            bash scripts/check_nodes_agree.sh $NODES"
