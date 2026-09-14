@@ -39,10 +39,25 @@ State whether you want to be credited, and how.
 
 ## What happens next
 
-There is no bug bounty. This project has no revenue and does not pretend
-otherwise; a promise of payment we could not keep would be worse than saying so
-plainly. What you will get is: a real answer from someone who read your report,
-credit in the release notes if you want it, and a fix.
+**1,000 WAM for an accepted security finding.** That was announced publicly
+before launch, on BitcoinTalk and in the channels, and this file said the
+opposite of it until 2026-09-14 — "there is no bug bounty" — while three other
+places in the repository said "there is a bounty" and linked here. A reviewer
+followed our own sentence to our own file and found it contradicted, which is
+how we learned of it. He was right and the file was wrong.
+
+It has been paid once, to the reviewer who found that the pool API was
+returning every miner's full payout address on three of four endpoints. How it
+was paid is part of the answer, because this project has no revenue and will
+not promise money it cannot produce: the founder does not mine — the
+whitepaper commits him to buying coins like anybody else if he ever wants them
+— so the 1,000 was bought from a miner at a price the miners themselves set in
+public, and sent by the seller straight to the reviewer. The offers, the price
+and the transaction are published.
+
+Alongside it, and worth more in most cases: a real answer from someone who
+read your report, credit in the release notes in whatever name you choose, and
+a fix.
 
 For anything that affects consensus or funds, the fix is written and tested
 before it is described publicly. Once it is released, the report is published
