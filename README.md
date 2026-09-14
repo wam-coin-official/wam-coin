@@ -106,7 +106,10 @@ That is peer review, and peer review is not a paid audit. Nobody has been
 engaged to attack the consensus changes methodically and publish what they
 find. The consensus layer is where a mistake costs most and where the fewest
 eyes have been, so it is the part most worth volunteering for: see
-[SECURITY.md](SECURITY.md), there is a bounty.
+[SECURITY.md](SECURITY.md), which says plainly what a reviewer gets — a real
+answer, credit if wanted, a fix, and the report published in full. **No
+payment**, and the reason is in that file: this project has no revenue, and a
+promise we could not keep would be worse than saying so.
 
 - **[docs/START_HERE.md](docs/START_HERE.md)** — run a node and mine, written for someone who has never done either ([بالعربية](docs/START_HERE_AR.md)).
 - **[docs/ROADMAP.md](docs/ROADMAP.md)** — the phased plan from here to a running network.

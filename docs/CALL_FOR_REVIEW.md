@@ -36,7 +36,9 @@ price.
 > holes. Both are fixed and the exchange is public.
 >
 > Nobody has been paid to audit the consensus changes. That is the part I most
-> want read, and there is a bounty:
+> want read. No bounty — we have no revenue and will not promise money we
+> cannot pay. What you get is an answer, credit, a fix, and the whole exchange
+> published:
 >
 > github.com/wam-coin-official/wam-coin/blob/main/SECURITY.md
 
@@ -99,7 +101,10 @@ price.
 > reviewed it and found two real security holes — a Redis instance reachable
 > without a password, and a share-accounting race. Both are fixed and the whole
 > exchange is in the repository. Nobody has been paid to audit the consensus
-> changes, which is the part where a mistake costs the most. There is a bounty:
+> changes, which is the part where a mistake costs the most. There is no
+> bounty, and `SECURITY.md` says why in one paragraph — what it offers instead
+> is an answer from someone who read the report, credit, a fix, and
+> publication in full:
 > <https://github.com/wam-coin-official/wam-coin/blob/main/SECURITY.md>
 >
 > **What I am not asking for:** money, or attention for a price. There is no
