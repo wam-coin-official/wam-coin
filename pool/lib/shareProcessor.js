@@ -72,6 +72,17 @@ class ShareProcessor extends EventEmitter {
         // The collector in the explorer has had `if (this.polling) return` since
         // it was written, for the far less costly problem of stacked RPC polls.
         this.paying = false;
+
+        // And the same guard for maturation, missing until 2026-09-14 and
+        // found by an outside reviewer reading the code rather than by
+        // anything going wrong. checkPendingBlocks() is called from a 60-second
+        // interval AND from the shutdown handler in server.js -- "one last
+        // payment run so miners are not left waiting on a restart" -- so an
+        // operator restarting while a maturation check was awaiting getblock
+        // ran both at once. Both read the same blocks:pending, both saw
+        // 100 confirmations, both credited. Every miner on that block was paid
+        // twice out of the operator's wallet.
+        this.checking = false;
     }
 
     k(...parts) { return [this.prefix, ...parts].join(':'); }
@@ -296,6 +307,16 @@ class ShareProcessor extends EventEmitter {
      * Move matured blocks into balances and discard orphans.
      */
     async checkPendingBlocks() {
+        if (this.checking) return;
+        this.checking = true;
+        try {
+            await this._checkPendingBlocks();
+        } finally {
+            this.checking = false;
+        }
+    }
+
+    async _checkPendingBlocks() {
         const pending = await this.redis.hgetall(this.k('blocks:pending'));
         const hashes = Object.keys(pending);
         if (hashes.length === 0) return;
@@ -357,6 +378,33 @@ class ShareProcessor extends EventEmitter {
     }
 
     async _mature(hash, record) {
+        // The claim IS the delete. HDEL returns how many fields it removed, so
+        // of any number of concurrent callers exactly one gets 1 and the rest
+        // get 0 -- and only the winner credits. The guard above stops two runs
+        // in this process; this stops two processes, and a pipeline that was
+        // never atomic in the first place.
+        //
+        // Until today the credit and the delete sat in one redis.pipeline(),
+        // which batches commands into one round trip and is NOT a transaction:
+        // a crash or a dropped connection between them left the balances
+        // credited and the block still pending, so the next run credited it
+        // again.
+        const claimed = await this.redis.hdel(this.k('blocks:pending'), hash);
+        if (claimed !== 1) {
+            this.log.warn(`block ${record.height} was already claimed for ` +
+                          'maturation by another run; not crediting it again');
+            return;
+        }
+
+        record.maturedAt = Date.now();
+        const evidence = JSON.stringify(record);
+
+        // Evidence inside the window that cannot be closed. If this process
+        // dies between the claim and the credit, this list is what tells an
+        // operator which block to replay by hand. Losing a credit is
+        // recoverable; paying it twice is not, so the order is deliberate.
+        await this.redis.lpush(this.k('blocks:maturing'), evidence);
+
         const pipe = this.redis.pipeline();
 
         for (const [worker, amount] of Object.entries(record.payouts)) {
@@ -366,10 +414,9 @@ class ShareProcessor extends EventEmitter {
             pipe.hincrby(this.k('balances'), address, amount);
         }
 
-        record.maturedAt = Date.now();
-        pipe.hdel(this.k('blocks:pending'), hash);
-        pipe.lpush(this.k('blocks:confirmed'), JSON.stringify(record));
+        pipe.lpush(this.k('blocks:confirmed'), evidence);
         pipe.ltrim(this.k('blocks:confirmed'), 0, 4999);
+        pipe.lrem(this.k('blocks:maturing'), 0, evidence);
 
         await pipe.exec();
 
