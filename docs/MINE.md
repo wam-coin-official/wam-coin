@@ -87,9 +87,9 @@ and no Linux. Open PowerShell and work in a folder you choose:
 
 ```
 mkdir C:\wam ; cd C:\wam
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-coin-v0.1.8-x86_64-w64-mingw32.zip
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-miner-v0.1.8-x86_64-w64-mingw32.zip
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS
+curl.exe -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-coin-v0.1.8-x86_64-w64-mingw32.zip
+curl.exe -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-miner-v0.1.8-x86_64-w64-mingw32.zip
+curl.exe -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS
 Expand-Archive wam-coin-v0.1.8-x86_64-w64-mingw32.zip -DestinationPath .
 Expand-Archive wam-miner-v0.1.8-x86_64-w64-mingw32.zip -DestinationPath .
 ```
@@ -98,9 +98,9 @@ Expand-Archive wam-miner-v0.1.8-x86_64-w64-mingw32.zip -DestinationPath .
 cannot be checked afterwards:
 
 ```
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS.asc
-curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
-curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.ps1
+curl.exe -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS.asc
+curl.exe -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
+curl.exe -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.ps1
 powershell -ExecutionPolicy Bypass -File verify_release.ps1
 ```
 
@@ -129,10 +129,39 @@ the wallet is:
 
 ```
 cd wam-coin-v0.1.8\bin
-.\wamd.exe -testnet -datadir=C:\wam\data -daemon
+.\wamd.exe -testnet -datadir=C:\wam\data
 .\wam-cli.exe -testnet -datadir=C:\wam\data createwallet "mine"
 .\wam-cli.exe -testnet -datadir=C:\wam\data -rpcwallet=mine backupwallet C:\wam\wallet-backup.dat
 .\wam-cli.exe -testnet -datadir=C:\wam\data -rpcwallet=mine getnewaddress
+```
+
+**Two things Windows does differently, and both were wrong in this guide
+until 2026-09-14 — a reader following it hit them before we did.**
+
+**`-daemon` does not exist on Windows.** The node answers
+`Error: -daemon is not supported on this operating system` and exits. So
+`wamd.exe` runs in the window you started it in: leave that window open and
+open a **second** PowerShell for the `wam-cli.exe` commands. If you would
+rather it stayed out of the way:
+
+```powershell
+Start-Process -FilePath .\wamd.exe `
+  -ArgumentList '-testnet','-datadir=C:\wam\data' -WindowStyle Minimized
+```
+
+**`curl` in PowerShell is not curl.** It is an alias for
+`Invoke-WebRequest`, which does not understand `-LO` and fails. The real
+program is `C:\WINDOWS\system32\curl.exe`, which is why every download
+above says `curl.exe` rather than `curl`.
+
+**And for mainnet, from 00:00 UTC on 15 September: the same four commands
+without `-testnet`, and a different data directory** — never the testnet one:
+
+```powershell
+.\wamd.exe -datadir=C:\wam\mainnet
+.\wam-cli.exe -datadir=C:\wam\mainnet createwallet "mine"
+.\wam-cli.exe -datadir=C:\wam\mainnet -rpcwallet=mine backupwallet C:\wam\mainnet-wallet-backup.dat
+.\wam-cli.exe -datadir=C:\wam\mainnet -rpcwallet=mine getnewaddress
 ```
 
 and the miner, from the folder it unpacked into:
