@@ -580,11 +580,41 @@ What it found, none of which reading would have shown:
   starts at height 1 — and counted it towards the failures. Above height 0 an
   inactive treasury is still a real failure and now reads as one.
 
-18. **The explorer**, and confirm it publishes what consensus enforces:
+18. **The explorer**: point it at mainnet, then confirm it publishes what
+    consensus enforces.
+
+    `explorer.wamcoin.org` keeps its URL. There is no second address, and
+    nothing about it changes by itself at midnight: nginx sends that name to
+    127.0.0.1:8081, which is `wam-dashboard.service`, which reads whatever
+    `WAM_CONF` points at -- and that is the TESTNET conf until somebody
+    changes it. Without this step the explorer goes on publishing testnet
+    after mainnet is live, under the name everyone was told to watch.
+
+    The drop-in is written and waiting on the pool host; the night moves it
+    into place:
+
+    ```bash
+    mv /etc/systemd/system/wam-dashboard.service.d/mainnet.conf.ready \
+       /etc/systemd/system/wam-dashboard.service.d/mainnet.conf
+    systemctl daemon-reload
+    systemctl restart wam-dashboard
+    systemctl show wam-dashboard -p Environment     # WAM_CONF=/root/.wam-mainnet/wam.conf
+    ```
+
+    Then the check, which must be run AFTER the switch or it measures the
+    old chain:
 
     ```bash
     python3 scripts/check_explorer.py --node <host1> --network mainnet
     ```
+
+    **And the port the pool must not take.** 8081 is the explorer's. The
+    mainnet pool config carried `apiPort: 8081` from 13 September until this
+    was read on the 15th: the config swap in Phase D would have had the pool
+    fail to bind a port the explorer already held, while `pool.wamcoin.org`
+    -- which nginx sends to 8080 -- pointed at the port the testnet pool had
+    just vacated. Both pool configs are on 8080 now, one at a time, which is
+    what the single `wam-pool.service` allows anyway.
 
 ---
 
