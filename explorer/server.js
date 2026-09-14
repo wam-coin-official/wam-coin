@@ -303,8 +303,13 @@ WAM Network Dashboard
             // reads as a dead network rather than a slow page.
             case pathname === '/api/network': {
                 const peers = await collector.rpc.tryCall('getpeerinfo', [], []);
-                // 0 means "everything you know", not "nothing".
+                // 0 means "as many as you are willing to hand out", which is
+                // NOT the same as "everything you know" -- see the comment on
+                // build() in lib/network.js. The address book itself is
+                // getaddrmaninfo, and the two differ by a factor of two on a
+                // network this small.
                 const known = await collector.rpc.tryCall('getnodeaddresses', [0], []);
+                const addrman = await collector.rpc.tryCall('getaddrmaninfo', [], null);
                 const netInfo = await collector.rpc.tryCall('getnetworkinfo', [], null);
                 // What a new node would find before it has any peers: the
                 // seed hostnames, resolved, and each distinct machine behind
@@ -320,7 +325,7 @@ WAM Network Dashboard
                 // minutes.
                 seeds.setSelfAddresses(
                     ((netInfo && netInfo.localaddresses) || []).map((a) => a.address));
-                const out = network.build(peers, known, netInfo);
+                const out = network.build(peers, known, netInfo, addrman);
                 out.seedNodes = seeds.snapshot();
                 return json(res, 200, out);
             }

@@ -377,6 +377,9 @@ async function renderNetwork() {
   }
 
   text($('netKnown'), n.known === null ? '—' : n.known.toLocaleString());
+  text($('netBook'), (n.bookTotal === null || n.bookTotal === undefined)
+    ? '\u00a0'
+    : `${n.bookTotal} in its address book, new and tried`);
   text($('netConnected'), n.connected.toLocaleString());
   text($('netInOut'), `${n.outbound} out · ${n.inbound} in`
     + (n.connectedOwn ? ` · ${n.connectedOwn} of them a WAM seed` : ''));

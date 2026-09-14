@@ -124,6 +124,33 @@ test('known addresses are reported separately from connected', () => {
     assert.notStrictEqual(o.known, o.connected);
 });
 
+test('the gossip list and the address book are different numbers', () => {
+    // 2026-09-14. The panel printed getnodeaddresses under the label "every
+    // address this node has ever heard of", and the founder distrusted it
+    // because it moved: 9, then 7, then 6, with nobody joining or leaving.
+    // Measured on France at one moment: getaddrmaninfo said 11, and
+    // getnodeaddresses said 6. Core filters the gossip list by its current
+    // opinion of each address; the book does not move for that reason.
+    const addrman = {
+        ipv4: { new: 8, tried: 2, total: 10 },
+        ipv6: { new: 1, tried: 0, total: 1 },
+        onion: { new: 0, tried: 0, total: 0 },
+        i2p: { new: 0, tried: 0, total: 0 }
+    };
+    const o = net.build(PEERS, new Array(6), null, addrman);
+    assert.strictEqual(o.known, 6, 'known must stay the gossip list');
+    assert.strictEqual(o.bookTotal, 11, 'bookTotal must sum addrman totals');
+    assert.notStrictEqual(o.known, o.bookTotal);
+});
+
+test('a node with no getaddrmaninfo reports no book rather than zero', () => {
+    // An older node, or an RPC that failed: null says "not measured", and 0
+    // would say "this node knows nobody", which is a different claim.
+    const o = net.build(PEERS, new Array(6), null, null);
+    assert.strictEqual(o.bookTotal, null);
+    assert.strictEqual(o.known, 6);
+});
+
 test('versions are tallied', () => {
     const o = net.build(PEERS, [], null);
     const v = Object.fromEntries(o.versions.map((x) => [x.version, x.count]));

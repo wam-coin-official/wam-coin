@@ -197,12 +197,29 @@ function classify(addr) {
 /**
  * Build the public view.
  *
- * `peers` is getpeerinfo; `known` is getnodeaddresses, which is the node's
- * whole address book rather than only what it is connected to right now. The
- * second number is the honest one for "how big is this network": a node holds
- * addresses it learned from others and has never dialled.
+ * `peers` is getpeerinfo. `known` is getnodeaddresses, and `addrman` is
+ * getaddrmaninfo.
+ *
+ * THE TWO ARE NOT THE SAME NUMBER, and this panel claimed they were until
+ * 2026-09-14. The founder said the figure looked false because it moved --
+ * 9, then 7, then 6 -- and he was right to distrust it. Measured on the
+ * France node at one moment:
+ *
+ *     getaddrmaninfo   ipv4 new 8 + tried 2, ipv6 new 1   =  11
+ *     getnodeaddresses 0                                  =   6
+ *
+ * getnodeaddresses is what the node is willing to GOSSIP: Core filters out
+ * addresses it currently considers terrible -- recently failed, too many
+ * attempts, too old -- so its verdict on the same address changes as those
+ * timestamps change, with nobody joining or leaving. On a network of six
+ * machines each flip is a visible jump.
+ *
+ * So `known` is now labelled for what it is, and `bookTotal` carries the
+ * address book. Neither is a census: a book does not forget quickly and a
+ * gossip list is a filtered sample. The number that actually falls when a
+ * node goes away is knownRecent, below.
  */
-function build(peers, known, netInfo) {
+function build(peers, known, netInfo, addrman) {
     const list = Array.isArray(peers) ? peers : [];
 
     // Keyed by place, not by connection. Two nodes routinely hold a pair of
@@ -298,6 +315,14 @@ function build(peers, known, netInfo) {
         // says almost nothing about how many machines are up, and the page
         // now carries the two numbers that do.
         known: Array.isArray(known) ? known.length : null,
+
+        // The address book, summed across ipv4/ipv6/onion, new + tried. This
+        // is the count that does not depend on how Core feels about each
+        // address this minute.
+        bookTotal: addrman && typeof addrman === 'object'
+            ? Object.values(addrman).reduce(
+                (t, n) => t + ((n && typeof n.total === 'number') ? n.total : 0), 0)
+            : null,
 
         // How many of those have actually been heard from in the last day.
         // This one falls when a node goes away, which is the property the

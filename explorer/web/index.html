@@ -162,12 +162,16 @@
     <div class="netgrid">
       <div class="netstat">
         <div class="netnum" id="netKnown">—</div>
-        <div class="netlabel">addresses known</div>
-        <!-- An address book, not a census. It only ever grows: it went from
-             four to five when a node in France appeared and stayed at five
-             when that node vanished ten hours later. The line under it
-             carries the number that does fall. -->
-        <div class="fine">every address this node has ever heard of</div>
+        <div class="netlabel">addresses it will share</div>
+        <!-- Not a census, and not the address book either. getnodeaddresses
+             returns what Core is currently willing to gossip, which excludes
+             addresses it judges terrible this minute -- so the figure moves
+             while nobody joins or leaves. The founder distrusted it for
+             exactly that reason on 14 September and was right. The book
+             itself is on the line below, and the number that falls when a
+             node really goes away is the 24h one. -->
+        <div class="fine">what this node would hand a newcomer</div>
+        <div class="fine" id="netBook">&nbsp;</div>
         <div class="fine" id="netKnownFine">&nbsp;</div>
       </div>
       <div class="netstat">
