@@ -796,10 +796,29 @@ int Run(int argc, char** argv)
     uint64_t lastHashes = 0;
     int64_t  lastStatsAt = NowMs();
 
+    int lastRefusals = 0;
+
     while (state.running.load()) {
         if (!client.IsConnected()) {
             std::string connectError;
             if (client.Connect(connectError)) {
+                // A connect that succeeds and is then refused at
+                // mining.authorize is not a success. Until 2026-09-14 this
+                // branch reset the backoff, so a miner with a mistyped
+                // address reconnected as fast as TCP allowed, for ever --
+                // found by the operator of a 500-miner pool who rehearsed
+                // against us and had to throttle his own clients.
+                if (client.AuthRefusals() > lastRefusals) {
+                    lastRefusals = client.AuthRefusals();
+                    Info("the pool refused the address; retrying in "
+                         + std::to_string(retryDelay / 1000) + "s");
+                    for (int64_t slept = 0;
+                         slept < retryDelay && state.running.load(); slept += 200) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                    }
+                    retryDelay = std::min<int64_t>(retryDelay * 2, 60000);
+                    continue;
+                }
                 Info("connected");
                 retryDelay = 1000;
             } else {

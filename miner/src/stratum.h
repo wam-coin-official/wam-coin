@@ -115,6 +115,9 @@ public:
     bool IsConnected() const { return m_fd != kInvalidSock; }
     bool IsAuthorized() const { return m_authorized; }
 
+    /** How many times the pool has refused mining.authorize on this run. */
+    int AuthRefusals() const { return m_authRefusals; }
+
     // -----------------------------------------------------------------------
 
     // Five block times. A pool sends a job on every block, so this is
@@ -511,6 +514,18 @@ private:
                 m_authorized = true;
                 Log("authorized as " + m_user);
             } else {
+                // Counted, because the reconnect loop must slow down for this.
+                //
+                // A refusal usually means the address is wrong, and a wrong
+                // address does not become right by asking again. Until
+                // 2026-09-14 the loop treated the next TCP connect as a
+                // success and reset its backoff, so the client reconnected as
+                // fast as the network allowed, for ever. Reported by the
+                // operator of a 500-miner pool who rehearsed against us and
+                // had to throttle his own clients: one typo in one address,
+                // multiplied by a community, is a denial of service on the
+                // pool's accept path -- delivered by the miner we publish.
+                ++m_authRefusals;
                 Report("the pool refused to authorize '" + m_user + "'. "
                        "Check that it is a valid address for this network.");
                 Close();
@@ -651,6 +666,7 @@ private:
 
     bool  m_subscribed = false;
     bool  m_authorized = false;
+    int   m_authRefusals = 0;
 
     // When anything last arrived from the pool.
     //
