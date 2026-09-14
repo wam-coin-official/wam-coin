@@ -103,25 +103,35 @@ ls ~/.wam/testnet3/wallets/              # what exists on disk
 <h2 id="windows">Windows</h2>
 <p>Since v0.1.8 there are Windows binaries, node and miner, and they need no WSL and no Linux. Open PowerShell and work in a folder you choose:</p>
 <pre><code>mkdir C:\wam ; cd C:\wam
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-coin-v0.1.8-x86_64-w64-mingw32.zip
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-miner-v0.1.8-x86_64-w64-mingw32.zip
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS
+curl.exe -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-coin-v0.1.8-x86_64-w64-mingw32.zip
+curl.exe -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-miner-v0.1.8-x86_64-w64-mingw32.zip
+curl.exe -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS
 Expand-Archive wam-coin-v0.1.8-x86_64-w64-mingw32.zip -DestinationPath .
 Expand-Archive wam-miner-v0.1.8-x86_64-w64-mingw32.zip -DestinationPath .</code></pre>
 <p><strong>Check it before you run it.</strong> One command, and it is the only step here that cannot be checked afterwards:</p>
-<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS.asc
-curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
-curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.ps1
+<pre><code>curl.exe -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS.asc
+curl.exe -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
+curl.exe -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.ps1
 powershell -ExecutionPolicy Bypass -File verify_release.ps1</code></pre>
 <p>It should end with <code>this is the WAM release, unmodified since it was signed</code>. Anything else, and it will say what is wrong and tell you not to run the files.</p>
 <p>This page used to tell you to run <code>certutil -hashfile</code> and compare sixty-four hexadecimal characters against <code>SHA256SUMS</code> by eye. Nobody does that: people check the first four characters and the last four, which is the check an attacker would design for. The script compares every one of them, and then does the part <code>certutil</code> cannot — it verifies that <code>SHA256SUMS</code> itself is ours, by the fingerprint published in <a href="/security/">SECURITY.md</a>.</p>
 <p>That last part needs GnuPG, which Windows does not ship. If you have <a href="https://gitforwindows.org/">Git for Windows</a> you already have one and the script finds it; otherwise install <a href="https://gpg4win.org/">Gpg4win</a>. Without it the script checks the hashes, tells you the signature was <strong>not</strong> checked, and exits without saying the release is good — because a matching hash against an unsigned list proves your download is not corrupt and proves nothing about who wrote the list.</p>
 <p>Then the node, with the directory named explicitly so you always know where the wallet is:</p>
 <pre><code>cd wam-coin-v0.1.8\bin
-.\wamd.exe -testnet -datadir=C:\wam\data -daemon
+.\wamd.exe -testnet -datadir=C:\wam\data
 .\wam-cli.exe -testnet -datadir=C:\wam\data createwallet "mine"
 .\wam-cli.exe -testnet -datadir=C:\wam\data -rpcwallet=mine backupwallet C:\wam\wallet-backup.dat
 .\wam-cli.exe -testnet -datadir=C:\wam\data -rpcwallet=mine getnewaddress</code></pre>
+<p><strong>Two things Windows does differently, and both were wrong in this guide until 2026-09-14 — a reader following it hit them before we did.</strong></p>
+<p><strong><code>-daemon</code> does not exist on Windows.</strong> The node answers <code>Error: -daemon is not supported on this operating system</code> and exits. So <code>wamd.exe</code> runs in the window you started it in: leave that window open and open a <strong>second</strong> PowerShell for the <code>wam-cli.exe</code> commands. If you would rather it stayed out of the way:</p>
+<pre><code>Start-Process -FilePath .\wamd.exe `
+  -ArgumentList '-testnet','-datadir=C:\wam\data' -WindowStyle Minimized</code></pre>
+<p><strong><code>curl</code> in PowerShell is not curl.</strong> It is an alias for <code>Invoke-WebRequest</code>, which does not understand <code>-LO</code> and fails. The real program is <code>C:\WINDOWS\system32\curl.exe</code>, which is why every download above says <code>curl.exe</code> rather than <code>curl</code>.</p>
+<p><strong>And for mainnet, from 00:00 UTC on 15 September: the same four commands without <code>-testnet</code>, and a different data directory</strong> — never the testnet one:</p>
+<pre><code>.\wamd.exe -datadir=C:\wam\mainnet
+.\wam-cli.exe -datadir=C:\wam\mainnet createwallet "mine"
+.\wam-cli.exe -datadir=C:\wam\mainnet -rpcwallet=mine backupwallet C:\wam\mainnet-wallet-backup.dat
+.\wam-cli.exe -datadir=C:\wam\mainnet -rpcwallet=mine getnewaddress</code></pre>
 <p>and the miner, from the folder it unpacked into:</p>
 <pre><code>.\wam-miner.exe -o stratum+tcp://pool.wamcoin.org:13333 -u YOUR_ADDRESS -t 4</code></pre>
 <h3 id="windows-will-call-the-miner-a-virus-and-it-is-wrong">Windows will call the miner a virus, and it is wrong</h3>
