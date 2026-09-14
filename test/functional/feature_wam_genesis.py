@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 The WAM Coin developers
 # Distributed under the MIT software license, see COPYING.
-"""The genesis premine: five tranches, four of them time-locked.
+"""The genesis premine: five tranches, every one of them time-locked.
 
 Bitcoin's genesis coinbase is deliberately unspendable -- it was never added to
 the UTXO set. WAM patches that, because the genesis block *is* the premine. If
@@ -12,7 +12,7 @@ failure would look exactly like success until someone tried.
 
 So this checks the outputs are real UTXOs, not just bytes in a block.
 
-It also checks the four locked tranches carry CHECKLOCKTIMEVERIFY with the
+It also checks all five locked tranches carry CHECKLOCKTIMEVERIFY with the
 dates the whitepaper promises. Those dates are the whole basis of the founder
 disclosure; they are readable from block 0 by anyone, and this makes sure they
 stay that way.
@@ -28,12 +28,26 @@ COIN = 100_000_000
 PREMINE_TOTAL = 2_000_000 * COIN
 TRANCHE_AMOUNT = 400_000 * COIN
 TRANCHE_COUNT = 5
+# Every tranche is locked; the first opens 2027-09-15, a year after launch.
+#
+# This list read [0, 2027, 2028, 2029, 2030] until it was first executed, on
+# 2026-09-14 -- nine hours before mainnet. The prose above it had already been
+# rewritten for the change that locked the first tranche, and the assertions
+# below it too, but the dates themselves were left shifted by one. Run against
+# the deployed v0.1.8 binary it failed on the first output with
+#
+#     AssertionError: not(1820966400 == 0)
+#
+# which is the binary being right and the test being a year behind. The source
+# of truth is WAM_PREMINE_UNLOCK_TIMES in src/wam/wam-params.h; the dates are
+# still copied here as literals rather than imported, because a test that
+# reads the value it is checking proves nothing.
 UNLOCK_TIMES = [
-    0,           # tranche 1 -- spendable from genesis
-    1820966400,  # 2027-09-15
-    1852588800,  # 2028-09-15
-    1884124800,  # 2029-09-15
-    1915660800,  # 2030-09-15
+    1820966400,  # tranche 1 -- 2027-09-15
+    1852588800,  # tranche 2 -- 2028-09-15
+    1884124800,  # tranche 3 -- 2029-09-15
+    1915660800,  # tranche 4 -- 2030-09-15
+    1947196800,  # tranche 5 -- 2031-09-15
 ]
 
 OP_CHECKLOCKTIMEVERIFY = 0xb1
