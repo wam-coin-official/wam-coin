@@ -44,11 +44,18 @@
 set -uo pipefail
 
 GRN=$'\033[32m'; RED=$'\033[31m'; YLW=$'\033[33m'; BLD=$'\033[1m'; OFF=$'\033[0m'
-FAIL=0
+FAIL=0       # nodes were compared and they differ          -> exit 1
+UNKNOWN=0    # a node was never read, so nothing compared    -> exit 2
 
 ok()   { printf '  %sok%s     %s\n' "$GRN" "$OFF" "$*"; }
 bad()  { printf '  %sFAIL%s   %s\n' "$RED" "$OFF" "$*"; FAIL=$((FAIL + 1)); }
 warn() { printf '  %swarn%s   %s\n' "$YLW" "$OFF" "$*"; }
+
+# A question that was never asked. Separate from bad() because the summary of
+# this check ends with "do not launch on this", and an ssh timeout is not a
+# reason not to launch -- it is a reason to look again. Until 2026-09-14,
+# ten hours before mainnet, an unreachable host came out of here in red.
+unknown() { printf '  %s??%s     %s\n' "$YLW" "$OFF" "$*"; UNKNOWN=$((UNKNOWN + 1)); }
 
 if [ $# -lt 2 ]; then
     printf 'usage: %s HOST [HOST...]\n\n' "${0##*/}" >&2
@@ -75,13 +82,16 @@ for h in "${HOSTS[@]}"; do
         ok "$h"
         LIVE+=("$h")
     else
-        bad "$h -- no answer from wam-cli over ssh"
+        unknown "$h -- no answer from wam-cli over ssh; it was not compared"
     fi
 done
 
 if [ "${#LIVE[@]}" -lt 2 ]; then
-    printf '\n%sfewer than two nodes answered -- nothing can be compared%s\n' "$RED" "$OFF"
-    exit 1
+    # The line itself says nothing could be compared. Exit 2 says the same
+    # thing to the machine reading the exit code, instead of claiming a
+    # disagreement between nodes that were never asked.
+    printf '\n%sfewer than two nodes answered -- nothing can be compared%s\n' "$YLW" "$OFF"
+    exit 2
 fi
 
 # ---------------------------------------------------------------------------
@@ -143,7 +153,7 @@ for h in "${LIVE[@]}"; do
 done
 
 if [ -z "$COMMON" ]; then
-    bad "no node reported a usable height"
+    unknown "no node reported a usable height -- no history was compared"
 else
     printf '  comparing at height %s, the lowest every node has reached\n' "$COMMON"
     declare -A ATCOMMON
@@ -175,10 +185,17 @@ done
 
 echo
 echo "=================================================================="
-if [ "$FAIL" -eq 0 ]; then
-    printf ' %sall %d nodes agree%s\n' "$GRN" "${#LIVE[@]}" "$OFF"
-else
+if [ "$FAIL" -ne 0 ]; then
     printf ' %s%d disagreement(s) -- do not launch on this%s\n' "$RED" "$FAIL" "$OFF"
+elif [ "$UNKNOWN" -ne 0 ]; then
+    printf ' %sthe %d node(s) that answered agree; %d could not be read%s\n' \
+        "$YLW" "${#LIVE[@]}" "$UNKNOWN" "$OFF"
+else
+    printf ' %sall %d nodes agree%s\n' "$GRN" "${#LIVE[@]}" "$OFF"
 fi
 echo "=================================================================="
-[ "$FAIL" -eq 0 ]
+
+# A real disagreement outranks an unread node: 1 is louder than 2.
+if [ "$FAIL" -ne 0 ]; then exit 1; fi
+if [ "$UNKNOWN" -ne 0 ]; then exit 2; fi
+exit 0

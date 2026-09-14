@@ -52,9 +52,18 @@ KOMODO = REPO / "integration" / "komodo"
 _fails = []
 
 
+# Questions this run could not ask. The local fields were still compared, so
+# this is not a failure -- but the summary line below vouches for the whole
+# entry, and it may not vouch for a question nobody put.
+_unknown = []
+
+
 def ok(m):   print(f"  {GRN}ok{OFF}    {m}")
 def bad(m):  print(f"  {RED}FAIL{OFF}  {m}"); _fails.append(m)
 def warn(m): print(f"  {YEL}!!{OFF}    {m}")
+def unmeasured(m):
+    print(f"  {YEL}??{OFF}    {m}")
+    _unknown.append(m)
 
 
 def main():
@@ -156,6 +165,11 @@ def main():
     if _fails:
         print(f"  {RED}{len(_fails)} field(s) disagree with the source{OFF}")
         return 1
+    if _unknown:
+        print(f"  {YEL}the fields agree, but {len(_unknown)} question(s) could "
+              f"not be asked{OFF}")
+        # 2, this project's convention for "the check could not run in full".
+        return 2
     print(f"  {GRN}the entries describe this coin{OFF}")
     return 0
 
@@ -238,7 +252,8 @@ def check_blockdx(prefix, num, hdr):
             else:
                 ok(f"{('release ' + v):<18} {n} downloadable asset(s)")
     except Exception as e:
-        warn(f"could not reach GitHub to check the listed releases ({e})")
+        unmeasured(f"could not reach GitHub, so whether every listed version "
+                   f"still has a download is unknown ({e})")
 
 
 if __name__ == "__main__":

@@ -99,7 +99,9 @@ run() {
         # longer than a minute.
         printf '%scould not check%s\n' "$YLW" "$OFF"
         SKIPPED+=("$name -- the check could not run")
-        sed 's/\x1b\[[0-9;]*m//g' "$log" | grep -iE '^ *(!!|could not)' | head -2 \
+        # \?\? is the marker a check prints for a question it could not ask;
+        # !! is its older spelling. Escaped because ? quantifies in ERE.
+        sed 's/\x1b\[[0-9;]*m//g' "$log" | grep -iE '^ *(\?\?|!!|could not)' | head -2 \
             | sed 's/^/       /'
     else
         printf '%sFAIL%s\n' "$RED" "$OFF"

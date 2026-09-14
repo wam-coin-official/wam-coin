@@ -68,10 +68,29 @@ RED = "\033[31m"; GRN = "\033[32m"; YEL = "\033[33m"; BLD = "\033[1m"; OFF = "\0
 _fails = []
 _warns = []
 
+# Things this run could not measure. They are NOT findings, and keeping them
+# apart matters twice over in this particular check:
+#
+#   1. On the ops panel a finding here reads "no block was un-confirmed:
+#      FAILING", which says the chain rewrote itself. A node that was merely
+#      restarting said exactly that, in exactly that red, until 2026-09-14.
+#   2. With --announce, a finding is PUBLISHED to the channels as "Chain
+#      reorganisation detected on WAM ... Exchanges and pools: raise your
+#      confirmation requirement until this is explained." An unreachable node
+#      must never be able to send that message to anybody. Only _fails can
+#      announce, and after this change nothing unanswered reaches _fails.
+_unknown = []
+
 
 def ok(m):   print(f"  {GRN}ok{OFF}    {m}")
 def bad(m):  print(f"  {RED}FAIL{OFF}  {m}"); _fails.append(m)
 def warn(m): print(f"  {YEL}!!{OFF}    {m}"); _warns.append(m)
+
+
+def unmeasured(m):
+    """Said out loud, counted apart, never announced."""
+    print(f"  {YEL}??{OFF}    {m}")
+    _unknown.append(m)
 
 
 # Heights are remembered sparsely rather than every one of them. A reorg
@@ -259,14 +278,16 @@ def check(host, network, depth_alarm, state_dir, datadir=None):
     try:
         raw = run(host, f"{c} getblockcount && echo --- && {c} getchaintips")
     except Exception as e:
-        bad(f"{label}: node not answering ({e})")
+        unmeasured(f"{label}: node not answering ({e}). Nothing was compared, "
+                   f"so nothing is claimed about this chain either way.")
         return
     try:
         head, tips_raw = raw.split("---", 1)
         tip = int(head.strip())
         tips = json.loads(tips_raw)
     except (ValueError, json.JSONDecodeError) as e:
-        bad(f"{label}: could not read the node's reply ({e})")
+        unmeasured(f"{label}: could not read the node's reply ({e}). A reply "
+                   f"we cannot parse is a reply we did not read.")
         return
 
     # ---- 1. competing branches ------------------------------------------
@@ -301,7 +322,8 @@ def check(host, network, depth_alarm, state_dir, datadir=None):
     try:
         now = read_hashes(host, c, wanted)
     except Exception as e:
-        bad(f"{label}: could not read block hashes ({e})")
+        unmeasured(f"{label}: could not read block hashes ({e}). The recorded "
+                   f"heights are left untouched for the next run.")
         return
 
     changed = [(h, known[h], now[h]) for h in sorted(known)
@@ -439,7 +461,9 @@ def main():
         try:
             check(h, a.network, a.depth, a.state_dir, a.datadir)
         except Exception as e:                      # never let one host hide another
-            bad(f"{h or 'this machine'}: {type(e).__name__}: {e}")
+            # A crash in this script is a failure of this script, not evidence
+            # about the chain -- and it must not be able to publish an alarm.
+            unmeasured(f"{h or 'this machine'}: {type(e).__name__}: {e}")
 
     print()
     if _fails:
@@ -451,6 +475,13 @@ def main():
                      "requirement until this is explained.",
                      os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         return 1
+    if _unknown:
+        print(f"  {YEL}{len(_unknown)} thing(s) could not be measured -- that "
+              f"is not 'nothing rewritten', it is 'nobody looked'{OFF}")
+        # 2, this project's convention for "the check could not run". 1 would
+        # claim a reorganisation nobody saw; 0 would vouch for a chain nobody
+        # read.
+        return 2
     if _warns:
         print(f"  {YEL}{len(_warns)} thing(s) worth a look, nothing confirmed{OFF}")
         return 0

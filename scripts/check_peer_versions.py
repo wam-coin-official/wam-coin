@@ -118,15 +118,24 @@ def main():
         print()
         return 2
     if rc != 0 or not out.strip():
-        bad(f"could not read the peer list from {args.node}")
+        # Also 2, for the reason written above: ssh answered but the node did
+        # not, and "could not read the peer list" is not a finding about
+        # anybody's version. Only the UNREACHABLE path was corrected when the
+        # false red appeared on the panel; this one was left returning 1 until
+        # 2026-09-14, ten hours before mainnet, and it would have painted the
+        # same false FAILING for a node that was merely still starting up.
+        warn(f"could not read the peer list from {args.node} -- the node did "
+             f"not answer. This says nothing about who is on the network.")
         print()
-        return 1
+        return 2
     try:
         peers = json.loads(out)
     except Exception as e:
-        bad(f"peer list is not JSON: {e}")
+        # A reply we cannot parse is a reply we did not read.
+        warn(f"peer list from {args.node} is not JSON ({e}). Nothing about "
+             f"the network was measured.")
         print()
-        return 1
+        return 2
 
     rc, mine = rsh(args.node, f"wam-cli {flag} getnetworkinfo")
     current = "0.0.0"

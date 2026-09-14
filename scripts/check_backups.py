@@ -135,7 +135,12 @@ def check_instance(host, network, timer, max_age_hours, backup_dir):
         hours = int(out.split()[0])
         name = out.split()[1]
     except (ValueError, IndexError):
-        bad(f"{network}: could not read the newest archive: {out}")
+        # The host answered with something this cannot parse, so the age of
+        # the archive is unknown -- which is not the same as the archive being
+        # stale. warn() routes to exit 2 in main(), the convention for a
+        # question that could not be put.
+        warn(f"{network}: the newest archive's age could not be read from the "
+             f"reply ({out!r}), so how old it is is unknown")
         return
 
     if hours <= max_age_hours:
