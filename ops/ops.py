@@ -408,6 +408,13 @@ CHECKS = [
                                      "scripts/check_peer_versions.py",
                                      "--node", "169.58.159.165",
                                      "--network", "testnet"], 200),
+    # Added 2026-09-15, an hour into mainnet, because nothing on this panel
+    # asked who was writing the chain -- and one party had just written 80 of
+    # the first 82 blocks. 54 launch checks, and not one of them looked.
+    ("no one party writes the chain", [sys.executable,
+                                       "scripts/check_concentration.py",
+                                       "--node", "169.58.159.165",
+                                       "--network", "mainnet"], 600),
     ("nodes agree", ["bash", "scripts/check_nodes_agree.sh"] + ALL_IPS, 150),
     ("deployed code is origin/main",
      ["bash", "scripts/check_deployed_code.sh"] + ALL_IPS, 150),
