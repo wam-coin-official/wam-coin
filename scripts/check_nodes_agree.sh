@@ -107,9 +107,36 @@ printf '\n%sthe same code%s\n' "$BLD" "$OFF"
 # and this reports a disagreement that does not exist -- and a check that
 # cries wolf is one nobody reads, which is the failure this file exists to
 # prevent.
+# THE FIVE CONSENSUS PROGRAMS, and deliberately not everything named wam*.
+#
+# This used to fingerprint /usr/local/bin/wam*, which is also where the
+# operational shell scripts live -- wam-backup.sh, wam-concentration-log.sh.
+# Those are installed per ROLE: the hourly concentration logger belongs on the
+# host that runs the explorer and nowhere else, because there is nothing for it
+# to read anywhere else. Installing it produced
+#
+#     FAIL  <host> and <host> run DIFFERENT binaries -- they may enforce
+#           different rules
+#     2 disagreement(s) -- do not launch on this
+#
+# on a network whose five consensus programs were byte-identical. A check that
+# says "do not launch" about a log script is a check that gets ignored on the
+# day it means something.
+#
+# A wam-cli that disagrees with its daemon is still a real hazard, so all five
+# are compared, not just wamd.
+CONSENSUS_BINARIES='wamd wam-cli wam-tx wam-util wam-wallet'
+
 declare -A FINGERPRINT
 for h in "${LIVE[@]}"; do
-    FINGERPRINT[$h]="$(rsh "$h" 'for f in /usr/local/bin/wam*; do printf "%s %s\n" "${f##*/}" "$(sha256sum "$f" | cut -c1-16)"; done | LC_ALL=C sort' | tr -d '\r')"
+    FINGERPRINT[$h]="$(rsh "$h" "for f in $CONSENSUS_BINARIES; do p=/usr/local/bin/\$f; [ -f \"\$p\" ] && printf '%s %s\n' \"\$f\" \"\$(sha256sum \"\$p\" | cut -c1-16)\"; done | LC_ALL=C sort" | tr -d '\r')"
+done
+
+# The helper scripts are still worth a word -- they differ for a reason, and a
+# reason someone should be able to state. Said as a note, never as a finding.
+declare -A HELPERS
+for h in "${LIVE[@]}"; do
+    HELPERS[$h]="$(rsh "$h" 'ls -1 /usr/local/bin/wam*.sh 2>/dev/null | xargs -r -n1 basename | LC_ALL=C sort' | tr -d '\r')"
 done
 
 REF="${LIVE[0]}"
@@ -122,6 +149,18 @@ for h in "${LIVE[@]:1}"; do
              <(printf '%s\n' "${FINGERPRINT[$h]}") 2>/dev/null \
             | grep -E '^[<>]' | sed "s/^/           /"
         printf '           %s is < , %s is >\n' "$REF" "$h"
+    fi
+done
+
+# The role scripts, reported and never failed on.
+for h in "${LIVE[@]:1}"; do
+    if [ "${HELPERS[$h]}" != "${HELPERS[$REF]}" ]; then
+        printf '  %snote%s   %s and %s carry different helper scripts, which is\n' \
+            "$YLW" "$OFF" "$h" "$REF"
+        printf '         expected when they run different services:\n'
+        diff <(printf '%s\n' "${HELPERS[$REF]}") \
+             <(printf '%s\n' "${HELPERS[$h]}") 2>/dev/null \
+            | grep -E '^[<>]' | sed "s/^/           /"
     fi
 done
 
