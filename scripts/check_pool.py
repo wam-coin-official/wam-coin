@@ -171,12 +171,30 @@ def main():
     ap.add_argument("--node", help="ssh host to read the true height from")
     ap.add_argument("--network", default="testnet",
                     choices=["mainnet", "testnet", "regtest"])
-    ap.add_argument("--address", default="twam1q0g97ezlr7j6apx9y4gva3rc99x5l5kjh6g66da",
-                    help="a well-formed address to authorise with; nothing is submitted")
+    # No default here: it depends on the network, and a testnet address was
+    # the default on every network until 00:10 UTC on launch night. The
+    # mainnet pool refused it -- correctly, the HRP is wrong -- and closed the
+    # connection, so this check reported all four stratum ports as
+    # "server closed the connection" while fourteen miners were connected to
+    # them and a hand probe got a subscribe reply from every one. The same
+    # mistake as the six checks that mapped mainnet to an empty wam-cli flag:
+    # the check asked the wrong chain's question and believed the answer.
+    ap.add_argument("--address", default=None,
+                    help="a well-formed address to authorise with; nothing is "
+                         "submitted. Defaults to the pool's own published "
+                         "address for the network being checked.")
     ap.add_argument("--lag", type=int, default=5, help="blocks the pool may trail the node")
     ap.add_argument("--payout-interval", type=int, default=600,
                     help="seconds between payout runs, from the pool config")
     args = ap.parse_args()
+
+    if not args.address:
+        # Both are the pools' own payout addresses, published in
+        # pool/config*.json and on the site. Authorising as them credits
+        # nothing: this check subscribes and authorises and submits no share.
+        args.address = {
+            "mainnet": "wam1qrulaxxlqf65madsmhqrevf467r6qmgdrxhf9yw",
+        }.get(args.network, "twam1q0g97ezlr7j6apx9y4gva3rc99x5l5kjh6g66da")
 
     # --- the API ----------------------------------------------------------
     head("the pool answers")
