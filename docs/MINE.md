@@ -68,14 +68,18 @@ The last command prints your address; it starts with `twam1`. Then, from
 where the miner unpacked:
 
 ```
-./wam-miner -o stratum+tcp://pool.wamcoin.org:13333 -u YOUR_ADDRESS -t 4
+./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS -t 4
 ```
 
-**13333, not 3333.** The testnet pool moved off 3333-3336 on 11 September so
-those ports stand empty for mainnet on the 15th. `pool.wamcoin.org:3333` is
-the mainnet address and answers nothing until then -- pointing a testnet
-miner at it now gets a connection refused, not a wrong chain, which is the
-safer of the two ways to be wrong.
+**3333, and the address must be a mainnet one.** Until 00:00 UTC on
+15 September the pool served testnet on 13333. At that moment it was
+converted -- there is one `wam-pool` service -- so **13333 answers nothing
+now** and 3333-3336 are the live pool. An address beginning `twam1` is a
+testnet address and the pool refuses it: "bech32 checksum failed" or "invalid
+address" in your miner's log means exactly this, and you are hashing for
+nothing until you fix it. Create the address with the mainnet commands above,
+with no `-testnet`, and COPY it rather than retyping it -- the checksum
+catches a single wrong character, which is what it is for.
 
 `-t 4` is how many processor cores to use. Without it the miner takes every
 core but one, which makes the rest of the machine unpleasant to use.
@@ -167,7 +171,7 @@ without `-testnet`, and a different data directory** — never the testnet one:
 and the miner, from the folder it unpacked into:
 
 ```
-.\wam-miner.exe -o stratum+tcp://pool.wamcoin.org:13333 -u YOUR_ADDRESS -t 4
+.\wam-miner.exe -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS -t 4
 ```
 
 ### Windows will call the miner a virus, and it is wrong
@@ -258,7 +262,7 @@ cd wam-coin-v0.1.8/bin
 and the miner, from where it unpacked:
 
 ```
-./wam-miner -o stratum+tcp://pool.wamcoin.org:13333 -u YOUR_ADDRESS -t 4
+./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS -t 4
 ```
 
 ### macOS will refuse to run them the first time

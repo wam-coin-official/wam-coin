@@ -97,8 +97,8 @@ ls ~/.wam/testnet3/wallets/              # what exists on disk
 ./wam-cli -testnet loadwallet "mine"     # open it again</code></pre>
 <p>Nothing is lost either way — <code>createwallet</code> writes a file and deleting <code>blocks</code>, <code>chainstate</code> or <code>peers.dat</code> does not touch it. This was found on 6 September by somebody following this page, restarting his node three times, and being told his wallet did not exist.</p>
 <p>The last command prints your address; it starts with <code>twam1</code>. Then, from where the miner unpacked:</p>
-<pre><code>./wam-miner -o stratum+tcp://pool.wamcoin.org:13333 -u YOUR_ADDRESS -t 4</code></pre>
-<p><strong>13333, not 3333.</strong> The testnet pool moved off 3333-3336 on 11 September so those ports stand empty for mainnet on the 15th. <code>pool.wamcoin.org:3333</code> is the mainnet address and answers nothing until then -- pointing a testnet miner at it now gets a connection refused, not a wrong chain, which is the safer of the two ways to be wrong.</p>
+<pre><code>./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS -t 4</code></pre>
+<p><strong>3333, and the address must be a mainnet one.</strong> Until 00:00 UTC on 15 September the pool served testnet on 13333. At that moment it was converted &mdash; there is one <code>wam-pool</code> service &mdash; so <strong>13333 answers nothing now</strong> and 3333-3336 are the live pool. An address beginning <code>twam1</code> is a testnet address and the pool refuses it: &quot;bech32 checksum failed&quot; or &quot;invalid address&quot; in your miner&#39;s log means exactly this, and you are hashing for nothing until you fix it. Create the address with the mainnet commands, with no <code>-testnet</code>, and copy it rather than retyping it.</p>
 <p><code>-t 4</code> is how many processor cores to use. Without it the miner takes every core but one, which makes the rest of the machine unpleasant to use.</p>
 <h2 id="windows">Windows</h2>
 <p>Since v0.1.8 there are Windows binaries, node and miner, and they need no WSL and no Linux. Open PowerShell and work in a folder you choose:</p>
@@ -133,7 +133,7 @@ powershell -ExecutionPolicy Bypass -File verify_release.ps1</code></pre>
 .\wam-cli.exe -datadir=C:\wam\mainnet -rpcwallet=mine backupwallet C:\wam\mainnet-wallet-backup.dat
 .\wam-cli.exe -datadir=C:\wam\mainnet -rpcwallet=mine getnewaddress</code></pre>
 <p>and the miner, from the folder it unpacked into:</p>
-<pre><code>.\wam-miner.exe -o stratum+tcp://pool.wamcoin.org:13333 -u YOUR_ADDRESS -t 4</code></pre>
+<pre><code>.\wam-miner.exe -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS -t 4</code></pre>
 <h3 id="windows-will-call-the-miner-a-virus-and-it-is-wrong">Windows will call the miner a virus, and it is wrong</h3>
 <p>This is the part nobody tells you, so it is written here before it happens to you. On 12 September, the first time the Windows miner was run on a real desktop, it passed every self-test, connected to the pool, took a job, and started hashing. Fourteen seconds later Windows Defender killed the process and deleted the file:</p>
 <pre><code>Trojan:Win32/Bearfoos.A!ml        Severity: Severe</code></pre>
@@ -163,7 +163,7 @@ cd wam-coin-v0.1.8/bin
 ./wam-cli -testnet -datadir=$HOME/wam/data -rpcwallet=mine backupwallet $HOME/wam/wallet-backup.dat
 ./wam-cli -testnet -datadir=$HOME/wam/data -rpcwallet=mine getnewaddress</code></pre>
 <p>and the miner, from where it unpacked:</p>
-<pre><code>./wam-miner -o stratum+tcp://pool.wamcoin.org:13333 -u YOUR_ADDRESS -t 4</code></pre>
+<pre><code>./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS -t 4</code></pre>
 <h3 id="macos-will-refuse-to-run-them-the-first-time">macOS will refuse to run them the first time</h3>
 <p>Not a virus warning and not the same thing Windows does. You will see</p>
 <pre><code>"wamd" cannot be opened because the developer cannot be verified.</code></pre>
