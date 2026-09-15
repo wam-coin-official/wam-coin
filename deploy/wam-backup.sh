@@ -120,7 +120,23 @@ die()  { bad "$*"; exit 1; }
 # CHAINDIR is the subdirectory the wallet actually lives under, which is what
 # wam-wallet needs to find it again on restore. Mainnet has none.
 case "$NETWORK" in
-    mainnet) CLI=(wam-cli);            NETFLAG=();          CHAINDIR="" ;;
+    # A BARE wam-cli IS NOT MAINNET. /root/.wam/wam.conf says testnet=1, so
+    # `wam-cli backupwallet` on this host asks the TESTNET node -- which has a
+    # wallet called "pool" too. On launch night this backed up the testnet
+    # pool wallet, labelled it mainnet, and the archive's own verify step then
+    # refused to open a BDB file as a descriptor one:
+    #
+    #   FAIL wallet 'pool' (mainnet) will NOT open: Data is not in recognized
+    #        format
+    #   FAIL the archive does not restore -- deleted rather than left to be
+    #        trusted
+    #
+    # So the pool wallet that had just started holding miners' money had no
+    # backup at all, and the failure looked like corruption rather than like
+    # the wrong chain. Same flags as scripts/wamcli.py, which exists because
+    # six other scripts made this mistake first.
+    mainnet) CLI=(wam-cli -chain=main -conf=/root/.wam-mainnet/wam.conf -datadir=/root/.wam-mainnet)
+             NETFLAG=();          CHAINDIR="" ;;
     testnet) CLI=(wam-cli -testnet);   NETFLAG=(-testnet);  CHAINDIR="testnet3" ;;
     regtest) CLI=(wam-cli -regtest);   NETFLAG=(-regtest);  CHAINDIR="regtest" ;;
     *) die "WAM_NETWORK must be mainnet, testnet or regtest (got '$NETWORK')" ;;
