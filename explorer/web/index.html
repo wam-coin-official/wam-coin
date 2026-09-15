@@ -186,6 +186,22 @@
       </div>
     </div>
 
+    <!-- Published permanently, high or low. On the night mainnet opened one
+         address found 97.5% of the first 79 blocks, and the only people who
+         knew were miners who had won nothing and were leaving. A miner
+         deciding where to point needs to see which pool needs them. -->
+    <h3 class="sub">Who is writing the chain</h3>
+    <p class="fine" id="concSummary">reading the last blocks…</p>
+    <table class="kv" id="concTable"></table>
+    <p class="fine">
+      Counted from the largest output of each coinbase, which is always the
+      miner's: the treasury takes 5% of the subsidy by consensus and the miner
+      takes the rest plus every fee. One address is not one person — a pool
+      pays itself and then distributes, so the coins spread while the hash
+      rate stays in one operator's hands, and it is the hash rate that decides
+      whether this chain can be rewritten.
+    </p>
+
     <table class="kv" id="netTypes">
       <tr><td>IPv4</td><td class="num" id="netIpv4">—</td></tr>
       <tr><td>IPv6</td><td class="num" id="netIpv6">—</td></tr>

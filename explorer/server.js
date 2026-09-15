@@ -28,6 +28,7 @@ const RpcClient = require('./lib/rpc');
 const Collector = require('./lib/collector');
 const network = require('./lib/network');
 const { Seeds } = require('./lib/seeds');
+const { Concentration } = require('./lib/concentration');
 
 // ---------------------------------------------------------------------------
 // Tiny logger (no dependency)
@@ -244,6 +245,7 @@ WAM Network Dashboard
 
     const rpc = new RpcClient(config.rpc);
     const collector = new Collector(rpc, log, { pollSeconds: config.pollSeconds });
+    const concentration = new Concentration(log);
 
     // Asked of DNS, the way a node with no peers asks. Cached, because a
     // seed does not appear and vanish minute to minute and a page refresh
@@ -297,6 +299,17 @@ WAM Network Dashboard
 
             case pathname === '/api/blocks':
                 return json(res, 200, { blocks: collector.get().blocks });
+
+            // How concentrated the hash rate is, published permanently.
+            // Not cached with the rest and not hidden behind a flag: on the
+            // night mainnet opened, one address found 97.5% of the first 79
+            // blocks and the only people who knew were miners who had won
+            // nothing. See lib/concentration.js.
+            case pathname === '/api/concentration': {
+                const tip = (collector.get().chain || {}).blocks || 0;
+                if (tip > 0) await concentration.update(collector.rpc, tip);
+                return json(res, 200, { tip, ...concentration.snapshot() });
+            }
 
             // Who else is out there. Deliberately not cached with the rest:
             // this is the number people will refresh, and a minute-old answer

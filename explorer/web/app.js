@@ -366,6 +366,46 @@ $('auditForm').addEventListener('submit', async (e) => {
 //
 // A failure here must not blank the rest of the page: the network card is the
 // least important thing on it and the chain data is the most.
+// How concentrated the hash rate is. Its own request, because it is the one
+// number on this page that a miner might act on within the minute.
+async function renderConcentration() {
+  let c;
+  try {
+    c = await getJSON('/api/concentration');
+  } catch {
+    text($('concSummary'), 'could not be read just now');
+    return;
+  }
+  if (!c.blocksRead) {
+    text($('concSummary'), 'reading the last blocks…');
+    return;
+  }
+  const pc = c.topPercent;
+  const verdict = pc >= 50
+    ? `one party wrote ${pc.toFixed(1)}% of the last ${c.blocksRead} blocks — `
+      + 'at this share the chain can be reorganised by one decision'
+    : `the largest single finder wrote ${pc.toFixed(1)}% of the last `
+      + `${c.blocksRead} blocks`;
+  text($('concSummary'), `${verdict}. ${c.distinct} distinct finder(s).`);
+
+  const t = $('concTable');
+  if (t) {
+    t.innerHTML = '';
+    for (const row of c.top) {
+      const tr = document.createElement('tr');
+      const td1 = document.createElement('td');
+      td1.className = 'mono';
+      td1.textContent = row.finder;
+      const td2 = document.createElement('td');
+      td2.className = 'num';
+      td2.textContent = `${row.blocks} block(s) · ${row.percent.toFixed(1)}%`;
+      tr.appendChild(td1);
+      tr.appendChild(td2);
+      t.appendChild(tr);
+    }
+  }
+}
+
 async function renderNetwork() {
   let n;
   try {
@@ -483,6 +523,7 @@ async function refresh() {
     renderRandomX(s);
     renderBlocks(s.blocks);
     renderNetwork();
+    renderConcentration();
 
     text($('footerStatus'), `dashboard up ${duration(s.serverUptimeSec)}`);
   } catch (err) {
