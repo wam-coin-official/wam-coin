@@ -84,11 +84,26 @@ class VarDiff {
             : Math.min(this.maxDiff, this.networkDiff / SHARES_PER_BLOCK);
     }
 
-    /** The floor follows the chain down by the same rule. */
+    /**
+     * The floor is a floor. It used to "follow the chain down by the same
+     * rule" as the ceiling, and on a young chain that collapsed the band to a
+     * single value: with minDiff 100 configured and a network difficulty of
+     * 0.0755, _minAllowed and _maxAllowed both returned 0.0047 and vardiff
+     * could not move a miner at all. Eighteen miners sat on byte-identical
+     * difficulty for eight hours on the first day of mainnet, and a share at
+     * networkDiff/16 costs a 200 H/s machine about twenty-eight hours of work.
+     * From that miner's seat a pool is indistinguishable from solo mining,
+     * which is exactly what one of them said in the chat.
+     *
+     * So the floor is the configured minDiff, lowered only when the ceiling
+     * itself is lower -- a floor above the ceiling is not a floor. The
+     * absolute limit is there so a misconfigured 0 cannot ask for a share
+     * every hash.
+     */
     _minAllowed() {
-        if (this.networkDiff === null) return this.minDiff;
-        return Math.min(this.minDiff,
-                        Math.max(this.networkDiff / SHARES_PER_BLOCK, 1e-9));
+        const floor = Math.max(this.minDiff, 1e-9);
+        if (this.networkDiff === null) return floor;
+        return Math.min(floor, Math.max(this.networkDiff / SHARES_PER_BLOCK, 1e-9));
     }
 
     /** Per-connection state. */
@@ -158,9 +173,14 @@ class VarDiff {
         const lo = this._minAllowed();
         const hi = Math.max(lo, this._maxAllowed());
         d = Math.min(hi, Math.max(lo, d));
-        // Round to 6 significant-ish decimals so the wire value is stable and
-        // share accounting is reproducible.
-        return Math.round(d * 1000000) / 1000000;
+        // Round to 6 decimals so the wire value is stable and share accounting
+        // is reproducible. That rounding sets the smallest difficulty this
+        // pool can express: 0.000001. Anything below half of it would round to
+        // ZERO -- a target every hash satisfies, a miner flooding the pool,
+        // and a division by zero in the share weighting. So the rounding
+        // floor is enforced here rather than trusted to configuration.
+        const rounded = Math.round(d * 1000000) / 1000000;
+        return rounded > 0 ? rounded : 0.000001;
     }
 }
 

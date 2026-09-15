@@ -53,12 +53,12 @@
   "paymentIntervalSec": 600,
   "blockCheckIntervalSec": 60,
   "coinbaseMaturity": 100,
-  "startDifficulty": 1000,
+  "startDifficulty": 0.00001,
   "varDiff": {
     "targetTime": 15,
     "retargetTime": 90,
     "variancePercent": 30,
-    "minDiff": 100,
+    "minDiff": 0.000001,
     "maxDiff": 2000000,
     "maxJump": 4
   },
