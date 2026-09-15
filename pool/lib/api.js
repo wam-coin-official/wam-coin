@@ -104,7 +104,7 @@ class ApiServer {
 
         this.webRoot = path.join(__dirname, '..', 'web');
         this.cache = new Map();          // endpoint -> {at, body}
-        this.cacheMs = config.apiCacheMs || 3000;
+        this.cacheMs = config.apiCacheMs ?? 3000;
     }
 
     listen() {
@@ -311,7 +311,7 @@ class ApiServer {
                 rewardMode: pool.rewardMode,
                 poolFeePercent: pool.poolFeePercent,
                 chainDevFeePercent: 5,
-                minimumPayoutWam: this.config.minimumPayoutWam || 1,
+                minimumPayoutWam: this.config.minimumPayoutWam ?? 1,
                 ports: (this.config.ports || []).map((p) => ({
                     port: p.port,
                     difficulty: p.difficulty || this.config.startDifficulty,

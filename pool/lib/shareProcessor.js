@@ -50,7 +50,11 @@ class ShareProcessor extends EventEmitter {
 
         this.prefix = config.redisPrefix || 'wam';
         this.mode = (config.rewardMode || 'pplns').toLowerCase();
-        this.poolFeePercent = config.poolFeePercent || 1;
+        // ?? and not ||. A zero fee is a real configuration -- this pool
+        // ran at 0% from launch night onward -- and `0 || 1` is 1, so the
+        // operator's choice was silently replaced with a charge and every
+        // report agreed it was 1%.
+        this.poolFeePercent = config.poolFeePercent ?? 1;
         this.pplnsMultiplier = config.pplnsMultiplier || 2;
         this.maturity = config.coinbaseMaturity || COINBASE_MATURITY;
 
@@ -447,7 +451,7 @@ class ShareProcessor extends EventEmitter {
     }
 
     async _processPayments() {
-        const threshold = Math.round((this.config.minimumPayoutWam || 1) * COIN);
+        const threshold = Math.round((this.config.minimumPayoutWam ?? 1) * COIN);
         const balances = await this.redis.hgetall(this.k('balances'));
 
         const due = Object.entries(balances)
@@ -506,7 +510,7 @@ class ShareProcessor extends EventEmitter {
         // Never attempt a payment the wallet cannot cover: a partially failed
         // sendmany is far harder to reconcile than a postponed one.
         const walletBalance = Math.round((await this.daemon.getBalance()) * COIN);
-        const reserve = Math.round((this.config.txFeeReserveWam || 0.01) * COIN);
+        const reserve = Math.round((this.config.txFeeReserveWam ?? 0.01) * COIN);
 
         if (walletBalance < batchTotal + reserve) {
             this.log.warn(
