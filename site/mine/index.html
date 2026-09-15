@@ -95,6 +95,7 @@ cd wam-coin-v0.1.8/bin
 <pre><code>./wam-cli -testnet listwallets           # what is open right now
 ls ~/.wam/testnet3/wallets/              # what exists on disk
 ./wam-cli -testnet loadwallet "mine"     # open it again</code></pre>
+<p><strong>Do not use <code>scripts/gen_founder_key.py</code> for a mining address.</strong> It is in the repository and it produces a valid address, so people find it and use it &mdash; one miner did on launch night, and his address found a block. It is an air-gapped ceremony tool: it prints a private key once, stores it nowhere, and expects you to write it on paper. No wallet holds that key, so there is no seed phrase, no backup file, and nothing for <code>backupwallet</code> to copy. Lose the paper and everything mined to it is gone, with no error at any point until the day you try to spend. The commands above are what you want.</p>
 <p>Nothing is lost either way — <code>createwallet</code> writes a file and deleting <code>blocks</code>, <code>chainstate</code> or <code>peers.dat</code> does not touch it. This was found on 6 September by somebody following this page, restarting his node three times, and being told his wallet did not exist.</p>
 <p>The last command prints your address; it starts with <code>twam1</code>. Then, from where the miner unpacked:</p>
 <pre><code>./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS -t 4</code></pre>

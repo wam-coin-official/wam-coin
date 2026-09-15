@@ -59,6 +59,15 @@ ls ~/.wam/testnet3/wallets/              # what exists on disk
 ./wam-cli -testnet loadwallet "mine"     # open it again
 ```
 
+**Do not use `scripts/gen_founder_key.py` for a mining address.** It is in
+the repository and it produces a valid address, so people find it and use it
+— one miner did on launch night, and his address found a block. It is an
+air-gapped ceremony tool: it prints a private key once, stores it nowhere,
+and expects you to write it on paper. No wallet holds that key, so there is
+no seed phrase, no backup file, and nothing for `backupwallet` to copy. Lose
+the paper and everything mined to it is gone, with no error at any point
+until the day you try to spend. The commands above are what you want.
+
 Nothing is lost either way — `createwallet` writes a file and deleting
 `blocks`, `chainstate` or `peers.dat` does not touch it. This was found on
 6 September by somebody following this page, restarting his node three times,

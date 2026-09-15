@@ -8,6 +8,24 @@
 
  !!  RUN THIS ON AN AIR-GAPPED MACHINE  !!
 
+ !!  AND NOT FOR A MINING ADDRESS. THIS IS NOT A WALLET.  !!
+
+ Four hours into mainnet a miner ran this to get an address to point his
+ rigs at. It worked -- the address is valid, the pool accepted it, and it
+ found block 62 -- which is exactly why it is dangerous. Nothing looks wrong
+ until the day he tries to spend, because:
+
+   * the WIF below is printed ONCE and stored nowhere,
+   * no wallet holds the key, so there is no seed phrase and no backup file,
+   * `backupwallet` cannot help: there is no wallet to back up.
+
+ Lose the paper and the coins are gone, with no error, no warning, and no
+ way back. For a mining address use a wallet, which keeps the key for you:
+
+     wam-cli createwallet "mine"
+     wam-cli -rpcwallet=mine getnewaddress
+     wam-cli -rpcwallet=mine backupwallet /path/to/backup.dat
+
  The private key printed by this script controls:
    * the entire 2,000,000 WAM genesis premine, and
    * 5% of every block subsidy for the life of the chain.
@@ -645,6 +663,25 @@ def main() -> int:
 
     if args.selftest:
         return selftest()
+
+    # Said out loud, not only in the docstring above, because a person who
+    # runs a script has usually not read it. See the header: this tool was
+    # used for a mining address on launch night.
+    if args.network and not args.verify_backup:
+        print()
+        print("  " + "=" * 68)
+        print("  This is a CEREMONY tool, not a wallet.")
+        print()
+        print("  If you want an address to MINE to, stop and use a wallet")
+        print("  instead -- it keeps the key for you and can be backed up:")
+        print()
+        print("      wam-cli createwallet \"mine\"")
+        print("      wam-cli -rpcwallet=mine getnewaddress")
+        print()
+        print("  The key below is printed once and saved nowhere. Lose the")
+        print("  paper and the coins are gone, with no error and no warning.")
+        print("  " + "=" * 68)
+        print()
 
     # ---- verify a paper backup without ever revealing it ------------------
     if args.verify_backup:
