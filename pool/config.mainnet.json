@@ -65,22 +65,22 @@
   "ports": [
     {
       "port": 3333,
-      "difficulty": 500,
+      "difficulty": 0.000005,
       "description": "CPUs and small rigs"
     },
     {
       "port": 3334,
-      "difficulty": 10000,
+      "difficulty": 0.0001,
       "description": "servers and farms"
     },
     {
       "port": 3335,
-      "difficulty": 200000,
+      "difficulty": 0.001,
       "description": "large farms"
     },
     {
       "port": 3336,
-      "difficulty": 500,
+      "difficulty": 0.000005,
       "tls": true,
       "description": "encrypted (TLS) -- use stratum+ssl://"
     }
