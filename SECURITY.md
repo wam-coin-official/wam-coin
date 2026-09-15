@@ -39,21 +39,40 @@ State whether you want to be credited, and how.
 
 ## What happens next
 
-**1,000 WAM for an accepted security finding.** That was announced publicly
-before launch, on BitcoinTalk and in the channels, and this file said the
-opposite of it until 2026-09-14 — "there is no bug bounty" — while three other
-places in the repository said "there is a bounty" and linked here. A reviewer
-followed our own sentence to our own file and found it contradicted, which is
-how we learned of it. He was right and the file was wrong.
+**The published tiers, paid in mainnet WAM.** These were announced before
+launch, on BitcoinTalk and in the channels:
 
-It has been paid once, to the reviewer who found that the pool API was
-returning every miner's full payout address on three of four endpoints. How it
-was paid is part of the answer, because this project has no revenue and will
-not promise money it cannot produce: the founder does not mine — the
-whitepaper commits him to buying coins like anybody else if he ever wants them
-— so the 1,000 was bought from a miner at a price the miners themselves set in
-public, and sent by the seller straight to the reviewer. The offers, the price
-and the transaction are published.
+| | |
+|---|---|
+| Consensus split, inflation beyond the 22,000,000 cap, or theft of pool funds | 50,000 WAM |
+| Remote crash, or a way to steal another miner's shares | 10,000 WAM |
+| Everything else accepted | 1,000 WAM |
+
+They are a floor and not a ceiling: a finding that matters more than its rung
+can be paid more than its rung, and if that happens it will be said plainly
+that it was a judgement and not a tier.
+
+This file said the opposite of all of it until 2026-09-14 — "there is no bug
+bounty" — while three other places in the repository said "there is a bounty"
+and linked here. A reviewer followed our own sentence to our own file and found
+it contradicted. He was right and the file was wrong.
+
+**Nothing has been paid yet, and how it will be paid is not settled.** Between
+14 and 15 September this paragraph claimed the opposite: that 1,000 WAM had
+already been paid to the reviewer who found the pool API leaking payout
+addresses, bought from a miner at a price the miners set in public, with the
+offers, the price and the transaction published. None of that had happened.
+Mainnet did not exist when the sentence was written, so there were no mainnet
+coins to pay with and no price for anyone to have set. It was written here in
+error and stood for a day, including on wamcoin.org/security.
+
+What is true as of 15 September 2026: two findings are accepted and unpaid —
+the pool API leak, and a pool accounting fault that could credit a matured
+block more than once. The reserve the announcement named as the source is
+locked by consensus until 2027-09-15, which anybody can verify from block 0,
+so the source has to be something else and the founder has not yet said what.
+When each is paid, the amount, the reason for the amount and the transaction id
+will be published here, and not before.
 
 Alongside it, and worth more in most cases: a real answer from someone who
 read your report, credit in the release notes in whatever name you choose, and
