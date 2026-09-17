@@ -204,6 +204,15 @@ run "units report their own failure"  bash scripts/test/test_onfailure.sh
 # did anything else here. This one reads what we publish.
 run "published claims match consensus"  "$PY" scripts/check_published_claims.py
 
+# And the other half of that question, which had no detector until mainnet's
+# second day: the repository can be right while the WEBSITE is wrong. Two
+# corrections were committed, pushed and reported as published on 15
+# September and neither reached wamcoin.org, because the site is served from
+# the generated gh-pages branch and publish_site.sh was never run. The false
+# one stood for two days and was found by an outside researcher asking for a
+# transaction id.
+run "the live site is this repository" "$PY" scripts/check_site_published.py
+
 # The same failure, one layer out: not "is what we publish true" but "does
 # the list of who we are name everybody who is us". CHANNELS.txt says "There
 # are no others", so a channel missing from it is branded an impostor's by
