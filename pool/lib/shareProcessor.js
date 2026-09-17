@@ -628,10 +628,26 @@ class ShareProcessor extends EventEmitter {
     }
 
     async getPoolStats() {
-        const [confirmed, orphaned, payments, balances, paid, fees, pendingRaw] =
+        // A COUNT IS NOT THE LENGTH OF A WINDOW.
+        //
+        // This read lrange(blocks:confirmed, 0, 49) and reported
+        // confirmedBlocks.length as blocksConfirmed. lrange returns at most
+        // fifty entries, so once the pool had matured fifty blocks the number
+        // on the dashboard was 50 for ever. The founder caught it by watching
+        // for a day: "maturing" climbed 46 -> 64 while "BLOCKS FOUND 50" never
+        // moved once.
+        //
+        // llen asks redis for the real length. The lrange stays, because the
+        // page also wants the most recent blocks to show -- a sample and a
+        // count are two different questions and the bug was answering the
+        // second with the first.
+        const [confirmed, confirmedTotal, orphaned, orphanedTotal,
+               payments, balances, paid, fees, pendingRaw] =
             await Promise.all([
-                this.redis.lrange(this.k('blocks:confirmed'), 0, 49),
-                this.redis.lrange(this.k('blocks:orphaned'), 0, 24),
+                this.redis.lrange(this.k('blocks:confirmed'), 0, 4999),
+                this.redis.llen(this.k('blocks:confirmed')),
+                this.redis.lrange(this.k('blocks:orphaned'), 0, 999),
+                this.redis.llen(this.k('blocks:orphaned')),
                 this.redis.lrange(this.k('payments'), 0, 24),
                 this.redis.hgetall(this.k('balances')),
                 this.redis.hgetall(this.k('paid')),
@@ -647,20 +663,27 @@ class ShareProcessor extends EventEmitter {
 
         const totalPaid = Object.values(paid).reduce((a, b) => a + parseInt(b, 10), 0);
         const totalOwed = Object.values(balances).reduce((a, b) => a + parseInt(b, 10), 0);
+        // Summed over every confirmed block the list still holds, plus every
+        // pending one. blocks:confirmed is trimmed at 5000 entries, so beyond
+        // that this understates -- and a money figure that quietly understates
+        // is the fault this whole change is about. So it says whether it is
+        // complete rather than leaving a reader to assume.
         const treasuryPaid = [...confirmedBlocks, ...pendingBlocks]
             .reduce((a, b) => a + (b.devFeeAmount || 0), 0);
+        const treasuryPaidComplete = confirmedTotal <= confirmedBlocks.length;
 
         return {
             rewardMode: this.mode,
             poolFeePercent: this.poolFeePercent,
             chainDevFeePercent: 5,
-            blocksConfirmed: confirmedBlocks.length,
+            blocksConfirmed: confirmedTotal,
             blocksPending: pendingBlocks.length,
-            blocksOrphaned: parse(orphaned).length,
+            blocksOrphaned: orphanedTotal,
             totalPaid,
             totalOwed,
             poolFeesCollected: parseInt(fees || '0', 10),
             treasuryPaidByConsensus: treasuryPaid,
+            treasuryPaidComplete,
             recentBlocks: confirmedBlocks.slice(0, 25).map(summariseBlock),
             pendingBlocks: pendingBlocks.map(summariseBlock),
             orphanedBlocks: parse(orphaned).map(summariseBlock),
