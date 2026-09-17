@@ -381,6 +381,20 @@ async function renderConcentration() {
     return;
   }
   const pc = c.topPercent;
+  // The seven-day figure goes first when we have it, because that is the
+  // window the project's published condition is written against. The
+  // 48-block one swung between 100% and 54% inside a single day.
+  const sd = c.sevenDay;
+  if (sd && sd.blocksRead) {
+    const bar = sd.topPercent >= sd.noApplicationAbove
+      ? `above ${sd.noApplicationAbove}% — no exchange application is made at this level`
+      : (sd.topPercent >= sd.targetBelow
+          ? `below ${sd.noApplicationAbove}%, above the ${sd.targetBelow}% target`
+          : `below the ${sd.targetBelow}% target`);
+    text($('concSeven'),
+      `over the last ${sd.blocksRead} blocks (${sd.complete ? 'seven days' : 'the whole chain so far'}): `
+      + `largest finder ${sd.topPercent.toFixed(1)}%, ${sd.distinct} distinct — ${bar}`);
+  }
   const verdict = pc >= 50
     ? `one party wrote ${pc.toFixed(1)}% of the last ${c.blocksRead} blocks — `
       + 'at this share the chain can be reorganised by one decision'

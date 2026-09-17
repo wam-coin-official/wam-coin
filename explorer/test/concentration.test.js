@@ -132,6 +132,41 @@ async function fill(c, rpc, tip) {
             'a full payout address reached the API');
     });
 
+    await test('the seven-day window sits beside the short one, not instead of it', async () => {
+        const finders = {};
+        // 200 blocks: the last 50 are ours, everything older is theirs. The
+        // short window therefore says 100% us and the long one says 25% us --
+        // both true, which is exactly why both are published.
+        for (let h = 1; h <= 200; h++) {
+            finders[h] = h > 150 ? 'wam1qours00000000000000000000000000000000'
+                                 : 'wam1qtheirs0000000000000000000000000000000';
+        }
+        const c = new Concentration(log);
+        await fill(c, fakeRpc(finders), 200);
+        const s = c.snapshot();
+        assert.strictEqual(s.window, 50, 'the short window must stay at the top level');
+        assert(s.sevenDay, 'no seven-day figure');
+        assert.strictEqual(s.sevenDay.window, 5040);
+        assert(s.sevenDay.blocksRead > s.blocksRead,
+            `long window read ${s.sevenDay.blocksRead}, short read ${s.blocksRead}`);
+        assert(Math.round(s.topPercent) === 100,
+            `short window ${s.topPercent}, expected 100`);
+        assert(s.sevenDay.topPercent > 70 && s.sevenDay.topPercent < 80,
+            `long window ${s.sevenDay.topPercent}, expected about 75`);
+    });
+
+    await test('the published rule travels with the number', async () => {
+        const finders = {};
+        for (let h = 1; h <= 60; h++) finders[h] = 'wam1qone0000000000000000000000000000000000';
+        const c = new Concentration(log);
+        await fill(c, fakeRpc(finders), 60);
+        const s = c.snapshot();
+        // A share without the rule it is judged against invites everyone to
+        // invent their own threshold, which is what happened in the channel.
+        assert.strictEqual(s.sevenDay.noApplicationAbove, 50);
+        assert.strictEqual(s.sevenDay.targetBelow, 35);
+    });
+
     console.log(fail.length
         ? `\n  ${fail.length} failure(s): ${fail.join(', ')}\n`
         : `\n  ${pass} checks: the published share is the measured share\n`);

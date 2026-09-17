@@ -37,10 +37,31 @@
 // look like a majority, short enough that a real shift shows the same day.
 const WINDOW = 50;
 
+// And the long one, because the short one is not the number the project's own
+// public condition is written against.
+//
+// The founder published: no application to any exchange while one finder is
+// above 50%, and a target of no finder above 35% OF BLOCKS OVER SEVEN DAYS.
+// This module published 48 blocks -- an hour and a half. Within one day that
+// short window read 100% and then 54%, while the share over the whole chain
+// moved from 97% to 72%. A reader shown only the short figure gets a picture
+// worse than the truth in one direction and better in the other, and cannot
+// tell which.
+//
+// 5040 blocks is seven days at the 120-second target. On a chain younger than
+// that it covers every block there has ever been, which is what makes it the
+// honest denominator today.
+const LONG_WINDOW = 5040;
+
 // Heights fetched per refresh. The explorer answers page loads on the same
 // event loop, and a cold start asking for fifty blocks at once is a page that
 // hangs. It fills in over a few cycles instead.
+//
+// The long window needs a bigger bite or it would take hours to fill: at 12 a
+// cycle, 5040 blocks is 420 cycles. Blocks on this chain carry one
+// transaction, so the cost is a round trip rather than parsing.
 const MAX_FETCH_PER_CYCLE = 12;
+const MAX_BACKFILL_PER_CYCLE = 250;
 
 class Concentration {
     constructor(log) {
@@ -56,9 +77,17 @@ class Concentration {
     async update(rpc, tipHeight) {
         this.tip = tipHeight;
         let fetched = 0;
-        for (let h = tipHeight; h > tipHeight - WINDOW && h >= 1; h--) {
+
+        // The recent window first and always: it is what a miner refreshing
+        // the page is looking at. Only once it is complete does the long one
+        // get the rest of this cycle's budget.
+        const recentComplete = this._complete(tipHeight, WINDOW);
+        const budget = recentComplete ? MAX_BACKFILL_PER_CYCLE : MAX_FETCH_PER_CYCLE;
+        const depth = recentComplete ? LONG_WINDOW : WINDOW;
+
+        for (let h = tipHeight; h > tipHeight - depth && h >= 1; h--) {
             if (this.finders.has(h)) continue;
-            if (fetched >= MAX_FETCH_PER_CYCLE) break;
+            if (fetched >= budget) break;
             try {
                 const hash = await rpc.call('getblockhash', [h]);
                 const block = await rpc.call('getblock', [hash, 2]);
@@ -75,11 +104,43 @@ class Concentration {
             }
         }
 
-        // Anything below the window is no longer part of the answer. Blocks
-        // near the tip can still be reorganised away, so they are re-read.
+        // Anything below the LONG window is no longer part of any answer.
+        // Blocks near the tip can still be reorganised away, so they are
+        // re-read.
         for (const h of this.finders.keys()) {
-            if (h < tipHeight - WINDOW || h > tipHeight - 3) this.finders.delete(h);
+            if (h < tipHeight - LONG_WINDOW || h > tipHeight - 3) this.finders.delete(h);
         }
+    }
+
+    /** Have we read every height in the last `depth` blocks? */
+    _complete(tipHeight, depth) {
+        for (let h = tipHeight - 3; h > tipHeight - depth && h >= 1; h--) {
+            if (!this.finders.has(h)) return false;
+        }
+        return true;
+    }
+
+    /** Tally over the last `depth` heights we hold. */
+    _tally(depth) {
+        const tally = new Map();
+        let total = 0;
+        for (const [h, addr] of this.finders) {
+            if (h <= this.tip - depth) continue;
+            tally.set(addr, (tally.get(addr) || 0) + 1);
+            total++;
+        }
+        const ranked = [...tally.entries()].sort((a, b) => b[1] - a[1]);
+        return {
+            window: depth,
+            blocksRead: total,
+            distinct: ranked.length,
+            topPercent: total ? (100 * ranked[0][1]) / total : null,
+            top: ranked.slice(0, 5).map(([addr, n]) => ({
+                finder: addr.length > 16 ? `${addr.slice(0, 10)}…${addr.slice(-4)}` : addr,
+                blocks: n,
+                percent: (100 * n) / total
+            }))
+        };
     }
 
     /**
@@ -87,27 +148,27 @@ class Concentration {
      * before the first pass has anything, which the page must not draw as 0%.
      */
     snapshot() {
-        const tally = new Map();
-        for (const addr of this.finders.values()) {
-            tally.set(addr, (tally.get(addr) || 0) + 1);
-        }
-        const total = this.finders.size;
-        const ranked = [...tally.entries()].sort((a, b) => b[1] - a[1]);
-
+        // The recent window stays at the top level, so nothing that already
+        // reads this endpoint breaks. The seven-day figure -- the one the
+        // published condition is actually written against -- sits beside it,
+        // named, with how much of it has been read so far.
+        //
+        // Addresses are shortened for the same reason the pool API redacts
+        // workers: the question is how concentrated the chain is, not who
+        // exactly is mining it, and a published list of miners is a published
+        // list of targets.
+        const recent = this._tally(WINDOW);
+        const long = this._tally(LONG_WINDOW);
         return {
-            window: WINDOW,
-            blocksRead: total,
-            distinct: ranked.length,
-            topPercent: total ? (100 * ranked[0][1]) / total : null,
-            top: ranked.slice(0, 5).map(([addr, n]) => ({
-                // Shortened for the same reason the pool API redacts workers:
-                // the question is how concentrated the chain is, not who
-                // exactly is mining it, and a published list of miners is a
-                // published list of targets.
-                finder: addr.length > 16 ? `${addr.slice(0, 10)}…${addr.slice(-4)}` : addr,
-                blocks: n,
-                percent: (100 * n) / total
-            }))
+            ...recent,
+            sevenDay: {
+                ...long,
+                complete: this._complete(this.tip, LONG_WINDOW),
+                // What the founder committed to in public, so the number and
+                // the rule it is judged against are never separated.
+                noApplicationAbove: 50,
+                targetBelow: 35
+            }
         };
     }
 }
