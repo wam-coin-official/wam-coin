@@ -381,26 +381,34 @@ async function renderConcentration() {
     return;
   }
   const pc = c.topPercent;
-  // The seven-day figure goes first when we have it, because that is the
-  // window the project's published condition is written against. The
-  // 48-block one swung between 100% and 54% inside a single day.
   const sd = c.sevenDay;
-  if (sd && sd.blocksRead) {
-    const bar = sd.topPercent >= sd.noApplicationAbove
-      ? `above ${sd.noApplicationAbove}% — no exchange application is made at this level`
-      : (sd.topPercent >= sd.targetBelow
-          ? `below ${sd.noApplicationAbove}%, above the ${sd.targetBelow}% target`
-          : `below the ${sd.targetBelow}% target`);
-    text($('concSeven'),
-      `over the last ${sd.blocksRead} blocks (${sd.complete ? 'seven days' : 'the whole chain so far'}): `
-      + `largest finder ${sd.topPercent.toFixed(1)}%, ${sd.distinct} distinct — ${bar}`);
-  }
-  const verdict = pc >= 50
-    ? `one party wrote ${pc.toFixed(1)}% of the last ${c.blocksRead} blocks — `
-      + 'at this share the chain can be reorganised by one decision'
-    : `the largest single finder wrote ${pc.toFixed(1)}% of the last `
-      + `${c.blocksRead} blocks`;
-  text($('concSummary'), `${verdict}. ${c.distinct} distinct finder(s).`);
+
+  // NEITHER LINE IS THE HEADLINE.
+  //
+  // The seven-day figure was printed first and the short one second, until
+  // the founder pointed out what an order does: the reader remembers whoever
+  // the first line names, and we are the party that benefits from one of the
+  // two orders. Today the long window names the other pool and the short one
+  // names ours. So both lines now carry the same grammar, the same shape and
+  // the same weight, and the sentence under them says that neither is the
+  // number.
+  const line = (label, span, top, distinct) => {
+    if (top === null || top === undefined) return `${label}: reading…`;
+    const rule = top >= 50
+      ? 'above the 50% line \u2014 no exchange application is made at this level'
+      : (top >= 35 ? 'below 50%, above the 35% target' : 'below the 35% target');
+    return `${label} (${span}): largest finder ${top.toFixed(1)}%, `
+         + `${distinct} distinct \u2014 ${rule}`;
+  };
+
+  text($('concSeven'), sd && sd.blocksRead
+    ? line(sd.complete ? 'last seven days' : 'the whole chain so far',
+           `${sd.blocksRead} blocks`, sd.topPercent, sd.distinct)
+    : 'last seven days: reading…');
+
+  text($('concSummary'),
+    line('right now', `${c.blocksRead} blocks, about ${Math.round(c.blocksRead * 2 / 60)}h`,
+         pc, c.distinct));
 
   const t = $('concTable');
   if (t) {
