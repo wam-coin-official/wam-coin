@@ -57,22 +57,79 @@ bounty" — while three other places in the repository said "there is a bounty"
 and linked here. A reviewer followed our own sentence to our own file and found
 it contradicted. He was right and the file was wrong.
 
-**Nothing has been paid yet, and how it will be paid is not settled.** Between
-14 and 15 September this paragraph claimed the opposite: that 1,000 WAM had
-already been paid to the reviewer who found the pool API leaking payout
-addresses, bought from a miner at a price the miners set in public, with the
-offers, the price and the transaction published. None of that had happened.
-Mainnet did not exist when the sentence was written, so there were no mainnet
-coins to pay with and no price for anyone to have set. It was written here in
-error and stood for a day, including on wamcoin.org/security.
+**Nothing has been paid yet.** Between 14 and 15 September this paragraph
+claimed the opposite: that 1,000 WAM had already been paid to the reviewer who
+found the pool API leaking payout addresses, bought from a miner at a price the
+miners set in public, with the offers, the price and the transaction published.
+None of that had happened. Mainnet did not exist when the sentence was written,
+so there were no mainnet coins to pay with and no price for anyone to have set.
+It was written here in error and stood for a day, including on
+wamcoin.org/security.
 
-What is true as of 15 September 2026: two findings are accepted and unpaid —
-the pool API leak, and a pool accounting fault that could credit a matured
-block more than once. The reserve the announcement named as the source is
-locked by consensus until 2027-09-15, which anybody can verify from block 0,
-so the source has to be something else and the founder has not yet said what.
+## Where the money comes from
+
+**The operating treasury** — 5% of every block subsidy for heights 1 to
+400,000, paid by consensus rule WAM-1 and designated in the whitepaper for
+listings, audits and infrastructure.
+
+    WdMMqW1DcgWZ6HtyJuEMdce6QkKg4raGmE
+
+Check it rather than believe it, from any node:
+
+    wam-cli scantxoutset start '["addr(WdMMqW1DcgWZ6HtyJuEMdce6QkKg4raGmE)"]'
+
+At height 1895 that returned 1,895 unspent outputs totalling 4,737.50 WAM, of
+which 4,487.50 were past the 100-block coinbase maturity. One output per block
+and none of them spent: the treasury has never moved a coin since block 1. It
+accrues 1,800 WAM per day.
+
+**The source changed, and this is the record of it.** The announcement on
+BitcoinTalk said the tiers would be paid "from the founder reserve". That
+reserve is locked by consensus until 2027-09-15 — five outputs of 400,000 WAM
+behind OP_CHECKLOCKTIMEVERIFY in the genesis coinbase, readable with
+`wam-cli getblock $(wam-cli getblockhash 0) 2` — so it cannot pay anything
+today, and the founder has committed in public not to pay from it in any case.
+Until 17 September this file said the new source "has not yet been decided"
+while the project was telling a reviewer by email that it was the treasury. He
+found the contradiction and asked for the public reference. He was right to.
+
+**The ceiling.** The treasury is 750,000 WAM over its entire life and then
+nothing. That is the hard limit of what this programme can ever pay from this
+source: one 50,000 finding is payable, several of them quickly are not.
+
+**Priority is the order of validation** — first validated, first paid. A rule
+rather than a judgement, because the alternative is a queue whose order the
+payer decides.
+
+## Accepted findings
+
+**10,000 WAM — pool accounting, accepted 16 September 2026, unpaid.**
+
+Three related reports: the same pending block could mature more than once,
+crediting miner balances twice out of the pool operator's own wallet, plus two
+further manifestations of the same accounting fault. Found before launch and
+fixed in `pool/lib/shareProcessor.js`; held down by
+`pool/test/maturation-claim.test.js`.
+
+Classified at 10,000 and not at 50,000, with the reasoning in full because a
+tier decision without one is just a number: the 50,000 rung says *theft of
+pool funds*, and nobody took the funds. The money left the operator's wallet
+twice to legitimate miners, and the trigger was an operator restart during a
+maturation check rather than anything an attacker could cause — which the
+reporter stated himself before we did. It is a loss of pool funds, not a theft
+of them, and stretching our own published word would cost more than the
+difference. Nor is it the base rung: three reports in the money path, before
+launch, which would have drained the operator's wallet with nothing in the logs
+looking wrong. 10,000 is a judgement on severity rather than a reading of the
+rung's wording, and is recorded as such.
+
+**1,000 WAM — the pool API leak, accepted 13 September 2026, unpaid.** Three of
+four `/api/*` endpoints returned every miner's full payout address while the
+pool's own page said otherwise. Fixed at the response boundary in
+`pool/lib/api.js`; held down by `pool/test/api-redaction.test.js`.
+
 When each is paid, the amount, the reason for the amount and the transaction id
-will be published here, and not before.
+are published here, and nothing is announced before it exists.
 
 Alongside it, and worth more in most cases: a real answer from someone who
 read your report, credit in the release notes in whatever name you choose, and
