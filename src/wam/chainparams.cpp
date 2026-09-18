@@ -367,10 +367,52 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 0;
 
-        // No trusted checkpoints at launch. These get populated by the
-        // maintainers after the chain has real work behind it; shipping fake
-        // ones now would be theatre.
-        consensus.nMinimumChainWork = uint256{};
+        // A floor under what a new node will follow.
+        //
+        // Zero until v0.1.9, and that was deliberate twice over.
+        //
+        // At launch there was no work to point at: a chain with no history
+        // cannot have a floor, and shipping a fabricated one would have been
+        // theatre. Then on 7 September, setting this on TESTNET stopped every
+        // new node syncing -- a non-zero value turns on headerssync.cpp's
+        // presync path, and upstream's PermittedDifficultyTransition there is
+        // Bitcoin's 2016-block retarget schedule written as an assertion. WAM
+        // retargets every block, so that assertion fails at height 1 and a
+        // node accepts no headers at all. Setting this on mainnet on 15
+        // September would have stopped every newcomer, in the week when
+        // newcomers are the entire point, and would have looked like a network
+        // outage rather than a parameter.
+        //
+        // patch_upstream.py (WAM_DGW_TRANSITION_PERMITTED) removes that
+        // assertion, testnet has run with a non-zero floor since, and a native
+        // Windows build synced 6,029 blocks through the presync path and
+        // agreed with the chain. So the trap is gone and the date has come.
+        //
+        // Set from block 936, about 1,460 behind the tip when it was written
+        // and roughly two days of network work, so there is margin. A value
+        // ABOVE the real chain's work is how this setting fails badly: every
+        // new node stops syncing the real chain. check_min_chain_work.py
+        // compares both directions against a running node, and it is the
+        // check that found this field still at zero three days into mainnet --
+        // because until 18 September it, and most of the sweep, was asking the
+        // testnet node.
+        //
+        // What it buys: a peer can no longer walk a fresh node onto a cheap
+        // fabricated history. What it does not buy: anything against an
+        // attacker who really does out-work the chain. It is a floor, not a
+        // shield.
+        //
+        // It is NOT a validity rule. A node with this value and a node with
+        // zero accept exactly the same blocks and stay on the same chain; they
+        // differ only in which header chains they will consider while syncing.
+        // A v0.1.8 node needs no update and this release is not MANDATORY --
+        // consensus_floor.py excludes the field by name for that reason.
+        consensus.nMinimumChainWork = uint256S("0000000000000000000000000000000000000000000000000000002adc39e008");
+
+        // Still zero, and staying zero. defaultAssumeValid tells a node to
+        // skip signature checking below a block WE name, which asks the reader
+        // to trust us about history. The floor above asks them to trust
+        // arithmetic they can recompute. Those are not the same request.
         consensus.defaultAssumeValid = uint256{};
 
         // -------------------------------------------------------------------
