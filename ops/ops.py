@@ -58,6 +58,7 @@ import http.server
 import json
 import os
 import re
+import shutil
 import shlex
 import socketserver
 import subprocess
@@ -323,6 +324,31 @@ def _wsl_path(p):
     return "/mnt/" + d[0].lower() + rest.replace("\\", "/")
 
 
+def git_bash():
+    """Git for Windows' bash, or None.
+
+    NOT `shutil.which("bash")`. On this machine that returns
+
+        C:\\Users\\...\\AppData\\Local\\Microsoft\\WindowsApps\\bash.exe
+
+    which is the WSL launcher wearing the name bash -- the same shape of trap
+    as the Microsoft Store `python3` stub that lib/python.sh exists to avoid.
+    Anything under WindowsApps is refused by path for that reason.
+    """
+    seen = []
+    for p in (r"C:\Program Files\Git\bin\bash.exe",
+              r"C:\Program Files\Git\usr\bin\bash.exe",
+              r"C:\Program Files (x86)\Git\bin\bash.exe"):
+        if os.path.isfile(p):
+            return p
+    found = shutil.which("bash")
+    if found:
+        seen.append(found)
+        if "windowsapps" not in found.replace("/", "\\").lower():
+            return found
+    return None
+
+
 def portable(argv):
     """The same check, runnable from a Windows process.
 
@@ -333,14 +359,44 @@ def portable(argv):
     one tool whose job is to say when something is wrong was itself
     unreachable with nothing to announce it.
 
-    But half of these checks are shell scripts, and Windows has no bash. So
-    the HTTP server runs natively and the shell checks are handed to WSL,
-    which is where they were written to run. Python checks run under the
-    Windows interpreter directly.
+    But half of these checks are shell scripts, so the HTTP server runs
+    natively and the shell checks are handed to a bash. Python checks run
+    under the Windows interpreter directly.
+
+    AND IT MUST BE THE OPERATOR'S BASH, NOT WSL.
+
+    This used to say "Windows has no bash" and hand every shell check to
+    `wsl -e bash`. It does have one: Git for Windows installs bash, and that
+    is the bash a person gets when they run these checks by hand.
+
+    The two are different machines. WSL is a separate Linux with its own
+    filesystem and its own HOME -- /home/grgo, not /c/Users/gargo -- and
+    therefore its own ~/.ssh. On 18 September that cost two panel entries:
+
+        nodes agree                    unknown   13.140.33.187 could not be read
+        deployed code is origin/main   unknown   13.140.33.187 could not be read
+
+    while the same two checks run by hand from the operator's shell said
+    "all 3 nodes agree" and "every deployed checkout is origin/main". The
+    reason was one line out of ssh -v: WSL holds
+    wam.coin.official@proton.me, the laptop shell holds gargo@r4x0uf-TUF,
+    France and Singapore authorise both, and US-east -- added on 16
+    September -- authorises only the second. So the panel had been reporting
+    a healthy host as unreadable, permanently, for a reason no amount of
+    looking at the host would ever reveal.
+
+    A panel that disagrees with a hand-run of the same script is worse than
+    no panel: it teaches the reader that yellow means nothing. So the shell
+    checks now run in the same shell, with the same keys and the same
+    known_hosts, as a person typing the command. WSL stays as a fallback for
+    a machine with no Git bash, and the page says which one was used.
     """
     if not WINDOWS:
         return argv, REPO
     if argv and argv[0] == "bash":
+        gb = git_bash()
+        if gb:
+            return [gb] + list(argv[1:]), REPO
         inner = " ".join(shlex.quote(a) for a in argv[1:])
         return (["wsl", "-e", "bash", "-lc",
                  f"cd {shlex.quote(_wsl_path(REPO))} && bash {inner}"], None)
