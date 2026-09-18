@@ -489,6 +489,8 @@ CHECKS = [
     ("nodes agree", ["bash", "scripts/check_nodes_agree.sh"] + ALL_IPS, 150),
     ("deployed code is origin/main",
      ["bash", "scripts/check_deployed_code.sh"] + ALL_IPS, 150),
+    ("the same keys get a shell everywhere",
+     ["bash", "scripts/check_admin_keys.sh"] + ALL_IPS, 150),
     ("the repository agrees with itself", ["bash", "scripts/audit_repo.sh"], 200),
     ("listing entries match source", [sys.executable,
                                       "scripts/check_listing_entry.py"], 120),

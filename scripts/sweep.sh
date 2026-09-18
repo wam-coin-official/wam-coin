@@ -318,6 +318,12 @@ else
         # project's public condition is judged on.
         run "installed helpers are the repository"             bash scripts/check_installed_helpers.sh $NODES
 
+        # And who can become root on each of them. On 18 September the panel
+        # reported a healthy host unreadable for days, because the shell it
+        # spawned came from WSL and offered a key that host did not
+        # authorise. Nothing here knew which machine trusted which key.
+        run "the same keys get a shell everywhere"             bash scripts/check_admin_keys.sh $NODES
+
         # The one question the nodes themselves cannot answer. They agreed with
         # each other, ran identical binaries, held the same block at the same
         # height -- and the chain could not be validated from genesis by anyone
