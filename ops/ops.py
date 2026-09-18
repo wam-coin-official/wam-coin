@@ -177,9 +177,18 @@ echo "###load"; cut -d' ' -f1-3 /proc/loadavg
 echo "###mem"; free -m | awk '/Mem:/{print $2, $7} /Swap:/{print $2, $3}'
 echo "###disk"; df -BM --output=avail,size / | tail -1 | tr -d 'M'
 echo "###git"; git -C /opt/wam rev-parse --short HEAD 2>/dev/null
-echo "###height"; /opt/wam-current-bin/wam-cli -testnet getblockcount 2>/dev/null
-echo "###tip"; /opt/wam-current-bin/wam-cli -testnet getbestblockhash 2>/dev/null
-echo "###peers"; /opt/wam-current-bin/wam-cli -testnet getconnectioncount 2>/dev/null
+# MAINNET. These three said -testnet, written in August when testnet was the
+# only chain. Mainnet opened on 15 September and for three days this panel
+# showed height 9964 -- the test chain -- while mainnet stood at 2551, with
+# nothing on the page naming a network. The founder saw the number every day.
+#
+# Spelled out rather than left bare: the default datadir on these hosts is
+# /root/.wam, whose wam.conf says testnet=1, so an empty flag is the test
+# chain and not "the default one".
+WAMMAIN="-chain=main -conf=/root/.wam-mainnet/wam.conf -datadir=/root/.wam-mainnet"
+echo "###height"; /opt/wam-current-bin/wam-cli $WAMMAIN getblockcount 2>/dev/null
+echo "###tip"; /opt/wam-current-bin/wam-cli $WAMMAIN getbestblockhash 2>/dev/null
+echo "###peers"; /opt/wam-current-bin/wam-cli $WAMMAIN getconnectioncount 2>/dev/null
 echo "###services"
 for u in %s $(%s); do
   # is-active prints "inactive" AND exits non-zero, so the obvious
@@ -400,14 +409,20 @@ ALL_IPS = [ip for _, ip in HOSTS]
 
 CHECKS = [
     ("backups", [sys.executable, "scripts/check_backups.py"] + ALL_IPS, 150),
+    # mainnet on both, and the second one had been lying in its own label.
+    # "everyone can follow mainnet" asked the TESTNET node -- so the check
+    # whose whole purpose is to know whether independent operators will be
+    # rejected on mainnet was counting testnet peers, under a name that said
+    # otherwise. And the reorg watch guarded the chain with nothing on it
+    # while the chain with coins on it went unwatched.
     ("no block was un-confirmed", [sys.executable, "scripts/check_reorg.py",
-                                   "--network", "testnet", "--state-dir",
-                                   os.path.expanduser("~/.wam-reorg")]
+                                   "--network", "mainnet", "--state-dir",
+                                   os.path.expanduser("~/.wam-reorg-mainnet")]
                                   + ALL_IPS, 180),
     ("everyone can follow mainnet", [sys.executable,
                                      "scripts/check_peer_versions.py",
                                      "--node", "169.58.159.165",
-                                     "--network", "testnet"], 200),
+                                     "--network", "mainnet"], 200),
     # Added 2026-09-15, an hour into mainnet, because nothing on this panel
     # asked who was writing the chain -- and one party had just written 80 of
     # the first 82 blocks. 54 launch checks, and not one of them looked.

@@ -69,7 +69,15 @@ for h in "$@"; do
 
     # Ask once whether the host answers at all, before four path probes that
     # would each burn their own timeout and then blame the paths for it.
-    if ! timeout 45 ssh "${SSH_OPTS[@]}" "root@$h" true >/dev/null 2>&1; then
+    # Probed TWICE before a host is called unread. One transatlantic packet
+    # loss used to turn this line yellow, and on 18 September it turned two
+    # panel entries yellow at once for a host that answered in three seconds
+    # when asked again by hand. "Unknown" was the honest word for what
+    # happened -- but a panel that goes yellow on a blip is a panel whose
+    # yellow stops being read, and that is the failure this whole directory
+    # exists to prevent. A second attempt costs three seconds and removes
+    # nearly all of them; a host that misses twice is worth looking at.
+    if ! timeout 45 ssh "${SSH_OPTS[@]}" "root@$h" true >/dev/null 2>&1        && ! { sleep 2; timeout 45 ssh "${SSH_OPTS[@]}" "root@$h" true >/dev/null 2>&1; }; then
         printf '  %s??%s      unreachable over ssh -- the deployed code was not read,\n' "$YLW" "$OFF"
         printf '          so this is neither a pass nor a failure. It is unknown.\n'
         UNKNOWN=$((UNKNOWN + 1))

@@ -103,8 +103,22 @@ fi
 # an empty flag string -- and an empty flag string is the testnet node.
 CLI="wam-cli $(wam_cli_flags "$NETWORK")" || exit 2
 
+# Two attempts, because an empty answer here means "not compared" and one
+# lost packet should not cost a comparison. On 18 September a single blip
+# reported US-east unread, and with it the only question this file exists to
+# answer; the same host answered in three seconds when asked again by hand.
+#
+# Only an EMPTY reply is retried. A host that answers something -- even an
+# error -- has been reached, and asking twice would hide a real fault behind
+# a second roll of the dice.
 rsh() {
-    timeout 45 ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes -o ConnectTimeout=15 "root@$1" "$2" 2>/dev/null
+    local out
+    out="$(timeout 45 ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes -o ConnectTimeout=15 "root@$1" "$2" 2>/dev/null)"
+    if [ -z "$out" ]; then
+        sleep 2
+        out="$(timeout 45 ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes -o ConnectTimeout=15 "root@$1" "$2" 2>/dev/null)"
+    fi
+    printf '%s' "$out"
 }
 
 echo "=================================================================="
