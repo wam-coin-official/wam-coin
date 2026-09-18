@@ -133,13 +133,34 @@ function hostCard(h) {
     // is down. The pool runs on one machine; saying "pool: inactive" in red
     // on the other every day is how a person learns to stop reading red.
     if (s.enabled === 'not-found') return '';
-    // A mainnet unit that is inactive before 15 September is correct too,
-    // and is shown faint rather than red for the same reason.
-    const mainnet = name.indexOf('mainnet') !== -1;
+    // WHAT MATTERS IS ENABLED AND NOT RUNNING, not which network it is.
+    //
+    // This used to read: a unit whose name contains 'mainnet' and is not
+    // active is drawn faint and labelled 'waiting', because before 15
+    // September that was correct -- mainnet did not exist yet and its units
+    // were genuinely waiting for it.
+    //
+    // Mainnet opened on 15 September. On the 18th that exemption was still
+    // in the file, so a dead wamd-mainnet or wam-electrumx@mainnet on any
+    // host would have been drawn grey and described as waiting for a launch
+    // that had already happened. An expired exemption is a false green, and
+    // this panel's own header is four rules against exactly that.
+    //
+    // The distinction that does not expire is the one the line above already
+    // uses. systemd knows three things and they mean three different things:
+    //
+    //   not-found  never installed here    -- hidden (the line above)
+    //   disabled   installed, switched off on purpose -- faint, and SAID to
+    //              be disabled rather than described as waiting for
+    //              something. Singapore is a seed with 1.9 GB of memory and
+    //              runs no Electrum; that is a decision, not an outage.
+    //   enabled    supposed to be running  -- and if it is not, that is red,
+    //              on whatever network, on whatever host.
+    const deliberate = s.enabled === 'disabled' || s.enabled === 'masked';
     const cls = s.active === 'active' ? 'on'
-              : mainnet ? 'idle' : 'off';
+              : deliberate ? 'idle' : 'off';
     const label = s.active === 'active' ? name
-                : mainnet ? name + ' · waiting'
+                : deliberate ? name + ' · off on purpose'
                 : name + ' · ' + s.active;
     return `<span class="pill ${cls}">${esc(label)}</span>`;
   }).join('');
