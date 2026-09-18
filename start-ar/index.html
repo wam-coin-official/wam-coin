@@ -90,17 +90,17 @@ hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
 <h2 id="">٣. تشغيل عقدة</h2>
 <p>العقدة برنامج يحتفظ بنسخة من السجل ويفحص كل دفعة عليه. يعمل بهدوء في الخلفية. لستَ مضطراً لتشغيل واحدة لتملك WAM، لكن تشغيلها يعني أنك <strong>تتحقّق من القواعد بنفسك</strong> بدل أن تثق بجواب غيرك.</p>
 <h3 id="">التنزيل</h3>
-<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-coin-v0.1.8-x86_64-linux-gnu.tar.gz
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS</code></pre>
+<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.9/wam-coin-v0.1.9-x86_64-linux-gnu.tar.gz
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.9/SHA256SUMS</code></pre>
 <h3 id="">تأكّد أنه ملفّنا فعلاً</h3>
-<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS.asc
+<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.9/SHA256SUMS.asc
 curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.sh
 curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
 bash verify_release.sh .</code></pre>
 <p>يجب أن ترى كلمة <code>OK</code>. وإن رأيت <code>FAILED</code> فالتنزيل تشوّه أو بُدِّل — احذفه ونزّله من جديد. <strong>لا تتخطَّ هذه الخطوة.</strong> تكلّف ثانية واحدة، وهي الشيء الوحيد الفاصل بينك وبين ملف وضعه غيرنا مكانه.</p>
 <h3 id="">الفكّ والتشغيل</h3>
-<pre><code>tar -xzf wam-coin-v0.1.8-x86_64-linux-gnu.tar.gz
-cd wam-coin-v0.1.8/bin
+<pre><code>tar -xzf wam-coin-v0.1.9-x86_64-linux-gnu.tar.gz
+cd wam-coin-v0.1.9/bin
 ./wamd -testnet -printtoconsole</code></pre>
 <p><strong>أو <code>-daemon</code> بدلاً من <code>-printtoconsole</code> إن أردتها أن تعمل في الخلفيّة.</strong> فـ<code>-printtoconsole</code> يُريك العقدةَ تعمل، وبه تلاحظ الخطأَ قبل أن يخبرك به فحصٌ — لكنّها تموت إذا أغلقتَ الطرفيّة. و<code>-daemon</code> ينجو من ذلك ولا يُريك شيئاً. وتستطيع الاثنين: شغّلها بـ<code>-daemon</code> ثمّ <code>tail -f ~/.wam/testnet3/debug.log</code> في أيّ نافذة، فترى النصَّ نفسَه. وملفُّ السجلّ يُكتب في الحالات الثلاث.</p>
 <blockquote><p><strong>وإن لم تبدأ، فالسببُ هذا في الغالب.</strong> التنزيلُ يحتاج أربعةَ أشياء من نظامك، ولا شيء غيرها:</p>
@@ -163,10 +163,10 @@ cp /path/to/your/backup.dat ~/.wam/testnet3/wallets/mine/wallet.dat
 <p>والحاسوب الواحد يفوز نادراً، فالمعدّنون ينضمّون إلى <strong>مجمّع</strong>: يعمل الجميع معاً ويُقسَّم العائد بقدر ما أسهم كلٌّ منهم. دفعات صغيرة منتظمة بدل يانصيب.</p>
 <h3 id="">أولاً: المعدّن تنزيلٌ منفصل</h3>
 <p><strong>المعدّن ليس داخل الأرشيف الذي فككته.</strong> العقدة والمعدّن ملفّان منفصلان، وحتى ١٠ سبتمبر كانت هذه الصفحة تقول لك <code>./wam-miner</code> ولا تقول لك من أين تجلبه. اكتشفها من يعدّن تحت WSL، بعد أن جرّب <code>./wam-cli</code> داخل مجلّد المعدّن فقيل له «لا يوجد ملف بهذا الاسم» — وهو نفس اللبس من الطرف الآخر.</p>
-<table><tr><th>الأرشيف</th><th>ما فيه</th></tr><tr><td><code>wam-coin-v0.1.8-…</code></td><td><code>wamd</code> و<code>wam-cli</code> — العقدة</td></tr><tr><td><code>wam-miner-v0.1.8-…</code></td><td><code>wam-miner</code> — المعدّن وحده</td></tr></table>
-<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/wam-miner-v0.1.8-x86_64-linux-gnu.tar.gz
-tar -xzf wam-miner-v0.1.8-x86_64-linux-gnu.tar.gz
-cd wam-miner-v0.1.8
+<table><tr><th>الأرشيف</th><th>ما فيه</th></tr><tr><td><code>wam-coin-v0.1.9-…</code></td><td><code>wamd</code> و<code>wam-cli</code> — العقدة</td></tr><tr><td><code>wam-miner-v0.1.9-…</code></td><td><code>wam-miner</code> — المعدّن وحده</td></tr></table>
+<pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.9/wam-miner-v0.1.9-x86_64-linux-gnu.tar.gz
+tar -xzf wam-miner-v0.1.9-x86_64-linux-gnu.tar.gz
+cd wam-miner-v0.1.9
 chmod +x wam-miner</code></pre>
 <p>و<code>chmod</code> هنا لأنّ ملفاً يُفكّ على قرص ويندوز — <code>/mnt/c/...</code> تحت WSL — يفقد صلاحية التنفيذ، فيقول لك <code>bash</code> عندها <code>Permission denied</code>، وهي رسالة تُقرأ «تنزيل معطوب» لا «نظام ملفات مرّ به الملف».</p>
 <h3 id="">وجّه معدّنك إلى المجمّع</h3>
