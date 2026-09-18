@@ -308,6 +308,16 @@ else
         # symptom at all.
         run "deployed code is origin/main" bash scripts/check_deployed_code.sh $NODES
 
+        # And the copies systemd actually runs. deploy.sh updates /opt/wam
+        # and stops there, correctly -- but wam-backup.sh and
+        # wam-concentration-log.sh are INSTALLED into /usr/local/bin, so a
+        # change to either can be committed, pushed, deployed and reported as
+        # "every host is running <commit>" while the old code goes on running
+        # on a timer that stays green. That happened on 18 September to the
+        # logger, an hour after the change that made it record the number the
+        # project's public condition is judged on.
+        run "installed helpers are the repository"             bash scripts/check_installed_helpers.sh $NODES
+
         # The one question the nodes themselves cannot answer. They agreed with
         # each other, ran identical binaries, held the same block at the same
         # height -- and the chain could not be validated from genesis by anyone
