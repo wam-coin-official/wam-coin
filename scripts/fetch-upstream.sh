@@ -139,8 +139,36 @@ log "     upstream commit $UPSTREAM_COMMIT"
 log "3/4  Applying the WAM transformations"
 # ===========================================================================
 
+# RE-RUNNING ON AN ALREADY-PATCHED TREE IS NOT SAFE, AND THIS LINE USED TO
+# SAY IT WAS.
+#
+# It read "the patcher is idempotent". Most of its edits are: each carries a
+# marker describing what it produces, finds the marker, and reports "already
+# applied". But a marker that describes the OUTPUT is version-specific on
+# purpose -- v0.1.1 shipped reporting /WAM:0.1.0/ because a marker named the
+# family instead of the result, and that lesson is written into
+# patch_upstream.py. The consequence is that a tree patched at one WAM
+# version cannot be re-patched at a later one: the marker for the new version
+# is absent and the upstream anchor is gone too, so the patcher aborts
+# part-way.
+#
+# On 18 September that cost an hour. France's tree was patched at 0.1.0 in
+# August; re-running it for 0.1.9 stopped at configure.ac with
+#
+#     anchor for 'version 28.1.0 -> 0.1.8' not found
+#
+# and left the tree partially patched -- which is the one state you must not
+# build from.
+#
+# The release CI clones upstream fresh on every run, so no published binary
+# has ever been affected, and the patcher is deliberately left alone: it is
+# the machinery behind every release and its version markers are correct.
+# What was wrong was this sentence.
 if [ "$PATCHED" = "1" ]; then
-    log "     tree is already patched; re-running (the patcher is idempotent)"
+    log "     tree already patched at $UPSTREAM_TAG -- re-applying"
+    log "     if this aborts, the tree was patched at an older WAM version:"
+    log "       rm -rf $CORE_DIR   and run this again. Do not build from a"
+    log "       tree that stopped part-way through patching."
 fi
 
 "$PY" "$REPO_ROOT/scripts/patch_upstream.py" --tree "$CORE_DIR" --repo "$REPO_ROOT"
