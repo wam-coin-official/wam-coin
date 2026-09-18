@@ -122,7 +122,11 @@ def rsh(host, cmd, timeout=90):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--host", required=True)
-    ap.add_argument("--network", default="testnet",
+    # mainnet by default. Until 18 September every check here defaulted to
+    # testnet, written when testnet was the only chain and never revisited;
+    # run by hand without the flag, three days into mainnet, they answered
+    # confidently about a chain with nothing on it.
+    ap.add_argument("--network", default="mainnet",
                     choices=["mainnet", "testnet", "regtest"])
     ap.add_argument("--hours", type=int, default=24)
     ap.add_argument("--unit", default="wamd")

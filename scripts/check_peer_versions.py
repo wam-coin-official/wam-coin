@@ -82,7 +82,11 @@ def ver_tuple(s):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--node", default="pool.wamcoin.org")
-    ap.add_argument("--network", default="testnet",
+    # mainnet by default. Until 18 September every check here defaulted to
+    # testnet, written when testnet was the only chain and never revisited;
+    # run by hand without the flag, three days into mainnet, they answered
+    # confidently about a chain with nothing on it.
+    ap.add_argument("--network", default="mainnet",
                     choices=["mainnet", "testnet", "regtest"])
     # The last address is the founder's own node, and it is stale: his ISP
     # hands out a new one, so on 10 September he appeared as 41.254.73.0 and

@@ -169,7 +169,11 @@ def main():
     ap.add_argument("--api", default="https://pool.wamcoin.org/api/stats")
     ap.add_argument("--stratum", default="pool.wamcoin.org")
     ap.add_argument("--node", help="ssh host to read the true height from")
-    ap.add_argument("--network", default="testnet",
+    # mainnet by default. Until 18 September every check here defaulted to
+    # testnet, written when testnet was the only chain and never revisited;
+    # run by hand without the flag, three days into mainnet, they answered
+    # confidently about a chain with nothing on it.
+    ap.add_argument("--network", default="mainnet",
                     choices=["mainnet", "testnet", "regtest"])
     # No default here: it depends on the network, and a testnet address was
     # the default on every network until 00:10 UTC on launch night. The

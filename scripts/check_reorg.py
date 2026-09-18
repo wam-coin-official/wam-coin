@@ -424,7 +424,11 @@ def main():
     ap.add_argument("hosts", nargs="*", help="hosts to ask; omit with --local")
     ap.add_argument("--local", action="store_true",
                     help="ask this machine's own node instead of an ssh host")
-    ap.add_argument("--network", default="testnet",
+    # mainnet by default. Until 18 September every check here defaulted to
+    # testnet, written when testnet was the only chain and never revisited;
+    # run by hand without the flag, three days into mainnet, they answered
+    # confidently about a chain with nothing on it.
+    ap.add_argument("--network", default="mainnet",
                     choices=["mainnet", "testnet", "regtest"])
     ap.add_argument("--depth", type=int, default=2,
                     help="alarm at a competing branch this deep (default 2; "

@@ -48,7 +48,9 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-NETWORK="testnet"
+# mainnet: the question this asks -- can a stranger build the chain from
+# nothing -- is only worth asking about the chain strangers actually sync.
+NETWORK="mainnet"
 PEER=""
 BINARY=""
 WAIT=240
