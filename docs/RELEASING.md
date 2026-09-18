@@ -84,8 +84,8 @@ typing them:**
 
 ```
 cd ~/Downloads/wam-v0.1.8
-sha256sum wam-coin-v0.1.8-x86_64-w64-mingw32.zip \
-          wam-miner-v0.1.8-x86_64-w64-mingw32.zip >> SHA256SUMS
+sha256sum wam-coin-v0.1.9-x86_64-w64-mingw32.zip \
+          wam-miner-v0.1.9-x86_64-w64-mingw32.zip >> SHA256SUMS
 ```
 
 This is the step that would be easiest to skip and the one whose absence does
@@ -158,8 +158,8 @@ Then check it as a stranger would — clean directory, empty keyring, nothing
 but what the announcement says to fetch:
 
 ```
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS
-curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.8/SHA256SUMS.asc
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.9/SHA256SUMS
+curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.9/SHA256SUMS.asc
 curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/scripts/verify_release.sh
 curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNING-KEY.asc
 bash verify_release.sh .
