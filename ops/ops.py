@@ -577,6 +577,30 @@ def already_serving():
     A traceback is the wrong answer to "something else is already doing this".
     It reads like a fault in the panel, and the fault is that there is nothing
     to do.
+
+    THE GUARD IS NOT THE WHOLE FIX, AND IT RECURRED ON 18 SEPTEMBER.
+
+    The message above is now polite and the exit code is 0, so nothing
+    crashes. But the task is set to IgnoreNew: while it owns the port its own
+    ten-minute trigger does nothing at all and no window ever appears. The
+    moment somebody hand-starts this panel instead, the task has no instance
+    of itself to ignore -- so every trigger launches a fresh py.exe, which
+    finds the port taken, prints the polite line and exits, opening a console
+    window in the operator's face every ten minutes. The task's Hidden flag
+    does not suppress that window; it only hides the task in the UI.
+
+    So the remedy belongs here next to the diagnosis, because a comment that
+    describes a failure without naming the correct action is how the same
+    person makes the same mistake twice:
+
+        DO NOT start this by hand. To restart the panel on Windows:
+
+            Get-NetTCPConnection -LocalPort 9787 -State Listen |
+                ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
+            Start-ScheduledTask -TaskName "WAM ops dashboard"
+
+    The task must end up owning the port. Anything else leaves a window
+    flashing every ten minutes until somebody notices.
     """
     try:
         with urllib.request.urlopen(f"http://127.0.0.1:{PORT}/state.json", timeout=4) as r:
