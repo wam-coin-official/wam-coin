@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Copyright (c) 2026 The WAM Coin developers
+# Distributed under the MIT software license, see COPYING.
+#
+# ===========================================================================
+#  pre-push -- a push to main that will not be deployed is stopped here
+# ===========================================================================
+#
+#  Installed by scripts/install_hooks.sh. Git has no post-push hook, so the
+#  enforcement has to happen before: refuse the half of the job that feels
+#  finished, and point at the command that does both halves.
+#
+#  On 18 September 2026 "deployed code is origin/main" went red three times
+#  in one day, each time because a commit was pushed and never deployed. The
+#  servers run from a checkout; a checkout that has not been pulled is code
+#  nobody is running. Three repairs of the same fault is not a fix.
+#
+#  Only `main` is guarded, because only main is what the servers follow.
+#  Branches, tags and forced pushes elsewhere are nobody's business but the
+#  author's.
+#
+#  Deliberately escapable, by design: `WAM_SHIP=1 git push ...` or
+#  `git push --no-verify`. A hook that cannot be got around is one that gets
+#  uninstalled the first time it is wrong, and then it protects nothing.
+# ===========================================================================
+
+set -uo pipefail
+
+RED=$'\033[31m'; YLW=$'\033[33m'; BLD=$'\033[1m'; OFF=$'\033[0m'
+
+# Set by scripts/ship.sh, and by nothing else.
+[ "${WAM_SHIP:-0}" = "1" ] && exit 0
+
+# stdin gives: <local ref> <local sha> <remote ref> <remote sha>, one per line.
+touches_main=0
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+    case "$remote_ref" in
+        refs/heads/main) touches_main=1 ;;
+    esac
+done
+[ "$touches_main" = "1" ] || exit 0
+
+printf '\n%s%sthis push would leave the servers behind%s\n\n' "$BLD" "$RED" "$OFF"
+printf '  The three hosts run from a checkout of main. Pushing updates GitHub\n'
+printf '  and nothing else, so until deploy.sh runs they are still on the old\n'
+printf '  commit -- and the ops panel says so, in red, some minutes later.\n\n'
+printf '  That happened three times on 18 September. Use the one command that\n'
+printf '  does both halves and then asks the hosts what they actually hold:\n\n'
+printf '      %sbash scripts/ship.sh%s\n\n' "$BLD" "$OFF"
+printf '  If you really mean to push without deploying -- a branch you are not\n'
+printf '  deploying yet, or a repair to the deploy path itself:\n\n'
+printf '      WAM_SHIP=1 git push origin main\n\n'
+exit 1
