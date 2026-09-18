@@ -7,6 +7,23 @@
 # ===========================================================================
 #
 #      bash scripts/check_nodes_agree.sh HOST [HOST...]
+#      bash scripts/check_nodes_agree.sh --network testnet HOST [HOST...]
+#
+#  IT DEFAULTS TO MAINNET, AND IT USED TO ANSWER ABOUT TESTNET
+#
+#  Until 18 September 2026 every wam-cli here was bare. On these servers the
+#  default datadir is /root/.wam, whose wam.conf says testnet=1, so bare
+#  wam-cli is the testnet node. Three days into mainnet this printed
+#
+#      comparing at height 9964 ... one chain | all 3 nodes agree
+#
+#  about testnet, while mainnet stood at 2382. Genesis hashes matched --
+#  because they were three copies of the same wrong chain -- so nothing in the
+#  output looked off. The check that exists to catch a consensus split was
+#  looking at a network with nothing at stake, and the sweep scored it green.
+#
+#  The network is now named on every call, and printed in the header, so the
+#  question "which chain did this answer about" always has a visible answer.
 #
 #  WHY THIS EXISTS
 #
@@ -43,6 +60,10 @@
 
 set -uo pipefail
 
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+. "$SCRIPTS_DIR/lib/python.sh"
+. "$SCRIPTS_DIR/lib/wamcli.sh"
+
 GRN=$'\033[32m'; RED=$'\033[31m'; YLW=$'\033[33m'; BLD=$'\033[1m'; OFF=$'\033[0m'
 FAIL=0       # nodes were compared and they differ          -> exit 1
 UNKNOWN=0    # a node was never read, so nothing compared    -> exit 2
@@ -57,20 +78,37 @@ warn() { printf '  %swarn%s   %s\n' "$YLW" "$OFF" "$*"; }
 # ten hours before mainnet, an unreachable host came out of here in red.
 unknown() { printf '  %s??%s     %s\n' "$YLW" "$OFF" "$*"; UNKNOWN=$((UNKNOWN + 1)); }
 
-if [ $# -lt 2 ]; then
-    printf 'usage: %s HOST [HOST...]\n\n' "${0##*/}" >&2
+# Mainnet is the default because mainnet is the chain with coins on it. A
+# script that has to be told which network to examine will eventually be run
+# without being told, and the harmless default is the one that examines the
+# chain that matters.
+NETWORK=mainnet
+HOSTS=()
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --network) NETWORK="${2:?--network needs a value}"; shift 2 ;;
+        -h|--help) sed -n '5,25p' "$0"; exit 0 ;;
+        -*) printf 'unknown option: %s\n' "$1" >&2; exit 2 ;;
+        *) HOSTS+=("$1"); shift ;;
+    esac
+done
+
+if [ "${#HOSTS[@]}" -lt 2 ]; then
+    printf 'usage: %s [--network NET] HOST [HOST...]\n\n' "${0##*/}" >&2
     printf 'Two hosts minimum -- agreement is not a property one node has.\n' >&2
     exit 2
 fi
 
-HOSTS=("$@")
+# Resolved once, here, so an unknown network stops the run instead of becoming
+# an empty flag string -- and an empty flag string is the testnet node.
+CLI="wam-cli $(wam_cli_flags "$NETWORK")" || exit 2
 
 rsh() {
     timeout 45 ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes -o ConnectTimeout=15 "root@$1" "$2" 2>/dev/null
 }
 
 echo "=================================================================="
-echo " Do the deployed nodes agree?"
+echo " Do the deployed nodes agree?  [$NETWORK]"
 echo "=================================================================="
 
 # ---------------------------------------------------------------------------
@@ -78,7 +116,7 @@ printf '\n%sreachable%s\n' "$BLD" "$OFF"
 
 LIVE=()
 for h in "${HOSTS[@]}"; do
-    if [ -n "$(rsh "$h" 'wam-cli getblockcount')" ]; then
+    if [ -n "$(rsh "$h" "$CLI getblockcount")" ]; then
         ok "$h"
         LIVE+=("$h")
     else
@@ -169,8 +207,8 @@ printf '\n%sthe same chain%s\n' "$BLD" "$OFF"
 
 declare -A GENESIS HEIGHT
 for h in "${LIVE[@]}"; do
-    GENESIS[$h]="$(rsh "$h" 'wam-cli getblockhash 0' | tr -d '\r\n ')"
-    HEIGHT[$h]="$(rsh "$h" 'wam-cli getblockcount' | tr -d '\r\n ')"
+    GENESIS[$h]="$(rsh "$h" "$CLI getblockhash 0" | tr -d '\r\n ')"
+    HEIGHT[$h]="$(rsh "$h" "$CLI getblockcount" | tr -d '\r\n ')"
 done
 
 for h in "${LIVE[@]:1}"; do
@@ -197,7 +235,7 @@ else
     printf '  comparing at height %s, the lowest every node has reached\n' "$COMMON"
     declare -A ATCOMMON
     for h in "${LIVE[@]}"; do
-        ATCOMMON[$h]="$(rsh "$h" "wam-cli getblockhash $COMMON" | tr -d '\r\n ')"
+        ATCOMMON[$h]="$(rsh "$h" "$CLI getblockhash $COMMON" | tr -d '\r\n ')"
         printf '    %-18s tip=%-6s block[%s]=%s\n' \
             "$h" "${HEIGHT[$h]}" "$COMMON" "${ATCOMMON[$h]:0:24}"
     done

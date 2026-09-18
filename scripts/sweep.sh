@@ -44,8 +44,22 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$HERE"
 
 NODES=""
+# WHICH CHAIN THIS SWEEP IS ABOUT.
+#
+# Every node-facing check below used to say `--network "$NETWORK"`, written when
+# testnet was the only chain there was and never revisited. Mainnet opened on
+# 15 September 2026; on the 18th this sweep was still asking the testnet node
+# whether the pool paid, whether Electrum agreed, whether independent nodes
+# could follow, and whether the explorer matched consensus -- and printing
+# green for a chain with nothing on it, three days into one that had 2,384
+# blocks and real coins.
+#
+# The default is mainnet, and the header prints it, because the failure was
+# never a wrong answer. It was an answer whose subject was invisible.
+NETWORK=mainnet
 while [ $# -gt 0 ]; do
     case "$1" in
+        --network) NETWORK="${2:?--network needs a value}"; shift 2 ;;
         # Commas are accepted and turned into spaces. ops.py, check_backups
         # and half the other entry points in this project take a
         # comma-separated list, so a comma here is the natural mistake -- and
@@ -125,7 +139,7 @@ skip() {
 }
 
 echo "=================================================================="
-echo " WAM sweep -- $(date '+%Y-%m-%d %H:%M')"
+echo " WAM sweep -- $(date '+%Y-%m-%d %H:%M')  [$NETWORK]"
 echo "=================================================================="
 
 # ---------------------------------------------------------------------------
@@ -141,7 +155,7 @@ run "mention is not use"         "$PY" scripts/check_mentions.py
 run "every link resolves"        "$PY" scripts/check_links.py
 run "the zone is signed and validates" "$PY" scripts/check_dnssec.py
 run "the seeds inside the binary answer" "$PY" scripts/check_fixed_seeds.py
-run "a floor under what a node follows" "$PY" scripts/check_min_chain_work.py --network testnet ${NODES:+--host ${NODES%% *}}
+run "a floor under what a node follows" "$PY" scripts/check_min_chain_work.py --network "$NETWORK" ${NODES:+--host ${NODES%% *}}
 
 # The listing entry repeats constants that live in src/wam. Hand-written
 # copies drift, and this one is read by software rather than by a person: a
@@ -323,7 +337,7 @@ else
         # machines -- which is the only arrangement that answers the question.
         FRESH_HOST=""; for v in $NODES; do [ "$v" != "$1" ] && { FRESH_HOST="$v"; break; }; done
         run "a new node can sync from genesis" \
-            bash scripts/check_fresh_sync.sh --network testnet --peer "$1" \
+            bash scripts/check_fresh_sync.sh --network "$NETWORK" --peer "$1" \
                  --timeout 300 ${FRESH_HOST:+--host "$FRESH_HOST"}
         # Each node is probed from the next one round-robin, so every host is
         # examined from a machine that is not itself.
@@ -351,7 +365,7 @@ else
         # report of where this stands rather than a gap nothing mentions.
         set -- $NODES
         run "electrum servers answer and agree" \
-            "$PY" scripts/check_electrum.py --node "$1" --network testnet \
+            "$PY" scripts/check_electrum.py --node "$1" --network "$NETWORK" \
             electrum.wamcoin.org electrum2.wamcoin.org
 
         # The pool had found 150 blocks, owed 16,176 WAM to two miners and had
@@ -364,7 +378,7 @@ else
         # So this asks the two questions nothing else did: does every stratum
         # port actually hand out a job, and have miners actually been paid.
         run "pool gives work and pays for it" \
-            "$PY" scripts/check_pool.py --node "$1" --network testnet
+            "$PY" scripts/check_pool.py --node "$1" --network "$NETWORK"
 
         # The explorer is where a stranger goes to check us without building
         # anything. A node that is wrong is a bug; an explorer that is wrong
@@ -372,7 +386,7 @@ else
         # publishes is compared against wam-params.h using the same parser
         # verify_supply.py uses, so the page and consensus cannot drift.
         run "explorer publishes what consensus enforces" \
-            "$PY" scripts/check_explorer.py --node "$1" --network testnet
+            "$PY" scripts/check_explorer.py --node "$1" --network "$NETWORK"
 
         # v0.1.5 changed the mainnet treasury address, which is consensus. A
         # node left on v0.1.4 will reject every valid block on 15 September
@@ -385,7 +399,7 @@ else
         # launch blocker held by other people, and the only lever is to keep
         # saying so.
         run "every independent node can follow mainnet" \
-            "$PY" scripts/check_peer_versions.py --node "$1" --network testnet
+            "$PY" scripts/check_peer_versions.py --node "$1" --network "$NETWORK"
 
         # The nightly backup failed on both servers every night from 23 to 26
         # August and this sweep said 21 passed on each of those mornings,
@@ -413,7 +427,7 @@ else
         # It needs net logging on, and says so plainly when it is off
         # rather than reading an empty journal as nobody having come.
         run "why visitors did not stay" \
-            "$PY" scripts/check_visitors.py --host "${NODES%% *}" --network testnet
+            "$PY" scripts/check_visitors.py --host "${NODES%% *}" --network "$NETWORK"
 
         # Has a block that was confirmed stopped being confirmed?
         #
@@ -431,7 +445,7 @@ else
         # Proved on 2026-08-29 against a throwaway regtest chain rewritten
         # on purpose: seven blocks replaced, reported as seven.
         run "no confirmed block has been un-confirmed" \
-            "$PY" scripts/check_reorg.py --network testnet \
+            "$PY" scripts/check_reorg.py --network "$NETWORK" \
                 --state-dir "${WAM_REORG_STATE:-$HOME/.wam-reorg}" $NODES
     fi
 fi
@@ -465,7 +479,7 @@ run "the documented version still exists" \
 # shape of gap as the backup: a check that works, and nothing calling it.
 if [ -n "$NODES" ]; then
     run "the announcer is alive and can be heard" \
-        "$PY" scripts/check_bots.py --host "${NODES%% *}" --network testnet
+        "$PY" scripts/check_bots.py --host "${NODES%% *}" --network "$NETWORK"
 else
     skip "the announcer is alive and can be heard" "no --nodes given"
 fi
