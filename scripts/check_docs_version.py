@@ -137,12 +137,34 @@ def main():
             continue
         text = p.read_text(encoding="utf-8", errors="replace")
         found = instructed_versions(text)
+        ours = docversion.our_versions(text)
         if not found:
             continue
         checked += 1
         for v in sorted(found):
             info = rels.get(v)
             if info is None:
+                if v in ours:
+                    # A download URL into this repository, or one of this
+                    # project's own tarball names, naming a release that does
+                    # not exist. The first command a newcomer copies 404s.
+                    #
+                    # This used to `continue` on every unknown version with
+                    # the comment "not one of ours", which is true of a link
+                    # to Bitcoin Core v28.1 and false of a curl at our own
+                    # releases/download/. The question in this file's title is
+                    # exactly this one, and for three days it could not be
+                    # asked -- see scripts/lib/docversion.py.
+                    #
+                    # It is EXPECTED to fail between setting the version and
+                    # publishing the release. docs/RELEASING.md says so: the
+                    # documents name the tag and the tag is built from the
+                    # documents.
+                    bad(f"{rel_path} tells the reader to download v{v}, which "
+                        f"has never been released. Newest is v{newest}. If a "
+                        f"tag is about to be pushed this is the expected and "
+                        f"correct state; if not, the instructions are broken.")
+                    continue
                 # Not one of ours: Bitcoin Core v28.1, RandomX v1.2.1, and so on.
                 continue
             if v == newest:

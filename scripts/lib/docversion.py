@@ -72,6 +72,29 @@ REWRITE = [re.compile(f"({p})({VERSION})({s})") for p, s in CONTEXTS]
 # One alternation, version captured in every branch.
 FIND = re.compile("|".join(f"{p}({VERSION}){s}" for p, s in CONTEXTS))
 
+# WHICH OF THOSE CONTEXTS CAN ONLY EVER BE OUR OWN SOFTWARE.
+#
+# The first two can be nothing else: releases/download/v... is a URL into this
+# repository, and wam-coin-v... / wam-miner-v... are the names of files only
+# this project publishes. The third, "[v0.1.5](", is a markdown link whose
+# label happens to be a version -- and docs/ links to Bitcoin Core v28.1 and
+# RandomX v1.2.1 exactly that way.
+#
+# check_docs_version.py needed the distinction and did not have it. Given a
+# version it could not find among this repository's releases it skipped the
+# line as third-party, with the comment "Not one of ours: Bitcoin Core v28.1,
+# RandomX v1.2.1". True of the third context; wrong for the first two, where
+# an unpublished version means the documents tell a newcomer to curl a file
+# that does not exist. So the question in that file's own title -- "do the
+# instructions name a release that exists?" -- returned ok on 18 September
+# for documents naming v0.1.9 the moment before v0.1.9 existed.
+#
+# Split here rather than in the caller, because set_version.py rewrites all
+# three contexts and must go on doing so: a link labelled with our version
+# still has to move when the version moves.
+OURS_CONTEXTS = CONTEXTS[:2]
+FIND_OURS = re.compile("|".join(f"{p}({VERSION}){s}" for p, s in OURS_CONTEXTS))
+
 # Markdown is what a person edits; the site pages are what a reader actually
 # sees. Both are audited. Only the markdown is rewritten, because the pages
 # are regenerated from it by build_pages.py -- editing them directly would be
@@ -126,6 +149,23 @@ def instructed_versions(text):
         if i in skip:
             continue
         for m in FIND.finditer(line):
+            out.update(v for v in m.groups() if v)
+    return out
+
+
+def our_versions(text):
+    """Every version this text tells someone to download FROM US.
+
+    A subset of instructed_versions(): only the contexts that cannot name
+    anybody else's software. A version in here that has no release is a
+    broken instruction, not a mention of a dependency.
+    """
+    skip = frozen_lines(text)
+    out = set()
+    for i, line in enumerate(text.splitlines()):
+        if i in skip:
+            continue
+        for m in FIND_OURS.finditer(line):
             out.update(v for v in m.groups() if v)
     return out
 
