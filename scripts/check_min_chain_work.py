@@ -49,6 +49,7 @@ import sys
 REPO = pathlib.Path(__file__).resolve().parent.parent
 
 sys.path.insert(0, str(REPO / "scripts" / "lib"))
+sys.path.insert(0, str(REPO / "scripts"))
 import quoted  # noqa: E402  -- needs the path above
 
 
@@ -126,11 +127,19 @@ def node(network, host):
 
     That is not a new mistake here. On 4 September six checks were found
     asking about mainnet and answering about testnet, for the same reason,
-    and were fixed one at a time. This one was written two days later and
-    made it again -- so the answer now has to say which chain it came from.
+    and were fixed one at a time -- and wamcli.py was written that day so
+    there would be one place the flags live. This file was written two days
+    later, carried its own copy of the broken line anyway, and kept it until
+    18 September: the guard below meant it never lied, but it also meant this
+    check could never pass on mainnet. It reported "could not run" on every
+    sweep of the live chain.
+
+    The guard stays. A check that knows which chain answered is worth having
+    even when the flags are right, because the next way to reach the wrong
+    node will not look like this one.
     """
-    flag = {"mainnet": "", "testnet": "-testnet", "regtest": "-regtest"}[network]
-    cmd = [c for c in ["wam-cli", flag, "getblockchaininfo"] if c]
+    from wamcli import flags as _flags
+    cmd = ["wam-cli"] + _flags(network).split() + ["getblockchaininfo"]
     if host:
         cmd = ["ssh", "-o", "ConnectTimeout=12", "-o", "BatchMode=yes",
                f"root@{host}", " ".join(cmd)]
@@ -146,7 +155,8 @@ def node(network, host):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--network", default="testnet",
+    # mainnet, because mainnet is the chain a stranger syncs.
+    ap.add_argument("--network", default="mainnet",
                     choices=["mainnet", "testnet", "regtest"])
     ap.add_argument("--host", default=None,
                     help="ask this machine's node instead of a local one")
