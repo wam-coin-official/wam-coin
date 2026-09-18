@@ -20,16 +20,42 @@
 
 set -uo pipefail
 
-# An interpreter that is actually Python: `python3` on Windows is a
-# Microsoft Store stub that runs nothing and exits 49.
-SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-. "$SCRIPTS_DIR/lib/python.sh"
+# THIS FILE IS INSTALLED ALONE, so it may not source anything.
+#
+# It used to begin `. "$SCRIPTS_DIR/lib/python.sh"`, resolved next to itself.
+# deploy.sh installs the single file to /usr/local/bin/wam-facts and no lib/
+# directory goes with it, so on every host that line printed
+#
+#     /usr/local/bin/wam-facts: line 26: /usr/local/bin/lib/python.sh:
+#     No such file or directory
+#
+# and $PY was never set. The section that reports declared maintenance is the
+# only user of it, so a planned-work notice silently never appeared in any
+# report. Found on 18 September while authorising the report key on the third
+# host. The probe is inline now, and this file depends on nothing it is not
+# installed with.
+PY=""
+for _c in python3 python py; do
+    if command -v "$_c" >/dev/null 2>&1 \
+       && "$_c" -c 'import sys' >/dev/null 2>&1; then PY="$_c"; break; fi
+done
 
 CLI=/opt/wam-current-bin/wam-cli
 
-echo "###h";  $CLI -testnet getblockcount 2>/dev/null
-echo "###t";  $CLI -testnet getbestblockhash 2>/dev/null
-echo "###p";  $CLI -testnet getconnectioncount 2>/dev/null
+# MAINNET. These three lines said -testnet, written in August when testnet was
+# the only chain, and never revisited. Mainnet opened on 15 September; for
+# three days the daily report and the operations panel both showed the height,
+# tip and peer count of the TEST chain -- 9964 while mainnet stood at 2446 --
+# and nothing in either display said which chain it meant.
+#
+# The flags are spelled out rather than left bare: bare wam-cli reads
+# /root/.wam, whose wam.conf says testnet=1, so an empty flag is not "the
+# default chain", it is the test chain.
+MAIN="-chain=main -conf=/root/.wam-mainnet/wam.conf -datadir=/root/.wam-mainnet"
+
+echo "###h";  $CLI $MAIN getblockcount 2>/dev/null
+echo "###t";  $CLI $MAIN getbestblockhash 2>/dev/null
+echo "###p";  $CLI $MAIN getconnectioncount 2>/dev/null
 echo "###m";  free -m | awk '/Mem:/{print $7, $2}'
 echo "###s";  free -m | awk '/Swap:/{print $2, $3}'
 # tr -dc strips the trailing newline along with the "G", so the next

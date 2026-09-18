@@ -71,7 +71,11 @@ FACTS = "/usr/local/bin/wam-facts"
 KEY = "/root/.ssh/id_report"
 
 ME = ("France", None)                     # gathered by running facts locally
-OTHERS = [("Singapore", "5.223.52.200")]  # gathered through the restricted key
+OTHERS = [("Singapore", "5.223.52.200"),
+          # US-east was missing from every daily report since it was added on
+          # 16 September: the list was written when there were two machines.
+          # The restricted key was authorised on it on 18 September.
+          ("US-east", "13.140.33.187")]
 
 # Consensus floor: below this a node is rejected on mainnet. Read from the
 # repository rather than written here, so it cannot go stale.

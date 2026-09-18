@@ -55,7 +55,10 @@
 
 # Same defaults as scripts/deploy.sh. Override for a different pair:
 #   WAM_TOOL_HOSTS="1.2.3.4" bash scripts/check_dns_seeds.sh
-WAM_TOOL_HOSTS="${WAM_TOOL_HOSTS:-169.58.159.165 5.223.52.200}"
+# All three. With only two named, a check that borrows a tool (dig, curl)
+# had nowhere to go the moment those two were a commit behind -- which is
+# exactly what happened to the DNS seed check on 18 September.
+WAM_TOOL_HOSTS="${WAM_TOOL_HOSTS:-169.58.159.165 5.223.52.200 13.140.33.187}"
 WAM_REMOTE_REPO="${WAM_REMOTE_REPO:-/opt/wam}"
 
 # run_elsewhere <path relative to repo root> [args...]
