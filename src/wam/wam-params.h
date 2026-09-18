@@ -223,8 +223,17 @@ static_assert(WAM_TESTNET_GENESIS_TIME < WAM_GENESIS_TIME,
 /**
  * The 2,000,000 WAM founder reserve is NOT paid to a single output.
  *
- * It is split into five equal tranches inside the genesis coinbase, four of
- * which are locked behind OP_CHECKLOCKTIMEVERIFY until an exact calendar date.
+ * It is split into five equal tranches inside the genesis coinbase, and ALL
+ * FIVE are locked behind OP_CHECKLOCKTIMEVERIFY until an exact calendar date.
+ *
+ * This sentence said "four of which are locked" until 18 September. It was
+ * wrong, and wrong in the direction that understates what the code does:
+ * WAM_PREMINE_UNLOCK_TIMES below carries five dates, 2027 through 2031, and
+ * a node reports 2,000,000 locked and nothing unlocked. Nobody was misled to
+ * their harm by it -- but this is the file a reader opens to check that the
+ * reserve really is locked, and a comment that disagrees with the array under
+ * it makes them ask which one to believe. The array and block 0 are the
+ * answer; the sentence now agrees with them.
  * The point is not to reduce the founder's share -- it is unchanged -- but to
  * make "the founder cannot dump on you" a property anyone can verify from
  * block 0 rather than a promise they have to believe.
