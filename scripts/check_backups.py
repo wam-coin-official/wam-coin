@@ -99,6 +99,12 @@ def check_instance(host, network, timer, max_age_hours, backup_dir):
         ok(f"{network}: the last run succeeded")
     elif rc == 0 and result in ("", "unknown"):
         warn(f"{network}: the service has not run yet on this host")
+    elif rc != 0:
+        # systemctl itself did not answer. That says nothing about the backup,
+        # and saying "the last run ended ''" in red about a host whose backups
+        # ran at 03:27 is the false red this whole file is written against.
+        warn(f"{network}: systemctl exited {rc} when asked how the last run "
+             f"ended, so it is unknown ({result!r})")
     else:
         rc2, why = rsh(
             host,
@@ -115,18 +121,56 @@ def check_instance(host, network, timer, max_age_hours, backup_dir):
     # while mainnet's had not been written for a week, and reported "there is
     # something to restore from" about the wallet that holds miners' money.
     # The subject of this check is exactly that wallet.
+    # Two facts are asked for and kept apart: does the directory exist, and
+    # is there an archive of this network in it.
+    #
+    # exit 9 means the directory is not there -- a finding.
+    # NONE means the directory is there and holds no archive of this network
+    #   -- also a finding, and a worse one.
+    # Anything else non-zero means the question did not get answered, which
+    #   is not a finding at all.
+    #
+    # The age is computed in two steps rather than one. It used to be
+    #
+    #     echo "$(( ( $(date +%s) - $(stat -c %Y "$f") ) / 3600 )) $f"
+    #
+    # and a file that vanished between `ls` and `stat` -- which is exactly
+    # what a rotation or a sync does -- left the arithmetic reading
+    # `(( ( 1789... - ) / 3600 ))`, a bash syntax error, a non-zero status and
+    # empty output. That fell into `rc != 0` below and printed, in red,
+    # "no archive of its own -- there is nothing to restore this network
+    # from", about a host with fourteen hours of archives on it.
     rc, out = rsh(
         host,
         f"cd {backup_dir} 2>/dev/null || exit 9; "
         f"f=$(ls -t {archive_glob(network)} 2>/dev/null | head -1); "
-        f"[ -n \"$f\" ] && echo \"$(( ( $(date +%s) - $(stat -c %Y \"$f\") ) / 3600 )) $f\" "
-        f"|| echo NONE")
+        f"[ -n \"$f\" ] || {{ echo NONE; exit 0; }}; "
+        f"m=$(stat -c %Y \"$f\" 2>/dev/null) || {{ echo VANISHED; exit 0; }}; "
+        f"[ -n \"$m\" ] || {{ echo VANISHED; exit 0; }}; "
+        f"echo \"$(( ( $(date +%s) - m ) / 3600 )) $f\"")
 
     if rc == UNREACHABLE:
         warn(f"{network}: could not look for an archive ({out}). Whether one "
              f"exists is unknown, which is not the same as none existing.")
         return
-    if rc != 0 or out == "NONE" or not out:
+    if rc == 9:
+        bad(f"{network}: {backup_dir} does not exist on this host -- there is "
+            f"nothing to restore this network from")
+        return
+    if out == "VANISHED":
+        # Named rather than guessed at: the newest archive was listed and then
+        # could not be read a moment later. Almost always a rotation in
+        # progress, and never something to call a backup failure on one pass.
+        warn(f"{network}: the newest archive disappeared between being listed "
+             f"and being read -- a rotation in progress, most likely. Its age "
+             f"is unknown this pass.")
+        return
+    if rc != 0 or not out:
+        warn(f"{network}: the archive lookup exited {rc} with {out!r}, so "
+             f"whether an archive exists was not established. This is not the "
+             f"same as none existing.")
+        return
+    if out == "NONE":
         bad(f"{network}: no archive of its own in {backup_dir} -- there is "
             f"nothing to restore this network from")
         return
