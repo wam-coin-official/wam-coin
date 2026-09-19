@@ -107,8 +107,8 @@ bash verify_release.sh .</code></pre>
 <h3 id="unpack-and-run">Unpack and run</h3>
 <pre><code>tar -xzf wam-coin-v0.1.9-x86_64-linux-gnu.tar.gz
 cd wam-coin-v0.1.9/bin
-./wamd -testnet -printtoconsole</code></pre>
-<p><strong>Or <code>-daemon</code> instead of <code>-printtoconsole</code>, if you would rather it ran in the background.</strong> <code>-printtoconsole</code> shows you the node working, which is how you notice something is wrong before a check tells you — but it dies when you close the terminal. <code>-daemon</code> survives that and shows you nothing. You can have both: run <code>-daemon</code>, then <code>tail -f ~/.wam/testnet3/debug.log</code> in any terminal for the identical stream. The log file is written in all three cases.</p>
+./wamd -printtoconsole</code></pre>
+<p><strong>Or <code>-daemon</code> instead of <code>-printtoconsole</code>, if you would rather it ran in the background.</strong> <code>-printtoconsole</code> shows you the node working, which is how you notice something is wrong before a check tells you — but it dies when you close the terminal. <code>-daemon</code> survives that and shows you nothing. You can have both: run <code>-daemon</code>, then <code>tail -f ~/.wam/debug.log</code> in any terminal for the identical stream. The log file is written in all three cases.</p>
 <p>This choice used to be a line at the end of a long note further down, and the one tester who cared about it most read past it twice before saying so. That is a placement fault, not his.</p>
 <blockquote><p><strong>If it will not start, this is almost always why.</strong> The download needs four things from your system, and nothing else:</p>
 <pre><code>libevent-2.1.so.7   libevent_core-2.1.so.7   libevent_pthreads-2.1.so.7
@@ -122,10 +122,10 @@ libsqlite3.so.0</code></pre>
 <p>glibc is not something to worry about: the binary's highest requirement is <code>GLIBC_2.34</code> and glibc is backward compatible, so any newer distribution works. And <strong><code>wam-miner</code> needs none of this</strong> — only libc and libstdc++ — so if the node has trouble on your distribution, mining still will not.</p></blockquote>
 <p>The window will fill with lines. That is the node introducing itself to other nodes and asking them for the list. Leave it running.</p>
 <blockquote><p><strong>The whole log is in a file, and you will want it before you want the screen.</strong> <code>-printtoconsole</code> puts the log on your terminal, and a terminal keeps only the last few hundred lines — somebody trying to report a problem on 7 September lost the start of his because of that. The node also writes it, complete and from the first line, to</p>
-<pre><code>~/.wam/testnet3/debug.log</code></pre>
+<pre><code>~/.wam/debug.log</code></pre>
 <p>Quote from that file, never from the screen — in <code>-daemon</code> too, where the file is the only copy there is.</p></blockquote>
 <p>To watch it in another terminal:</p>
-<pre><code>./wam-cli -testnet getblockcount</code></pre>
+<pre><code>./wam-cli getblockcount</code></pre>
 <p>That prints how many blocks you have. It should climb until it matches what <a href="https://explorer.wamcoin.org">explorer.wamcoin.org</a> shows.</p>
 <blockquote><p><strong>The first minute looks like nothing is happening. It is not broken.</strong></p>
 <p><code>getblockcount</code> can sit at <strong>0</strong> for up to a minute while the node builds the RandomX verification tables it needs before it can check a single block. Nothing is downloaded in that time and nothing is wrong. Then the count starts climbing and does not stop.</p>
@@ -134,32 +134,32 @@ libsqlite3.so.0</code></pre>
 <p>So: two or three minutes on a good machine, ten on a slower one, and the limit is the processor rather than the connection — RandomX verification is the whole cost. The first of those rows was measured by somebody outside this project, on his own hardware, which is why it is first.</p>
 <p>This paragraph exists because somebody started a node on 7 September, waited <strong>three minutes and fifty-two seconds</strong>, and left. Nothing had gone wrong: he had the first 4,000 block headers and was downloading blocks when he quit. He had no way of knowing that, because this page did not tell him.</p>
 <p>To see that it is working rather than guess, watch the <strong>headers</strong>:</p>
-<pre><code>./wam-cli -testnet getblockchaininfo | grep -E '"blocks"|"headers"'</code></pre>
+<pre><code>./wam-cli getblockchaininfo | grep -E '"blocks"|"headers"'</code></pre>
 <p>Measured on a cold start, 7 September: <code>headers</code> reached 6,000 within eight seconds of the node starting, while <code>blocks</code> was still 0 and stayed 0 until the 88th second. Headers are cheap and arrive at once; blocks are what RandomX has to verify, and that is what the wait is.</p>
 <p>So <code>headers</code> climbing to roughly what <a href="https://explorer.wamcoin.org">explorer.wamcoin.org</a> shows means your node found the network and knows where the tip is. If <code>headers</code> is still 0 after a minute, that is the real problem, and it is a connection problem rather than a slow one.</p>
 <p><strong>Ignore <code>verificationprogress</code>.</strong> Bitcoin Core reports it and every guide about other coins tells you to watch it. On WAM it reads <code>1</code> at every height including zero, because it is estimated from a transaction-rate figure this chain does not publish. It is not lying about your node; it is answering a question nobody gave it the data for. The block count is the only progress there is.</p>
 <p><strong>A restart looks the same, for the same reason.</strong> Measured on somebody else's machine on 7 September, from his log: <code>nBestHeight = 6643</code> at startup — already fully synced — and then 109 seconds of nothing before the first new block was processed. The line that ends the wait names the cause: <code>RandomX: initialising verification context for seed …</code>. The tables are built when the first block needs checking, not when the node starts, so a node you restart is quiet for a minute or two exactly like a new one.</p></blockquote>
-<blockquote><p><strong>Why <code>-testnet</code>?</strong> Because the real network has not launched yet. See <a href="#7-two-things-you-must-know">section 7</a>.</p></blockquote>
+<blockquote><p><strong>No flag?</strong> Right. These commands are for the live chain, which has been running since 00:00 UTC on 15 September 2026. See <a href="#7-two-things-you-must-know">section 7</a>.</p></blockquote>
 <hr>
 <h2 id="4-make-yourself-an-address">4. Make yourself an address</h2>
 <p>An address is where WAM is sent, like an account number. It is free, you can make as many as you like, and you do not register it with anyone.</p>
-<pre><code>./wam-cli -testnet createwallet "mine"
-./wam-cli -testnet -rpcwallet=mine getnewaddress</code></pre>
+<pre><code>./wam-cli createwallet "mine"
+./wam-cli -rpcwallet=mine getnewaddress</code></pre>
 <blockquote><p><strong>Back it up before you do anything else.</strong> One command, now, while there is nothing in it to lose:</p>
-<pre><code>./wam-cli -testnet -rpcwallet=mine backupwallet ~/wam-wallet-backup.dat</code></pre>
-<p>This page says the same thing again further down, and on 6 September that was a hundred lines too late: somebody following it created a wallet, tidied his directory an hour later, and deleted the only copy. On testnet that costs nothing. The habit is what is being built here, and the person who builds it on 15 September has money in the file.</p></blockquote>
+<pre><code>./wam-cli -rpcwallet=mine backupwallet ~/wam-wallet-backup.dat</code></pre>
+<p>This page says the same thing again further down, and on 6 September that was a hundred lines too late: somebody following it created a wallet, tidied his directory an hour later, and deleted the only copy. On the test chain that cost nothing. The habit is what is being built here, and the person who builds it on 15 September has money in the file.</p></blockquote>
 <p><strong>If you restart the node and <code>wam-cli</code> answers <code>-18 Requested wallet does not exist or is not loaded</code>,</strong> the wallet is on disk and simply not open. Bitcoin Core reopens the wallets it had open when it was last shut down cleanly; a node stopped any other way, or started against a datadir that was cleared, comes back with none.</p>
-<pre><code>./wam-cli -testnet listwallets           # what is open right now
-ls ~/.wam/testnet3/wallets/              # what exists on disk
-./wam-cli -testnet loadwallet "mine"     # open it again</code></pre>
+<pre><code>./wam-cli listwallets           # what is open right now
+ls ~/.wam/wallets/              # what exists on disk
+./wam-cli loadwallet "mine"     # open it again</code></pre>
 <p>Nothing is lost either way — <code>createwallet</code> writes a file and deleting <code>blocks</code>, <code>chainstate</code> or <code>peers.dat</code> does not touch it. This was found on 6 September by somebody following this page, restarting his node three times, and being told his wallet did not exist.</p>
 <p><strong>And if the machine itself is gone, this is how the backup goes back.</strong> Put it where the node looks, under the name the node expects:</p>
-<pre><code>mkdir -p ~/.wam/testnet3/wallets/mine
-cp /path/to/your/backup.dat ~/.wam/testnet3/wallets/mine/wallet.dat
-./wam-cli -testnet loadwallet "mine"
-./wam-cli -testnet -rpcwallet=mine getbalance</code></pre>
+<pre><code>mkdir -p ~/.wam/wallets/mine
+cp /path/to/your/backup.dat ~/.wam/wallets/mine/wallet.dat
+./wam-cli loadwallet "mine"
+./wam-cli -rpcwallet=mine getbalance</code></pre>
 <p>The rename is the part that catches people: your backup may be called anything, but the file inside the folder must be <code>wallet.dat</code>, and the folder must carry the wallet's name. Get either wrong and the node reports a wallet that does not exist rather than a file that is misnamed.</p>
-<p>If the balance reads zero when you know it should not, the node has not looked at the older blocks yet — <code>./wam-cli -testnet -rpcwallet=mine rescanblockchain</code> reads the chain from the beginning, and <code>getwalletinfo</code> reports a <code>scanning</code> object until it is finished. A node still syncing from genesis, as a fresh install is, needs none of that: the blocks arrive with the wallet already open.</p>
+<p>If the balance reads zero when you know it should not, the node has not looked at the older blocks yet — <code>./wam-cli -rpcwallet=mine rescanblockchain</code> reads the chain from the beginning, and <code>getwalletinfo</code> reports a <code>scanning</code> object until it is finished. A node still syncing from genesis, as a fresh install is, needs none of that: the blocks arrive with the wallet already open.</p>
 <p>This procedure is here because somebody reinstalled his operating system on 8 September 2026, restored his wallet with no instructions to follow, got it right, and wrote down what he did. <a href="/mine/">MINE.md</a> carries the same steps next to the backup command.</p>
 <p>You will get something like <code>twam1q4syaj2akkysnsymxm8g85whanz23v3jn0jm6dd</code>. That is yours. Anyone can send to it; only you can spend from it.</p>
 <blockquote><p><strong>The one rule that matters.</strong> The file <code>wallet.dat</code> inside the node's folder holds the keys to your money. Copy it somewhere safe. If you lose it, the coins are gone — there is no support line, no password reset, and no one who can help. That is the same freedom that means nobody can freeze your money, seen from the other side.</p></blockquote>
@@ -177,9 +177,9 @@ chmod +x wam-miner</code></pre>
 <p><code>chmod</code> is there because a file unpacked onto a Windows drive — <code>/mnt/c/...</code> under WSL — loses the executable bit, and <code>bash</code> then says <code>Permission denied</code>, which reads as a broken download rather than a filesystem it passed through.</p>
 <h3 id="point-your-miner-at-the-pool">Point your miner at the pool</h3>
 <p>The address comes from step 4, and <code>wam-cli</code> lives in the <em>node</em> folder, not this one — so run the two from their own directories.</p>
-<pre><code>./wam-miner -o stratum+tcp://pool.wamcoin.org:13333 -u YOUR_ADDRESS.rig1 -t 4</code></pre>
+<pre><code>./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS.rig1 -t 4</code></pre>
 <p>Replace <code>YOUR_ADDRESS</code> with the address from step 4. Keep the <code>.rig1</code> — it is just a name for this machine, so you can tell your computers apart later.</p>
-<p><strong>13333 is the testnet port, and it changed on 11 September.</strong> It used to be 3333, which is the number mainnet publishes — and both pools cannot hold it, so the testnet one moved aside and 3333-3336 now stand empty until the 15th. If you were already mining on 3333, that is why it stopped.</p>
+<p><strong>3333 is the port.</strong> It has been the live pool since mainnet opened at 00:00 UTC on 15 September 2026. Before that the test pool used 13333, and 13333 answers nothing now — if you were mining there and it stopped, this is why.</p>
 <p><code>-t 4</code> is how many processor cores to use. Leave one or two free if you want the computer to stay usable.</p>
 <h3 id="which-port">Which port</h3>
 <table><tr><th>Port</th><th>For</th><th>Meaning</th></tr><tr><td><strong>3333</strong></td><td>a laptop or desktop</td><td>start here</td></tr><tr><td>3334</td><td>a server</td><td>fewer, larger reports</td></tr><tr><td>3335</td><td>a farm of machines</td><td></td></tr></table>
@@ -193,9 +193,9 @@ chmod +x wam-miner</code></pre>
 <p>That last row surprises people. A mining reward is frozen for 100 blocks before it can be spent. Every coin that works this way does the same thing, for a reason: it prevents money being spent out of a block that later turns out not to belong on the list.</p>
 <hr>
 <h2 id="7-two-things-you-must-know">7. Two things you must know</h2>
-<p><strong>The real network has not launched.</strong> It launches <strong>15 September 2026</strong>. Everything above connects you to the <em>test network</em>, which exists so people can practise and so faults are found before real money is involved.</p>
-<p><strong>Test coins are worth nothing.</strong> They cannot be sold, they will not become real coins, and the test network is wiped and restarted whenever that is useful — it has been already. Mine there to learn and to help, not to earn.</p>
-<p>When mainnet launches, the same commands work without <code>-testnet</code>.</p>
+<p><strong>These are real coins.</strong> Mainnet opened at 00:00 UTC on 15 September 2026 and everything above connects you to it. A block pays 50 WAM: 47.50 to whoever found it, 2.50 to the treasury, by a rule every node checks.</p>
+<p><strong>There is no price and no exchange.</strong> Nothing can be sold and nothing may ever be worth anything. Mine because you want to hold the coin of a chain you can verify yourself, not because you are expecting a market.</p>
+<p>A test network still runs for people developing against it, and this page does not cover it: until 19 September it taught the test chain and mentioned the real one at the bottom, so readers made a <code>twam1</code> address, pointed it at the live pool, and hashed for nothing.</p>
 <hr>
 <h2 id="8-when-something-goes-wrong">8. When something goes wrong</h2>
 <p><strong>The node prints errors and stops.</strong> Read the last line before it stopped; it usually says exactly what it needs. If it mentions an address already in use, another copy is already running.</p>
@@ -218,7 +218,7 @@ chmod +x wam-miner</code></pre>
 You may need to upgrade, or other nodes may need to upgrade.</code></pre>
 <p>But that lives in the log and in <code>getnetworkinfo</code>, this release ships without a graphical interface, and nobody watches a node that has been quietly working for a week. A release notification arrives where you got the software, before any of that happens.</p>
 <p>You can also read it from the node itself at any time:</p>
-<pre><code>wam-cli -testnet getnetworkinfo | grep -A3 warnings</code></pre>
+<pre><code>wam-cli getnetworkinfo | grep -A3 warnings</code></pre>
 <hr>
 <h2 id="where-to-go-next">Where to go next</h2>
 <ul><li><strong><a href="/whitepaper/">The whitepaper</a></strong> — why the money works the way it does</li><li><strong><a href="/build/">Build it yourself</a></strong> — compile from source rather than trusting a download</li><li><strong><a href="/pool/">Run a pool</a></strong> — if you want to host one for others</li><li><strong><a href="https://explorer.wamcoin.org">explorer.wamcoin.org</a></strong> — look at the chain without running anything</li></ul>

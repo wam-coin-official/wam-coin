@@ -74,8 +74,9 @@ hr{border:0;border-top:1px solid var(--rule);margin:2.2rem 0}
 <p>Nine lines, no explanation. If you want the explanation, read <a href="/start/">START_HERE.md</a>.</p>
 <p>This page exists because a tester on 5 September said his friends "want plain jane, step by step, and shortest way to start mining", and he was right that the guide is the wrong shape for that. It explains what a blockchain is, which that reader either knows already or does not care about.</p>
 <p>Linux, Windows, or a Mac with an Apple chip. About 2 GB of free memory. Nothing else.</p>
+<p><strong>Every command here is for the live chain.</strong> Mainnet opened at 00:00 UTC on 15 September 2026 and these coins are real ones. This page taught the test network until 19 September, with mainnet as an afterthought at the bottom -- so a reader who followed it from the top made a <code>twam1</code> address, pointed it at the live pool, and hashed for nothing until he reached a paragraph explaining why. The test network still exists for people developing against it; it is not on this page, and it is not where you start.</p>
 <p>The Linux commands are first because they are the ones strangers have been running since August. <a href="#windows">Windows</a> and <a href="#macos">macOS</a> are below them and both are new in v0.1.8 — including what each operating system will say about the files when you first run them, which is explained there rather than left to surprise you.</p>
-<h2 id="the-test-network-live-now">The test network — live now</h2>
+<h2 id="linux-nine-lines">Linux — nine lines</h2>
 <pre><code>curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.9/wam-coin-v0.1.9-x86_64-linux-gnu.tar.gz
 curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.9/wam-miner-v0.1.9-x86_64-linux-gnu.tar.gz
 curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.9/SHA256SUMS
@@ -85,21 +86,22 @@ curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNI
 bash verify_release.sh .
 tar -xzf wam-coin-v0.1.9-x86_64-linux-gnu.tar.gz &amp;&amp; tar -xzf wam-miner-v0.1.9-x86_64-linux-gnu.tar.gz
 cd wam-coin-v0.1.9/bin
-./wamd -testnet -daemon
-./wam-cli -testnet createwallet "mine"
-./wam-cli -testnet -rpcwallet=mine getnewaddress</code></pre>
+./wamd -daemon
+./wam-cli createwallet "mine"
+./wam-cli -rpcwallet=mine getnewaddress</code></pre>
 <blockquote><p><strong>Back it up before you do anything else.</strong> One command, now, while there is nothing in it to lose:</p>
-<pre><code>./wam-cli -testnet -rpcwallet=mine backupwallet ~/wam-wallet-backup.dat</code></pre>
-<p>This page says the same thing again further down, and on 6 September that was a hundred lines too late: somebody following it created a wallet, tidied his directory an hour later, and deleted the only copy. On testnet that costs nothing. The habit is what is being built here, and the person who builds it on 15 September has money in the file.</p></blockquote>
+<pre><code>./wam-cli -rpcwallet=mine backupwallet ~/wam-wallet-backup.dat</code></pre>
+<p>This page says the same thing again further down, and on 6 September that was a hundred lines too late: somebody following it created a wallet, tidied his directory an hour later, and deleted the only copy. It cost him nothing then, because the chain he was on was a test one. There is money in the file now.</p></blockquote>
 <p><strong>If you restart the node and <code>wam-cli</code> answers <code>-18 Requested wallet does not exist or is not loaded</code>,</strong> the wallet is on disk and simply not open. Bitcoin Core reopens the wallets it had open when it was last shut down cleanly; a node stopped any other way, or started against a datadir that was cleared, comes back with none.</p>
-<pre><code>./wam-cli -testnet listwallets           # what is open right now
-ls ~/.wam/testnet3/wallets/              # what exists on disk
-./wam-cli -testnet loadwallet "mine"     # open it again</code></pre>
+<pre><code>./wam-cli listwallets           # what is open right now
+ls ~/.wam/wallets/              # what exists on disk
+./wam-cli loadwallet "mine"     # open it again</code></pre>
 <p><strong>Do not use <code>scripts/gen_founder_key.py</code> for a mining address.</strong> It is in the repository and it produces a valid address, so people find it and use it — one miner did on launch night, and his address found a block. It is an air-gapped ceremony tool: it prints a private key once, stores it nowhere, and expects you to write it on paper. No wallet holds that key, so there is no seed phrase, no backup file, and nothing for <code>backupwallet</code> to copy. Lose the paper and everything mined to it is gone, with no error at any point until the day you try to spend. The commands above are what you want.</p>
 <p>Nothing is lost either way — <code>createwallet</code> writes a file and deleting <code>blocks</code>, <code>chainstate</code> or <code>peers.dat</code> does not touch it. This was found on 6 September by somebody following this page, restarting his node three times, and being told his wallet did not exist.</p>
-<p>The last command prints your address; it starts with <code>twam1</code>. Then, from where the miner unpacked:</p>
+<p>The last command prints your address; it starts with <code>wam1</code>. Then, from where the miner unpacked:</p>
 <pre><code>./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS -t 4</code></pre>
-<p><strong>3333, and the address must be a mainnet one.</strong> Until 00:00 UTC on 15 September the pool served testnet on 13333. At that moment it was converted -- there is one <code>wam-pool</code> service -- so <strong>13333 answers nothing now</strong> and 3333-3336 are the live pool. An address beginning <code>twam1</code> is a testnet address and the pool refuses it: "bech32 checksum failed" or "invalid address" in your miner's log means exactly this, and you are hashing for nothing until you fix it. Create the address with the mainnet commands above, with no <code>-testnet</code>, and COPY it rather than retyping it -- the checksum catches a single wrong character, which is what it is for.</p>
+<p><strong>COPY the address, do not retype it.</strong> The checksum catches a single wrong character, which is what it is for. If your miner's log says "bech32 checksum failed" or "invalid address", the pool has refused it and you are hashing for nothing until you fix it.</p>
+<p>An address beginning <code>twam1</code> is a <strong>test</strong> address and will be refused. If you have one, you followed an older version of this page or a testnet guide: make a new address with the commands above. The pool is 3333-3336; 13333 was the test pool before 15 September and answers nothing now.</p>
 <p><code>-t 4</code> is how many processor cores to use. Without it the miner takes every core but one, which makes the rest of the machine unpleasant to use.</p>
 <h2 id="windows">Windows</h2>
 <p>Since v0.1.8 there are Windows binaries, node and miner, and they need no WSL and no Linux. Open PowerShell and work in a folder you choose:</p>
@@ -119,20 +121,15 @@ powershell -ExecutionPolicy Bypass -File verify_release.ps1</code></pre>
 <p>That last part needs GnuPG, which Windows does not ship. If you have <a href="https://gitforwindows.org/">Git for Windows</a> you already have one and the script finds it; otherwise install <a href="https://gpg4win.org/">Gpg4win</a>. Without it the script checks the hashes, tells you the signature was <strong>not</strong> checked, and exits without saying the release is good — because a matching hash against an unsigned list proves your download is not corrupt and proves nothing about who wrote the list.</p>
 <p>Then the node, with the directory named explicitly so you always know where the wallet is:</p>
 <pre><code>cd wam-coin-v0.1.9\bin
-.\wamd.exe -testnet -datadir=C:\wam\data
-.\wam-cli.exe -testnet -datadir=C:\wam\data createwallet "mine"
-.\wam-cli.exe -testnet -datadir=C:\wam\data -rpcwallet=mine backupwallet C:\wam\wallet-backup.dat
-.\wam-cli.exe -testnet -datadir=C:\wam\data -rpcwallet=mine getnewaddress</code></pre>
+.\wamd.exe -datadir=C:\wam\data
+.\wam-cli.exe -datadir=C:\wam\data createwallet "mine"
+.\wam-cli.exe -datadir=C:\wam\data -rpcwallet=mine backupwallet C:\wam\wallet-backup.dat
+.\wam-cli.exe -datadir=C:\wam\data -rpcwallet=mine getnewaddress</code></pre>
 <p><strong>Two things Windows does differently, and both were wrong in this guide until 2026-09-14 — a reader following it hit them before we did.</strong></p>
 <p><strong><code>-daemon</code> does not exist on Windows.</strong> The node answers <code>Error: -daemon is not supported on this operating system</code> and exits. So <code>wamd.exe</code> runs in the window you started it in: leave that window open and open a <strong>second</strong> PowerShell for the <code>wam-cli.exe</code> commands. If you would rather it stayed out of the way:</p>
 <pre><code>Start-Process -FilePath .\wamd.exe `
-  -ArgumentList '-testnet','-datadir=C:\wam\data' -WindowStyle Minimized</code></pre>
+  -ArgumentList '-datadir=C:\wam\data' -WindowStyle Minimized</code></pre>
 <p><strong><code>curl</code> in PowerShell is not curl.</strong> It is an alias for <code>Invoke-WebRequest</code>, which does not understand <code>-LO</code> and fails. The real program is <code>C:\WINDOWS\system32\curl.exe</code>, which is why every download above says <code>curl.exe</code> rather than <code>curl</code>.</p>
-<p><strong>And for mainnet, from 00:00 UTC on 15 September: the same four commands without <code>-testnet</code>, and a different data directory</strong> — never the testnet one:</p>
-<pre><code>.\wamd.exe -datadir=C:\wam\mainnet
-.\wam-cli.exe -datadir=C:\wam\mainnet createwallet "mine"
-.\wam-cli.exe -datadir=C:\wam\mainnet -rpcwallet=mine backupwallet C:\wam\mainnet-wallet-backup.dat
-.\wam-cli.exe -datadir=C:\wam\mainnet -rpcwallet=mine getnewaddress</code></pre>
 <p>and the miner, from the folder it unpacked into:</p>
 <pre><code>.\wam-miner.exe -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS -t 4</code></pre>
 <h3 id="windows-will-call-the-miner-a-virus-and-it-is-wrong">Windows will call the miner a virus, and it is wrong</h3>
@@ -159,10 +156,10 @@ bash verify_release.sh .</code></pre>
 <pre><code>tar -xzf wam-coin-v0.1.9-arm64-apple-darwin.tar.gz
 tar -xzf wam-miner-v0.1.9-arm64-apple-darwin.tar.gz
 cd wam-coin-v0.1.9/bin
-./wamd -testnet -datadir=$HOME/wam/data -daemon
-./wam-cli -testnet -datadir=$HOME/wam/data createwallet "mine"
-./wam-cli -testnet -datadir=$HOME/wam/data -rpcwallet=mine backupwallet $HOME/wam/wallet-backup.dat
-./wam-cli -testnet -datadir=$HOME/wam/data -rpcwallet=mine getnewaddress</code></pre>
+./wamd -datadir=$HOME/wam/data -daemon
+./wam-cli -datadir=$HOME/wam/data createwallet "mine"
+./wam-cli -datadir=$HOME/wam/data -rpcwallet=mine backupwallet $HOME/wam/wallet-backup.dat
+./wam-cli -datadir=$HOME/wam/data -rpcwallet=mine getnewaddress</code></pre>
 <p>and the miner, from where it unpacked:</p>
 <pre><code>./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS -t 4</code></pre>
 <h3 id="macos-will-refuse-to-run-them-the-first-time">macOS will refuse to run them the first time</h3>
@@ -179,25 +176,26 @@ curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNI
 bash verify_release.sh .</code></pre>
 <p>It should print <code>OK</code>. It costs a second, and it is the whole difference between running our file and running whatever arrived instead. Every other step here can be skipped and retried later; this one cannot be checked afterwards.</p>
 <h2 id="what-you-are-mining">What you are mining</h2>
-<p>Test coins. They are worth nothing, they will not become real coins, and the test chain is wiped whenever that is useful — it has been already. Mine here to find what breaks before 15 September, not to earn.</p>
-<h2 id="on-15-september-mainnet">On 15 September, mainnet</h2>
-<p>The same commands without <code>-testnet</code>:</p>
-<pre><code>./wamd -daemon
-./wam-cli createwallet "mine"
-./wam-cli -rpcwallet=mine getnewaddress
-./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS -t 4</code></pre>
-<p>Two things are <strong>not</strong> the same.</p>
-<p><strong>Your testnet address will not work.</strong> Make a new wallet. Testnet derives on coin type 1 — SLIP-44 reserves it for every test chain, deliberately, so test keys can never be confused with real ones — and WAM mainnet uses 5718349. The prefixes differ too: <code>twam1</code> here, <code>wam1</code> there. The pool refuses a testnet address on mainnet, so nothing is lost; it simply will not work.</p>
-<p><strong>Do not assume today's download is the launch binary.</strong> A release between now and the 15th may change a consensus rule. v0.1.5 moved the mainnet treasury address, and a node left on v0.1.4 would reject every valid block on launch day and fork itself off the network at height 1 — silently, while appearing to run perfectly. Subscribe so you are told:</p>
-<p>github.com/wam-coin-official/wam-coin → <strong>Watch ▾</strong> → <strong>Custom</strong> → <strong>Releases</strong> ✓</p>
+<p>Real coins on the live chain. Mainnet opened at 00:00 UTC on 15 September</p>
+<ol><li>A block pays 50 WAM: 47.50 to whoever found it and 2.50 to the</li></ol>
+<p>treasury, by a consensus rule every node checks. There is no price, no exchange and nothing to sell them on, and there may never be. Mine because you want to hold the coin of a chain you can verify, not because you expect a market.</p>
+<p>Coins from a block cannot be spent for 100 blocks, about three hours. That is consensus, not the pool.</p>
+<h2 id="mining-alone-which-works-here">Mining alone, which works here</h2>
+<p>Most guides tell you to join a pool and stop there. At this network size you do not have to, and the chain is better if some of you do not.</p>
+<p>A pool smooths your income: you are paid for the work you submit, a little at a time, whether or not your own machine finds anything. Alone, you are paid nothing until you find a block and then the whole 47.50 at once.</p>
+<p>How long that takes is arithmetic. If your machine is 1% of the network hash rate and a block comes every two minutes, you find one about every three hours. Measured on 2026-09-19, the network was near 356 kH/s, so:</p>
+<table><tr><th>your machine</th><th>share</th><th>a block about every</th></tr><tr><td>2,900 H/s (a typical laptop)</td><td>0.8%</td><td>4 hours</td></tr><tr><td>3,900 H/s</td><td>1.1%</td><td>3 hours</td></tr><tr><td>6,000 H/s</td><td>1.7%</td><td>2 hours</td></tr></table>
+<p>Four miners are already doing this and have found 157 blocks between them. Read the live figures yourself at explorer.wamcoin.org rather than trusting this table, because the network moves and the table does not.</p>
+<p><strong>And it helps the chain more than joining us does.</strong> Every solo miner is a separate finder; everybody in one pool is one finder, however many people are behind it. That is not an argument in our favour, and it is written here anyway.</p>
+<p><strong>How, exactly.</strong> <code>wam-miner</code> speaks stratum and nothing else -- it cannot talk to a node directly -- so mining alone means running a pool of your own, for yourself. The pool software is in this repository, it runs against your own node on your own machine, and you point the miner at <code>localhost</code> instead of at us. <code>docs/POOL_OPERATOR.md</code> is the setup guide; it is written for somebody serving other people, and every step of it works the same when the only miner is you.</p>
+<p>That is what the miner in our Discord meant by "I'm running the pool locally". He has 3.9 kH/s and he is finding blocks.</p>
 <h2 id="when-it-does-not-work">When it does not work</h2>
-<p><strong><code>dnsseed thread exit</code>, and nothing else happens.</strong> You are on mainnet, which is one block until 15 September, so the node is correctly fully synced and stops looking for peers. Add <code>-testnet</code>.</p>
-<p><strong><code>incorrect password attempt</code> in the log.</strong> There is no password. The node writes <code>&lt;datadir&gt;/.cookie</code> at startup and clients read it, so <code>wam-cli</code> needs the same <code>-testnet</code> and the same <code>-datadir=</code> as the daemon. A leftover <code>wam.conf</code> carrying <code>rpcuser</code>/<code>rpcpassword</code> fights the cookie; delete those two lines.</p>
-<p><strong><code>accepted</code> stays at 0.</strong> Usually the wrong address format — it must start with <code>twam1</code> on the test network.</p>
+<p><strong><code>incorrect password attempt</code> in the log.</strong> There is no password. The node writes <code>&lt;datadir&gt;/.cookie</code> at startup and clients read it, so <code>wam-cli</code> needs the same <code>-datadir=</code> as the daemon. A leftover <code>wam.conf</code> carrying <code>rpcuser</code>/<code>rpcpassword</code> fights the cookie; delete those two lines.</p>
+<p><strong><code>accepted</code> stays at 0.</strong> Usually the wrong address format — it must start with <code>wam1</code>. An address beginning <code>twam1</code> belongs to the test chain and the pool refuses it.</p>
 <p><strong>No block ever found.</strong> Normal. One machine among many finds one rarely, which is what the pool is for; your share of what the pool finds is paid to your address anyway.</p>
 <h2 id="your-balance-will-say-zero-and-that-is-normal">Your balance will say zero, and that is normal</h2>
 <p>The pool pays out at <strong>1 WAM</strong> and runs a payment round every <strong>10 minutes</strong>. Below that threshold your earnings sit in the pool's ledger and not in your wallet, so</p>
-<pre><code>./wam-cli -testnet -rpcwallet=mine getbalance
+<pre><code>./wam-cli -rpcwallet=mine getbalance
 0.00000000</code></pre>
 <p>is what you will see for the first while, however hard the machine is working. Nothing is missing and more threads is not the fix — it only raises your share of each block the pool finds.</p>
 <p>Watch the ledger instead of the wallet:</p>
@@ -207,7 +205,7 @@ bash verify_release.sh .</code></pre>
 <h3 id="and-getbalance-will-drop-when-you-send-to-yourself">And <code>getbalance</code> will DROP when you send to yourself</h3>
 <p>Send one coin from your own wallet to another address in the same wallet and the balance goes down, not sideways. Nothing was lost. <code>getbalance</code> reports only what is confirmed and spendable, and your change output is sitting in the mempool until a block carries it.</p>
 <p><code>getbalance</code> is one number. <code>getbalances</code> is the truth:</p>
-<pre><code>./wam-cli -testnet -rpcwallet=mine getbalances
+<pre><code>./wam-cli -rpcwallet=mine getbalances
 {
   "mine": {
     "trusted": 6.99973355,            confirmed, spendable now
@@ -218,18 +216,18 @@ bash verify_release.sh .</code></pre>
 <p>Use <code>getbalances</code> whenever a number surprises you. The three add up; one of them alone never does.</p>
 <p>Written down on 6 September because a miner sent a coin to himself, watched the balance fall, and another miner — walkjivefly — explained it in the channel before this project did.</p>
 <h2 id="back-up-the-wallet">Back up the wallet</h2>
-<pre><code>./wam-cli -testnet -rpcwallet=mine backupwallet /path/you/choose/backup.dat</code></pre>
+<pre><code>./wam-cli -rpcwallet=mine backupwallet /path/you/choose/backup.dat</code></pre>
 <p>It prints nothing on success. Check the file exists and has a size — that is the whole confirmation.</p>
-<p>The live wallet is at <code>~/.wam/testnet3/wallets/mine/wallet.dat</code>, and <code>listdescriptors true</code> prints the same keys in portable form. Treat that output like cash: never paste it anywhere, including to us.</p>
+<p>The live wallet is at <code>~/.wam/wallets/mine/wallet.dat</code>, and <code>listdescriptors true</code> prints the same keys in portable form. Treat that output like cash: never paste it anywhere, including to us.</p>
 <h2 id="restore-it">Restore it</h2>
 <p>A backup nobody has ever restored is a file you hope about. This page told you how to make one in three separate places and never once said how to use one, which was found on 8 September 2026 by the first person outside this project to actually do it — onto a machine whose operating system he had reinstalled that morning. These are his steps, not ours.</p>
-<pre><code>mkdir -p ~/.wam/testnet3/wallets/mine
-cp /path/to/your/backup.dat ~/.wam/testnet3/wallets/mine/wallet.dat
-./wam-cli -testnet loadwallet "mine"
-./wam-cli -testnet -rpcwallet=mine getbalance</code></pre>
+<pre><code>mkdir -p ~/.wam/wallets/mine
+cp /path/to/your/backup.dat ~/.wam/wallets/mine/wallet.dat
+./wam-cli loadwallet "mine"
+./wam-cli -rpcwallet=mine getbalance</code></pre>
 <p><strong>The rename is the part that catches people.</strong> Your backup may be called anything you like, but the file inside the folder must be called <code>wallet.dat</code>, and the folder must be named after the wallet you then pass to <code>loadwallet</code>. Neither is guessable, and getting either wrong gives you an error about a wallet that does not exist rather than one about a file that is misnamed.</p>
 <p>His balance was simply there, with no rescan, because that node was syncing from genesis: the blocks holding his coins arrived while the wallet was already open. A node that finished syncing weeks ago is the other case, and if the balance reads zero when you know it should not, ask the node to look again:</p>
-<pre><code>./wam-cli -testnet -rpcwallet=mine rescanblockchain</code></pre>
+<pre><code>./wam-cli -rpcwallet=mine rescanblockchain</code></pre>
 <p>It reads the chain from the beginning and takes as long as it takes. <code>getwalletinfo</code> reports a <code>scanning</code> object while that is happening and <code>false</code> when it is done, so you are never left guessing whether it is still working.</p>
 <hr>
 <p><a href="https://discord.gg/Gxvmrjy9Qb">discord</a> · <a href="https://explorer.wamcoin.org">explorer</a> · <a href="https://pool.wamcoin.org">pool</a></p>
