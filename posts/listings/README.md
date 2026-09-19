@@ -10,8 +10,9 @@ opened; this is what became of them and what, if anything, is owed.
 | KomodoPlatform/coins | 21 | **open** | no comments at all since 29 August |
 | GLEECBTC/coins | 1975 | **open** | **waiting on us** — see below |
 | basicswap/basicswap | 701 | closed | "Mainnet is scheduled for 2026-09-15" — a deferral, not a refusal |
-| bisq-network/bisq | 8028, 8030 | closed | policy: "Bisq did not add new altcoins anymore", plus a ticker conflict |
-| haveno-dex/haveno | 2527, 2528 | closed | "We only consider coins with market traction / price" |
+| bisq-network/bisq | 8030 | closed | he could not find the project — only the BEP-20 gaming token — and the ticker conflicts with it |
+| haveno-dex/haveno | 2528 | closed | "We only consider coins with market traction / price" — the only market condition anyone set |
+| bisq #8028, haveno #2527 | | closed | replaced by our own later PRs, no comments, not refusals |
 
 ## The one that is our fault
 
@@ -28,21 +29,61 @@ date. Nothing was said about the coin, the code or the policy.
 `basicswap-701-reopen.txt` reports that the condition is met and does not
 argue with anything.
 
-## The two that should NOT be reopened
+## Bisq: it was not a policy refusal, and this file said it was
 
-**Bisq** closed on policy — they do not add new altcoins — and separately
-raised a ticker conflict. Neither is a fact about WAM that changed on
-15 September. A new request asks a maintainer to break a rule he has just
-stated in writing, and the record there is currently good: the identity
-confusion with the BEP-20 gaming token was corrected, the closure was
-accepted without argument, and the SLIP registration was left in the thread
-for whoever reads it later. That is worth more than a second refusal.
+Read whole rather than summarised, both of HenrikJannsen's comments turn on
+one thing -- he could not find us.
 
-**Haveno** closed with "we only consider coins with market traction / price".
-WAM has neither, by design, and this project does not pay for listings or
-manufacture a price. Reopening would be asking them to make an exception for
-a coin that still does not meet the only criterion they named. The answer
-would be the same and the asking would cost the good record.
+> I do not see any project related to WAM but an existing coin
+> [coingecko.com/en/coins/wam]. Bisq did not add new altcoins anymore, though
+> with the BIP110 hardfork there might be case to reconsider that.
+> -- 22 August
 
-Both become worth revisiting if the reason itself changes — a policy shift,
-or a market that exists without us arranging one. Not before.
+> I fear the request will not get support and as the ticker symbol conflicts
+> thats another issue. As far I am aware the BIP110 Blake based fork coin
+> will not have replay protection and therefor will not get added to Bisq as
+> well as it would put users at risk. I will close that issue.
+> -- 29 August
+
+Three things this file got wrong on 19 September and are corrected here:
+
+**"Bisq does not add new altcoins" was not the final word.** It is qualified
+in the same sentence -- *"though with the BIP110 hardfork there might be case
+to reconsider that"*.
+
+**The objection that repeats in both comments is the identity collision.**
+First he cannot find a project, only the BEP-20 gaming token; then the ticker
+conflicts -- with that same token.
+
+**And the flat "will not get added" is not about WAM at all.** It is about the
+BIP110 Blake fork coin, a different project, refused for having no replay
+protection. Attributing that sentence to us was a misreading.
+
+What changed since 29 August is exactly the thing he could not find:
+
+| | |
+|---|---|
+| a live chain | mainnet since 2026-09-15, height 3,307, 47 peers |
+| an identity that is not the gaming token | SLIP-0044 coin type **5718349**, SLIP-0173 prefixes wam / twam / wamrt, merged 26 August |
+| something to run | signed releases for Linux, Windows and macOS |
+| something to check it with | a public explorer, and a concentration figure published whether it flatters us or not |
+
+`bisq-new.txt` is written on that basis. It leads with what can be verified,
+and it addresses the ticker head-on instead of hoping nobody mentions it --
+because that part has not changed and pretending otherwise would be the
+fastest way to deserve a third closure.
+
+## The one that should NOT be reopened
+
+**Haveno** closed #2528 with "we only consider coins with market traction /
+price". Of every request this project has opened, that is the only one that
+asked for a market, and WAM has none by design: this project does not pay for
+listings, does not arrange a price, and says so in public. Reopening asks a
+maintainer to make an exception to the single criterion he named, and the
+answer would be the same.
+
+(#2527 is not a refusal; it has no comments and was replaced by #2528 the
+next day. The same is true of bisq #8028, replaced by #8030.)
+
+It becomes worth revisiting when the reason itself changes -- a market that
+exists because people want the coin, not because we arranged one.

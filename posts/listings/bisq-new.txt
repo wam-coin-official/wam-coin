@@ -1,0 +1,69 @@
+DESTINATION: a NEW pull request to bisq-network/bisq
+The previous one was #8030, closed 2026-08-29 by HenrikJannsen
+SEND: when the founder chooses -- he said three or four days from 19 September
+WHY A NEW ONE, AND WHY IT IS NOT ARGUING:
+
+#8030 was not refused on policy. Read whole, both of HenrikJannsen's comments
+turn on the same thing: he could not find the project.
+
+  "I do not see any project related to WAM but an existing coin
+   [the BEP-20 gaming token on CoinGecko]"          -- 22 August
+  "the ticker symbol conflicts thats another issue"  -- 29 August
+
+Both are the same collision. The line people quote as a refusal -- "Bisq did
+not add new altcoins anymore" -- is qualified in its own sentence: "though
+with the BIP110 hardfork there might be case to reconsider that". And the
+flat "will not get added to Bisq" in the second comment is about the BIP110
+Blake fork coin, not about WAM.
+
+So this does not argue with the closure. It reports that the thing he could
+not find now exists and can be checked in a minute, and it says out loud that
+the ticker problem has NOT changed -- because pretending otherwise would earn
+a third closure.
+===========================================================================
+
+Add WAM Coin (WAM)
+
+#8030 was closed on 29 August. The reason given was that there was no
+visible project behind the name -- only the BEP-20 gaming token on CoinGecko.
+That was a fair reading at the time: mainnet had not launched and there was
+little to look at.
+
+There is now. Measured at 2026-09-19T18:30:44Z:
+
+  mainnet since     2026-09-15 00:00 UTC
+  height            3,307
+  peers             47
+  block target      120 s
+  proof of work     RandomX, CPU only
+  mined so far      165,350 WAM of a 22,000,000 cap
+
+  explorer          https://explorer.wamcoin.org
+  releases          https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.9
+
+Signed for Linux x86_64, Windows x86_64 and macOS arm64; SHA256SUMS is signed
+by the release key whose fingerprint is in the repository.
+
+On the identity, which is the part that matters here: WAM Coin has its own
+registration with SatoshiLabs, merged into satoshilabs/slips master on
+26 August -- SLIP-0044 coin type 5718349, and SLIP-0173 bech32 prefixes
+wam / twam / wamrt.
+
+  https://github.com/satoshilabs/slips/blob/master/slip-0044.md
+  https://github.com/satoshilabs/slips/blob/master/slip-0173.md
+
+That is a separate derivation path and a separate address space from anything
+on BNB Chain. It is not a fork of the gaming token and shares no code with
+it: this is Bitcoin Core v28.1 with RandomX proof of work and a two-minute
+block target.
+
+**On the ticker conflict, which has not changed.** WAM is taken on the
+aggregators by that token, and I am not going to pretend that is solved. The
+SLIP registration is the strongest identity claim available to us and it is
+about derivation and address encoding, not about a ticker. If Bisq's
+convention needs a distinct symbol, say which and I will use it -- the
+project is four days old and nothing is set in anybody's habits yet.
+
+There is no exchange listing and no price, and this project does not pay for
+listings. If that, or the altcoin policy, means the answer is still no, close
+it again and I will not push -- as last time.
