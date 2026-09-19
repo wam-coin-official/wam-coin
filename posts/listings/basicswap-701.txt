@@ -29,7 +29,7 @@ Everything except the running chain can be checked today:
 Signed binaries for Linux, Windows and macOS, SHA256SUMS signed with the
 release key:
 
-  https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.8
+  https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.9
 
 The two files in this PR — `basicswap/interface/wam/chainparams.py` and
 `basicswap/interface/wam/wam.py` — are unchanged from your review.

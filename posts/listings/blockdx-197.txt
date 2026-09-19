@@ -1,42 +1,44 @@
 DESTINATION: a public comment on Block DX PR #197
 https://github.com/blocknetdx/blockchain-configuration-files/pull/197
-SEND: part 1 on 14 September, part 2 on 15 September
-WHY SHORT: tryiou said he is preparing a batch cleaning PR, will include
-this one, will test wallet deployment via docker, and will bump us when
-ready — "ETA few days/weeks". He is doing the work. This gives him what he
-needs for that test and nothing else; a maintainer who said he will call
-does not need chasing.
-===========================================================================
-PART 1 — send 14 September
-===========================================================================
+SEND: when the founder chooses -- he said two or three days from 19 September
+WHY SHORT: tryiou said on 29 August he is preparing a batch cleaning PR, will
+include this one, will test wallet deployment via docker, and will bump us
+when ready -- "ETA few days/weeks". He is doing the work. This gives him what
+that test needs and nothing else. A maintainer who said he will call does not
+need chasing.
 
-Two things for the docker wallet test, so they do not cost you time.
-
-Signed releases now exist for all three desktop platforms — Linux x86_64,
-Windows x86_64 and macOS arm64 — with SHA256SUMS signed by the release key:
-
-  https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.8
-
-`manifest-entry.json` here now lists v0.1.6, v0.1.7 and v0.1.8. The conf
-file is unchanged and still keyed to `wam--v0.1.6`: nothing in the RPC
-interface, the datadir layout or the address encoding has moved across
-those releases.
-
-And the one that will look like a bug if you meet it cold: **mainnet opens
-2026-09-15 00:00:00 UTC**, and a mainnet node started before that refuses
-to run. The genesis block is dated in the future, so Bitcoin Core's own
-startup verification accepts it once from an empty datadir and refuses on
-every start afterwards. It is upstream behaviour, not something we added.
-From tomorrow the question disappears.
-
-If it is easier to test against a chain that is already live, `wamd
--testnet` reaches testnet with no configuration — it has been running since
-August and the seeds are in chainparams.
-
-===========================================================================
-PART 2 — send 15 September, one line, only if it helps the batch
+WHAT THIS REPLACES: a two-part draft written for 14 and 15 September, which
+pointed at v0.1.8, described the entry as keyed to wam--v0.1.6, explained a
+pre-launch startup refusal that no longer happens, and offered testnet as
+somewhere to test. All four were true when it was written and none is now.
 ===========================================================================
 
-Mainnet is live as of 2026-09-15 00:00 UTC — height <<HEIGHT>>, best block
-<<BESTHASH>>, measured <<UTC>>. The docker test will now find a chain
-rather than a refusal. No rush from my side; whenever the batch is ready.
+Updating this as promised on 23 August, now that there is a release people
+are actually running.
+
+Mainnet has been live since 2026-09-15 00:00 UTC. Measured just now: height
+3,307, best block a244fcb657bb7554179324a109a6dd25374df22f0ee4cc4ffbf47e9f60d03b41,
+47 peers.
+
+What changed in this PR:
+
+  ver_id, wallet_conf, xbridge_conf   wam--v0.1.6  ->  wam--v0.1.9
+  versions                            now v0.1.8 and v0.1.9
+
+Nothing inside either conf file changed. Every value in them was read off the
+consensus source when they were written and none of v0.1.7, v0.1.8 or v0.1.9
+touched the RPC interface, the datadir layout or the address encoding. The
+rename is the promise in this thread being kept, not a correction.
+
+Older releases are dropped from `versions` deliberately. They still sync
+mainnet -- the consensus floor is v0.1.5 -- but v0.1.6 predates the chain
+existing, and that list is a recommendation to somebody deciding what to
+install.
+
+Signed releases exist for all three desktop platforms, Linux x86_64, Windows
+x86_64 and macOS arm64, with SHA256SUMS signed by the release key:
+
+  https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.9
+
+The docker wallet test will now find a live chain. No rush from my side --
+whenever the batch is ready.
