@@ -36,20 +36,21 @@
   "blockCheckIntervalSec": 60,
   "coinbaseMaturity": 100,
 
-  "startDifficulty": 1000,
+  "_difficulty": "These are share difficulties, and on this chain they are very small numbers. Until 2026-09-19 this file shipped 1000/500, copied from a pool template written for a chain whose difficulty is millions -- about a hundred million times too hard for WAM. A CPU would have submitted no shares for hours and the operator would have concluded the pool was broken. The live wamcoin.org pool runs the values below.",
+  "startDifficulty": 0.00001,
   "varDiff": {
     "targetTime": 15,
     "retargetTime": 90,
     "variancePercent": 30,
-    "minDiff": 100,
-    "maxDiff": 2000000,
+    "minDiff": 0.000001,
+    "maxDiff": 1000,
     "maxJump": 4
   },
 
   "ports": [
-    { "port": 3333, "difficulty": 500,    "description": "CPUs and small rigs" },
-    { "port": 3334, "difficulty": 10000,  "description": "servers and farms" },
-    { "port": 3335, "difficulty": 200000, "description": "large farms" }
+    { "port": 3333, "difficulty": 0.000005, "description": "CPUs and small rigs" },
+    { "port": 3334, "difficulty": 0.0001,   "description": "servers and farms" },
+    { "port": 3335, "difficulty": 0.001,    "description": "large farms" }
   ],
   "bindAddress": "0.0.0.0",
   "publicHost": "pool.wamcoin.org",
