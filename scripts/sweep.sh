@@ -324,6 +324,19 @@ else
         # authorise. Nothing here knew which machine trusted which key.
         run "the same keys get a shell everywhere"             bash scripts/check_admin_keys.sh $NODES
 
+        # WHO IS WRITING THE CHAIN.
+        #
+        # This existed from 15 September, an hour into mainnet, and lived on
+        # the operations panel alone. So on 19 September this sweep printed
+        # "47 passed, 0 failed" while one party held 60% of the last 144
+        # blocks and the panel was red about it.
+        #
+        # The sweep is what gets run at the start of a session and before
+        # anything is announced. A sweep that reports no failures while the
+        # single largest risk to the chain sits unasked is the shape of green
+        # this whole file exists to refuse.
+        run "no one party writes the chain"             "$PY" scripts/check_concentration.py --node "${NODES%% *}"                   --network "$NETWORK"
+
         # The one question the nodes themselves cannot answer. They agreed with
         # each other, ran identical binaries, held the same block at the same
         # height -- and the chain could not be validated from genesis by anyone
