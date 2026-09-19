@@ -1,0 +1,36 @@
+DESTINATION: a public comment on KomodoPlatform/coins PR #21
+https://github.com/KomodoPlatform/coins/pull/21
+SEND: with the others, three or four days from 19 September
+WHY: it has been open since 29 August with ZERO comments. Nobody has asked
+for anything and nobody has refused anything. A PR with no conversation is
+usually one nobody has looked at, and the useful thing is to give a reviewer
+a reason to look now rather than to ask whether they have.
+===========================================================================
+
+An update, since this has been open a few weeks.
+
+Mainnet opened on 2026-09-15 00:00 UTC. Measured at 2026-09-19T18:30:44Z:
+
+  height            3,307
+  peers             47
+  block target      120 s
+  proof of work     RandomX, CPU only
+  mined so far      165,350 WAM of a 22,000,000 cap
+
+Electrum servers, both on mainnet, on separate machines in different
+countries and under different hosting companies:
+
+  electrum.wamcoin.org    50001 TCP   50002 SSL
+  electrum2.wamcoin.org   50001 TCP   50002 SSL
+
+Registered with SatoshiLabs since 26 August -- SLIP-0044 coin type 5718349,
+SLIP-0173 prefixes wam / twam / wamrt:
+
+  https://github.com/satoshilabs/slips/blob/master/slip-0044.md
+
+Signed releases for Linux, Windows and macOS:
+
+  https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.9
+
+Happy to change anything in the PR that does not fit your conventions -- say
+what and I will do it.

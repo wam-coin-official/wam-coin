@@ -1,0 +1,45 @@
+DESTINATION: a NEW pull request to basicswap/basicswap
+The previous one was #701, closed 2026-08-27
+SEND: when the founder chooses -- he said three or four days from 19 September
+WHY A NEW ONE: #701 was closed with a single line and a single reason --
+"Mainnet is scheduled for 2026-09-15". Not a rejection: a deferral to a date.
+That date has passed. This does not argue with the closure; it reports that
+its only stated condition is met.
+===========================================================================
+
+Add WAM Coin (WAM)
+
+#701 was closed on 27 August with the note "Mainnet is scheduled for
+2026-09-15". It launched on that date and has been running since.
+
+Measured at 2026-09-19T18:30:44Z:
+
+  height            3,307
+  peers             47
+  block target      120 s
+  proof of work     RandomX, CPU
+  mined so far      165,350 WAM of a 22,000,000 cap
+
+Light wallet infrastructure, both on mainnet:
+
+  electrum.wamcoin.org    50001 TCP   50002 SSL
+  electrum2.wamcoin.org   50001 TCP   50002 SSL
+
+Separate machines, separate countries, separate hosting companies.
+
+Registered with SatoshiLabs since 26 August: SLIP-0044 coin type 5718349 and
+SLIP-0173 prefixes wam / twam / wamrt, both merged into satoshilabs/slips
+master.
+
+  https://github.com/satoshilabs/slips/blob/master/slip-0044.md
+  https://github.com/satoshilabs/slips/blob/master/slip-0173.md
+
+Signed releases for Linux x86_64, Windows x86_64 and macOS arm64, with
+SHA256SUMS signed by the release key whose fingerprint is published in the
+repository:
+
+  https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.9
+
+There is no exchange listing and no price, and this project does not pay for
+listings. If that makes it the wrong fit, closing this again costs me nothing
+and I will not push against it.

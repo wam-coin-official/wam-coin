@@ -1,0 +1,28 @@
+DESTINATION: a public comment on GLEEC PR #1975
+https://github.com/GLEECBTC/coins/pull/1975
+SEND: this is the most overdue of the lot -- send it first
+WHY: cipig asked on 30 August "What about the 2 electrums? Do we need to wait
+till 15.09.?" and was told yes. 15.09 came and went and nobody went back to
+him. He is an open maintainer waiting on a date that passed four days ago,
+and the wait is ours, not his.
+===========================================================================
+
+Following up on your question about the two Electrum servers and 15.09.
+
+Mainnet opened on 2026-09-15 00:00 UTC. Both servers are on it now, not on
+testnet. Measured at 2026-09-19T18:30:44Z, chain height 3,307:
+
+  electrum.wamcoin.org    50001 TCP   50002 SSL   height 3,307
+  electrum2.wamcoin.org   50001 TCP   50002 SSL   height 3,307
+
+They run on separate machines in different countries and under different
+hosting companies, so one provider failing does not take both.
+
+The chain itself, same moment: height 3,307, 47 peers, block target 120s,
+RandomX proof of work.
+
+The icon is in icons_original/ as you asked -- 256x256, so icons_resize.sh
+has a clean source.
+
+Nothing else is waiting on us that I know of. If anything in the PR needs
+changing, say so and I will do it.
