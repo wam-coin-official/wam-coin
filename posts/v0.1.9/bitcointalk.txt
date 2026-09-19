@@ -1,0 +1,43 @@
+[DESTINATION: BitcoinTalk -- the WAM Coin announcement thread, as a reply]
+
+WAM Coin -- four days of mainnet, and a release for node operators
+
+Mainnet opened 2026-09-15 00:00 UTC. Measured today, 2026-09-19:
+
+  height            3,149
+  network hash rate 412,686 H/s (RandomX, CPU)
+  difficulty        0.0104
+  block target      120 s
+  mined so far      157,450 WAM of a 22,000,000 cap
+  distinct finders  17, over the life of the chain
+  largest finder    61.2% of all blocks
+
+That last line is the number that matters, and it is published permanently
+at explorer.wamcoin.org -- high or low, whatever it says. One party has
+produced most of this chain. It is not an accusation: that operator runs the
+published pool code, pays the consensus treasury in every block, and
+answered publicly when asked. It is arithmetic, and the only thing that
+changes it is miners choosing differently.
+
+So, plainly: this chain needs hash rate that is not at the largest pool. Not
+for our benefit -- the founder does not mine, and the project's own condition
+is that no exchange is approached while one finder is above 50%.
+
+v0.1.9 is out and is NOT mandatory. It sets nMinimumChainWork on mainnet,
+which was zero until now, so a node installed today cannot be walked onto a
+cheap fabricated history by the first peer it meets. A v0.1.8 node accepts
+exactly the same blocks and needs no update. Why it was not set at launch,
+and what it does not protect against, are in the release notes -- including
+the fact that it is a floor, not a shield.
+
+  releases  github.com/wam-coin-official/wam-coin/releases
+  verify    SHA256SUMS.asc is signed; fingerprint:
+            github.com/wam-coin-official/wam-coin/blob/main/SECURITY.md
+  start     wamcoin.org/start/
+  mine      stratum+tcp://pool.wamcoin.org:3333 -- fee 0%
+
+Linux, Windows and macOS (Apple Silicon) downloads are signed and covered by
+the same checksum file.
+
+No listing, no price, no presale. There is nothing to buy. If that is not
+interesting, it is the wrong project to read about.

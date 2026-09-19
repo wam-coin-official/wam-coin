@@ -1,0 +1,30 @@
+[DESTINATION: our Discord -- #announcements]
+
+**Four days of mainnet, measured today**
+
+height **3,149** · network **412 kH/s** · **17** distinct finders over the
+life of the chain · **157,450 WAM** mined of a 22,000,000 cap
+
+And the number we publish whether it flatters us or not: **one finder has
+produced 61.2% of all blocks.** It is on explorer.wamcoin.org permanently.
+
+That is the one thing worth your attention. It is not fixed by code, a fork
+or a rule — only by miners pointing somewhere else. Our pool is the smaller
+one and charges **0%**:
+
+```
+stratum+tcp://pool.wamcoin.org:3333
+```
+
+A normal desktop CPU is a real contribution here: the average worker on our
+pool is about 2.9 kH/s, and the gap to close is roughly forty of those.
+
+**v0.1.9 is out — and it is not mandatory.** It sets a floor on the work a
+new node will follow, so nobody can walk a freshly installed node onto a
+cheap fake history. A v0.1.8 node accepts the same blocks and is fine. Node
+operators: upgrade when convenient, not urgently.
+
+Linux, Windows, macOS (Apple Silicon) — all signed:
+github.com/wam-coin-official/wam-coin/releases
+
+Still no listing and no price. Nothing to buy, nothing to sell.

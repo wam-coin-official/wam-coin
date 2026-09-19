@@ -1,0 +1,26 @@
+[DESTINATION: our Telegram channel]
+
+WAM Coin — day four of mainnet, measured today.
+
+Height 3,149. Network 412 kH/s on RandomX, CPU only. 17 distinct finders.
+157,450 WAM mined of a 22,000,000 cap.
+
+The number we keep published either way: one finder has produced 61.2% of
+all blocks. You can read it yourself at explorer.wamcoin.org.
+
+Nothing but miners choosing differently changes that. Our pool is the
+smaller one and takes 0%:
+
+stratum+tcp://pool.wamcoin.org:3333
+
+An ordinary CPU counts. The average worker with us is about 2.9 kH/s, and
+what is missing is roughly forty of those.
+
+v0.1.9 is released and is NOT mandatory — it protects a node that is syncing
+for the first time. If you run v0.1.8, you are on the same chain and need do
+nothing.
+
+Signed downloads for Linux, Windows and macOS:
+github.com/wam-coin-official/wam-coin/releases
+
+No listing. No price. Nothing to buy.
