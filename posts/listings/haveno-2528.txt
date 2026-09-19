@@ -1,0 +1,41 @@
+DESTINATION: a comment on the CLOSED Haveno PR #2528
+https://github.com/haveno-dex/haveno/pull/2528
+NOT a new pull request. Deliberately.
+SEND: only if the founder wants the record there updated. Nothing is lost by
+never sending it.
+
+WHY A COMMENT AND NOT A NEW PR: woodser closed #2528 with one sentence --
+"We only consider coins with market traction / price". Of the nine requests
+this project has opened, that is the only one that set a market condition,
+and it is the one condition WAM does not meet and is not trying to meet: no
+listing, no price, no paid placement, by choice and in public.
+
+A new PR asks him to make an exception to the only rule he named. This does
+not ask for anything. It leaves the facts where somebody will find them if
+the reason ever changes, and it says plainly that the criterion is still
+unmet -- which is the part that makes it worth reading rather than ignoring.
+===========================================================================
+
+Not asking to reopen this, and the criterion you named is still not met.
+
+For the record, since the chain now exists and this thread is where anyone
+looking will land:
+
+  mainnet since     2026-09-15 00:00 UTC
+  height            3,307 at 2026-09-19T18:30:44Z
+  peers             47
+  proof of work     RandomX, CPU only
+  supply            22,000,000 cap, 165,350 mined so far
+
+  explorer          https://explorer.wamcoin.org
+  releases          https://github.com/wam-coin-official/wam-coin/releases/tag/v0.1.9
+
+Registered with SatoshiLabs on 26 August: SLIP-0044 coin type 5718349,
+SLIP-0173 prefixes wam / twam / wamrt.
+
+There is still no exchange listing and no price. This project does not pay
+for listings and does not arrange a market, so "market traction" is not
+something I can bring you by asking harder -- it either happens because
+people want the coin or it does not.
+
+If it ever does, this comment is where the numbers were on day five.

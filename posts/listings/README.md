@@ -87,3 +87,26 @@ next day. The same is true of bisq #8028, replaced by #8030.)
 
 It becomes worth revisiting when the reason itself changes -- a market that
 exists because people want the coin, not because we arranged one.
+
+## All six, ready. The founder picks the day.
+
+A dormant request dies of silence, not of refusal. Three of these are open
+and nobody has said no; two people are waiting on something that has already
+happened, and one maintainer said he would call and has not yet. A short
+message that the chain is live is what revives them.
+
+Send in this order. Each stands alone -- skipping one does not break another.
+
+| | file | where | why now |
+|---|---|---|---|
+| 1 | `gleec-1975.txt` | comment on the open PR | **overdue.** He asked whether to wait for 15.09 and nobody went back to him |
+| 2 | `blockdx-197.txt` | comment on the open PR | the entry moved to v0.1.9, as promised in that thread in August |
+| 3 | `komodo-21.txt` | comment on the open PR | open since 29 August with zero comments — give a reviewer a reason to look |
+| 4 | `basicswap-701-reopen.txt` | **new** PR | closed for one reason, the launch date, and it has passed |
+| 5 | `bisq-new.txt` | **new** PR | closed because he could not find the project; now he can |
+| 6 | `haveno-2528.txt` | comment on the closed PR | asks for nothing. Send only if the record there is worth updating |
+
+Every figure in all six was measured at 2026-09-19T18:30:44Z. **If they are
+sent more than a day or two later, re-measure first** — height, peers and the
+mined total move, and a stale number in a public thread costs more than it
+saves. `scripts/check_post_text.py` must pass before any of them goes out.
