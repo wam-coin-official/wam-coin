@@ -235,10 +235,42 @@ def check_blockdx(prefix, num, hdr):
         else:
             ok(f"{('xbridge ' + key):<18} {want}")
 
-    # A listed version with no published binary is the fault that only shows
-    # up when somebody tries to install it.
+    # Two faults, opposite directions, and until 19 September only one of
+    # them could be seen from here.
+    #
+    #   listed but not downloadable -- somebody is told to install a version
+    #       that does not exist. Caught since this was written.
+    #
+    #   released but not listed -- the newest wallet is missing from the
+    #       manifest an integrator reads, so Block DX does not recognise the
+    #       version people are actually running. v0.1.9 was published and
+    #       this printed "the entries describe this coin" with the newest
+    #       release absent, because it only ever walked the list in the file
+    #       and never asked what the repository had released.
+    #
+    # A check that can only look one way says nothing about the other.
     try:
         import urllib.request
+        newest = None
+        try:
+            req = urllib.request.Request(
+                "https://api.github.com/repos/wam-coin-official/wam-coin/releases?per_page=10",
+                headers={"User-Agent": "wam-listing-check"})
+            with urllib.request.urlopen(req, timeout=25) as f:
+                rels = json.load(f)
+            live = [r["tag_name"] for r in rels
+                    if not r.get("draft") and r.get("assets")]
+            newest = live[0] if live else None
+        except Exception as e:
+            unmeasured(f"could not read the release list, so whether the newest "
+                       f"release is listed is unknown ({e})")
+        if newest and newest not in m.get("versions", []):
+            bad(f"{newest} is published with downloadable assets and is NOT in "
+                f"versions. An integrator reading this file does not know the "
+                f"version people are running exists.")
+        elif newest:
+            ok(f"{'newest ' + newest:<18} is in versions")
+
         for v in m.get("versions", []):
             req = urllib.request.Request(
                 f"https://api.github.com/repos/wam-coin-official/wam-coin/releases/tags/{v}",
