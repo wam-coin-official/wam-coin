@@ -115,14 +115,14 @@ bash verify_release.sh .
 ```bash
 tar -xzf wam-coin-v0.1.9-x86_64-linux-gnu.tar.gz
 cd wam-coin-v0.1.9/bin
-./wamd -testnet -printtoconsole
+./wamd -printtoconsole
 ```
 
 **أو `-daemon` بدلاً من `-printtoconsole` إن أردتها أن تعمل في الخلفيّة.**
 فـ`-printtoconsole` يُريك العقدةَ تعمل، وبه تلاحظ الخطأَ قبل أن يخبرك به
 فحصٌ — لكنّها تموت إذا أغلقتَ الطرفيّة. و`-daemon` ينجو من ذلك ولا يُريك
 شيئاً. وتستطيع الاثنين: شغّلها بـ`-daemon` ثمّ `tail -f
-~/.wam/testnet3/debug.log` في أيّ نافذة، فترى النصَّ نفسَه. وملفُّ السجلّ
+~/.wam/debug.log` في أيّ نافذة، فترى النصَّ نفسَه. وملفُّ السجلّ
 يُكتب في الحالات الثلاث.
 
 > **وإن لم تبدأ، فالسببُ هذا في الغالب.** التنزيلُ يحتاج أربعةَ أشياء من
@@ -174,7 +174,7 @@ cd wam-coin-v0.1.9/bin
 > وهو يحاول الإبلاغ عن مشكلة. والعقدةُ تكتبه أيضاً، كاملاً ومن أوّل سطر، في
 >
 > ```
-> ~/.wam/testnet3/debug.log
+> ~/.wam/debug.log
 > ```
 >
 > فانقُل من ذلك الملفّ لا من الشاشة — وفي `-daemon` كذلك، حيث الملفُّ هو
@@ -183,7 +183,7 @@ cd wam-coin-v0.1.9/bin
 ولتراقبها من نافذة أخرى:
 
 ```bash
-./wam-cli -testnet getblockcount
+./wam-cli getblockcount
 ```
 
 يطبع لك عدد الكتل التي عندك. يجب أن يصعد حتى يساوي ما يعرضه
@@ -216,7 +216,7 @@ cd wam-coin-v0.1.9/bin
 > ولترى أنّها تعمل بدل أن تُخمّن، راقب **الترويسات**:
 >
 > ```bash
-> ./wam-cli -testnet getblockchaininfo | grep -E '"blocks"|"headers"'
+> ./wam-cli getblockchaininfo | grep -E '"blocks"|"headers"'
 > ```
 >
 > مقيسٌ على بدايةٍ باردة في ٧ سبتمبر: بلغت `headers` ستّة آلاف **في أقلّ من
@@ -243,7 +243,8 @@ cd wam-coin-v0.1.9/bin
 > العقدة — فالعقدةُ التي تُعيد تشغيلها ساكنةٌ دقيقةً أو دقيقتين كالجديدة
 > تماماً.
 
-> **ولماذا `-testnet`؟** لأن الشبكة الحقيقية لم تُطلق بعد. انظر
+> **ولماذا بلا علَم؟** لأن هذه أوامرُ الشبكة الحيّة، وهي تعمل منذ الساعة
+> 00:00 بتوقيت UTC من ١٥ سبتمبر ٢٠٢٦. انظر
 > [القسم ٧](#٧-أمران-يجب-أن-تعرفهما).
 
 ---
@@ -254,8 +255,8 @@ cd wam-coin-v0.1.9/bin
 ولا تُسجّله عند أحد.
 
 ```bash
-./wam-cli -testnet createwallet "mine"
-./wam-cli -testnet -rpcwallet=mine getnewaddress
+./wam-cli createwallet "mine"
+./wam-cli -rpcwallet=mine getnewaddress
 ```
 
 سيخرج لك شيء مثل `twam1q4syaj2akkysnsymxm8g85whanz23v3jn0jm6dd`. هذا عنوانك.
@@ -270,7 +271,7 @@ cd wam-coin-v0.1.9/bin
 > يُفقَد:**
 >
 > ```
-> ./wam-cli -testnet -rpcwallet=mine backupwallet ~/wam-wallet-backup.dat
+> ./wam-cli -rpcwallet=mine backupwallet ~/wam-wallet-backup.dat
 > ```
 >
 > **ولا تنسخ `wallet.dat` نفسه بينما العقدة تعمل.** كانت هذه الصفحة تقول
@@ -280,7 +281,7 @@ cd wam-coin-v0.1.9/bin
 > نفسِها أن تُغلق ما تكتبه وتُخرج ملفاً متكاملاً.
 >
 > لا يطبع شيئاً عند النجاح. تحقّق أنّ الملفّ موجودٌ وله حجم — وهذا كلُّ
-> التأكيد. والعادةُ هي المقصودة هنا: على شبكة التجربة لا يكلّف الأمرُ شيئاً،
+> التأكيد. والعادةُ هي المقصودة هنا: على سلسلة التجربة لم يكن يكلّف شيئاً،
 > ومن يبنيها اليومَ يجدها في ١٥ سبتمبر وفي الملفّ مال.
 
 **وإن أعدتَ تشغيل العقدة فأجابك `wam-cli` بـ `-18 Requested wallet does not
@@ -289,9 +290,9 @@ exist or is not loaded`،** فالمحفظةُ على القرص ولم تُفت
 بغير ذلك، أو بُدئت على مجلّدٍ أُفرِغ، فتعود ولا محفظةَ مفتوحة.
 
 ```
-./wam-cli -testnet listwallets           # ما هو مفتوحٌ الآن
-ls ~/.wam/testnet3/wallets/              # ما هو موجودٌ على القرص
-./wam-cli -testnet loadwallet "mine"     # افتحها من جديد
+./wam-cli listwallets           # ما هو مفتوحٌ الآن
+ls ~/.wam/wallets/              # ما هو موجودٌ على القرص
+./wam-cli loadwallet "mine"     # افتحها من جديد
 ```
 
 ولا شيءَ يُفقد في الحالتين — `createwallet` يكتب ملفاً، وحذفُ `blocks` أو
@@ -302,10 +303,10 @@ ls ~/.wam/testnet3/wallets/              # ما هو موجودٌ على الق�
 العقدة، وبالاسم الذي تتوقّعه:
 
 ```
-mkdir -p ~/.wam/testnet3/wallets/mine
-cp /path/to/your/backup.dat ~/.wam/testnet3/wallets/mine/wallet.dat
-./wam-cli -testnet loadwallet "mine"
-./wam-cli -testnet -rpcwallet=mine getbalance
+mkdir -p ~/.wam/wallets/mine
+cp /path/to/your/backup.dat ~/.wam/wallets/mine/wallet.dat
+./wam-cli loadwallet "mine"
+./wam-cli -rpcwallet=mine getbalance
 ```
 
 **وإعادةُ التسمية هي ما يُوقع الناس.** نسختُك الاحتياطيّةُ لك أن تسمّيها ما
@@ -315,7 +316,7 @@ cp /path/to/your/backup.dat ~/.wam/testnet3/wallets/mine/wallet.dat
 الخطأ.
 
 وإن قرأ الرصيدُ صفراً وأنت تعلم أنّه ليس صفراً، فالعقدةُ لم تنظر في الكتل
-القديمة بعد: `./wam-cli -testnet -rpcwallet=mine rescanblockchain` يقرأ
+القديمة بعد: `./wam-cli -rpcwallet=mine rescanblockchain` يقرأ
 السلسلةَ من أوّلها، و`getwalletinfo` يُظهر كائنَ `scanning` حتّى ينتهي
 و`false` بعده، فلا تبقى تُخمّن. وأمّا عقدةٌ ما زالت تُزامن من الكتلة صفر —
 كحالِ تنصيبٍ جديد — فلا تحتاج ذلك أصلاً: الكتلُ تمرّ والمحفظةُ مفتوحة.
@@ -364,7 +365,7 @@ chmod +x wam-miner
 فشغّل كلّ واحد من مكانه.
 
 ```bash
-./wam-miner -o stratum+tcp://pool.wamcoin.org:13333 -u عنوانك.rig1 -t 4
+./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u عنوانك.rig1 -t 4
 ```
 
 ضع مكان `عنوانك` العنوانَ الذي أخذته في الخطوة ٤. وأبقِ `.rig1` — هي مجرّد اسم
@@ -415,15 +416,16 @@ stats    3.41 kH/s   accepted 20  rejected 0  blocks 1
 
 ## ٧. أمران يجب أن تعرفهما
 
-**الشبكة الحقيقية لم تُطلق.** تُطلق في **١٥ سبتمبر ٢٠٢٦**. وكل ما سبق يوصلك
-بـ**شبكة الاختبار**، وهي موجودة ليتمرّن الناس ولتُكتشف الأعطال قبل أن يدخل مالٌ
-حقيقي.
+**هذه عملاتٌ حقيقية.** الشبكة الرئيسية تعمل منذ الساعة 00:00 بتوقيت UTC من
+١٥ سبتمبر ٢٠٢٦، وكل ما سبق يوصلك بها. الكتلة تدفع 50 WAM: منها 47.50 لمن
+وجدها و2.50 للخزينة، بقاعدةٍ تفحصها كل عقدة.
 
-**عملات الاختبار لا تساوي شيئاً.** لا تُباع، ولن تتحوّل إلى عملات حقيقية، وشبكة
-الاختبار تُمسح وتُعاد كلما لزم — وقد حدث ذلك فعلاً. عدِّن فيها لتتعلّم ولتساعد،
-لا لتربح.
+**ولا يوجد سعر ولا منصّة.** لا شيء يُباع، وقد لا يساوي شيئاً أبداً. عدِّن لأنك
+تريد أن تملك عملة سلسلةٍ تستطيع التحقّق منها بنفسك، لا لأنك تنتظر سوقاً.
 
-وحين تُطلق الشبكة الرئيسية، تعمل الأوامر نفسها بلا `-testnet`.
+وما زالت شبكة تجربةٍ تعمل لمن يطوّر عليها، وهذه الصفحة لا تشرحها: حتى ١٩
+سبتمبر كانت تُعلّم شبكة التجربة وتذكر الحقيقية في ذيلها، فكان القارئ يُنشئ
+عنوان `twam1` ويوجّهه إلى المجمّع الحيّ ويُعدّن بلا شيء.
 
 ---
 
@@ -501,7 +503,7 @@ You may need to upgrade, or other nodes may need to upgrade.
 وتستطيع قراءته من عقدتك في أي وقت:
 
 ```
-wam-cli -testnet getnetworkinfo | grep -A3 warnings
+wam-cli getnetworkinfo | grep -A3 warnings
 ```
 
 ---

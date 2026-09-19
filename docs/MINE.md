@@ -11,13 +11,21 @@ which that reader either knows already or does not care about.
 Linux, Windows, or a Mac with an Apple chip. About 2 GB of free memory.
 Nothing else.
 
+**Every command here is for the live chain.** Mainnet opened at 00:00 UTC on
+15 September 2026 and these coins are real ones. This page taught the test
+network until 19 September, with mainnet as an afterthought at the bottom --
+so a reader who followed it from the top made a `twam1` address, pointed it
+at the live pool, and hashed for nothing until he reached a paragraph
+explaining why. The test network still exists for people developing against
+it; it is not on this page, and it is not where you start.
+
 The Linux commands are first because they are the ones strangers have been
 running since August. [Windows](#windows) and [macOS](#macos) are below them
 and both are new in v0.1.8 — including what each operating system will say
 about the files when you first run them, which is explained there rather
 than left to surprise you.
 
-## The test network — live now
+## Linux — nine lines
 
 ```
 curl -LO https://github.com/wam-coin-official/wam-coin/releases/download/v0.1.9/wam-coin-v0.1.9-x86_64-linux-gnu.tar.gz
@@ -29,23 +37,22 @@ curl -LO https://raw.githubusercontent.com/wam-coin-official/wam-coin/main/SIGNI
 bash verify_release.sh .
 tar -xzf wam-coin-v0.1.9-x86_64-linux-gnu.tar.gz && tar -xzf wam-miner-v0.1.9-x86_64-linux-gnu.tar.gz
 cd wam-coin-v0.1.9/bin
-./wamd -testnet -daemon
-./wam-cli -testnet createwallet "mine"
-./wam-cli -testnet -rpcwallet=mine getnewaddress
+./wamd -daemon
+./wam-cli createwallet "mine"
+./wam-cli -rpcwallet=mine getnewaddress
 ```
 
 > **Back it up before you do anything else.** One command, now, while there is
 > nothing in it to lose:
 >
 > ```
-> ./wam-cli -testnet -rpcwallet=mine backupwallet ~/wam-wallet-backup.dat
+> ./wam-cli -rpcwallet=mine backupwallet ~/wam-wallet-backup.dat
 > ```
 >
 > This page says the same thing again further down, and on 6 September that was
 > a hundred lines too late: somebody following it created a wallet, tidied his
-> directory an hour later, and deleted the only copy. On testnet that costs
-> nothing. The habit is what is being built here, and the person who builds it
-> on 15 September has money in the file.
+> directory an hour later, and deleted the only copy. It cost him nothing then,
+> because the chain he was on was a test one. There is money in the file now.
 
 **If you restart the node and `wam-cli` answers `-18 Requested wallet does not
 exist or is not loaded`,** the wallet is on disk and simply not open. Bitcoin
@@ -54,9 +61,9 @@ node stopped any other way, or started against a datadir that was cleared,
 comes back with none.
 
 ```
-./wam-cli -testnet listwallets           # what is open right now
-ls ~/.wam/testnet3/wallets/              # what exists on disk
-./wam-cli -testnet loadwallet "mine"     # open it again
+./wam-cli listwallets           # what is open right now
+ls ~/.wam/wallets/              # what exists on disk
+./wam-cli loadwallet "mine"     # open it again
 ```
 
 **Do not use `scripts/gen_founder_key.py` for a mining address.** It is in
@@ -73,22 +80,22 @@ Nothing is lost either way — `createwallet` writes a file and deleting
 6 September by somebody following this page, restarting his node three times,
 and being told his wallet did not exist.
 
-The last command prints your address; it starts with `twam1`. Then, from
+The last command prints your address; it starts with `wam1`. Then, from
 where the miner unpacked:
 
 ```
 ./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS -t 4
 ```
 
-**3333, and the address must be a mainnet one.** Until 00:00 UTC on
-15 September the pool served testnet on 13333. At that moment it was
-converted -- there is one `wam-pool` service -- so **13333 answers nothing
-now** and 3333-3336 are the live pool. An address beginning `twam1` is a
-testnet address and the pool refuses it: "bech32 checksum failed" or "invalid
-address" in your miner's log means exactly this, and you are hashing for
-nothing until you fix it. Create the address with the mainnet commands above,
-with no `-testnet`, and COPY it rather than retyping it -- the checksum
-catches a single wrong character, which is what it is for.
+**COPY the address, do not retype it.** The checksum catches a single wrong
+character, which is what it is for. If your miner's log says "bech32 checksum
+failed" or "invalid address", the pool has refused it and you are hashing for
+nothing until you fix it.
+
+An address beginning `twam1` is a **test** address and will be refused. If you
+have one, you followed an older version of this page or a testnet guide: make
+a new address with the commands above. The pool is 3333-3336; 13333 was the
+test pool before 15 September and answers nothing now.
 
 `-t 4` is how many processor cores to use. Without it the miner takes every
 core but one, which makes the rest of the machine unpleasant to use.
@@ -142,10 +149,10 @@ the wallet is:
 
 ```
 cd wam-coin-v0.1.9\bin
-.\wamd.exe -testnet -datadir=C:\wam\data
-.\wam-cli.exe -testnet -datadir=C:\wam\data createwallet "mine"
-.\wam-cli.exe -testnet -datadir=C:\wam\data -rpcwallet=mine backupwallet C:\wam\wallet-backup.dat
-.\wam-cli.exe -testnet -datadir=C:\wam\data -rpcwallet=mine getnewaddress
+.\wamd.exe -datadir=C:\wam\data
+.\wam-cli.exe -datadir=C:\wam\data createwallet "mine"
+.\wam-cli.exe -datadir=C:\wam\data -rpcwallet=mine backupwallet C:\wam\wallet-backup.dat
+.\wam-cli.exe -datadir=C:\wam\data -rpcwallet=mine getnewaddress
 ```
 
 **Two things Windows does differently, and both were wrong in this guide
@@ -159,23 +166,13 @@ rather it stayed out of the way:
 
 ```powershell
 Start-Process -FilePath .\wamd.exe `
-  -ArgumentList '-testnet','-datadir=C:\wam\data' -WindowStyle Minimized
+  -ArgumentList '-datadir=C:\wam\data' -WindowStyle Minimized
 ```
 
 **`curl` in PowerShell is not curl.** It is an alias for
 `Invoke-WebRequest`, which does not understand `-LO` and fails. The real
 program is `C:\WINDOWS\system32\curl.exe`, which is why every download
 above says `curl.exe` rather than `curl`.
-
-**And for mainnet, from 00:00 UTC on 15 September: the same four commands
-without `-testnet`, and a different data directory** — never the testnet one:
-
-```powershell
-.\wamd.exe -datadir=C:\wam\mainnet
-.\wam-cli.exe -datadir=C:\wam\mainnet createwallet "mine"
-.\wam-cli.exe -datadir=C:\wam\mainnet -rpcwallet=mine backupwallet C:\wam\mainnet-wallet-backup.dat
-.\wam-cli.exe -datadir=C:\wam\mainnet -rpcwallet=mine getnewaddress
-```
 
 and the miner, from the folder it unpacked into:
 
@@ -262,10 +259,10 @@ Then:
 tar -xzf wam-coin-v0.1.9-arm64-apple-darwin.tar.gz
 tar -xzf wam-miner-v0.1.9-arm64-apple-darwin.tar.gz
 cd wam-coin-v0.1.9/bin
-./wamd -testnet -datadir=$HOME/wam/data -daemon
-./wam-cli -testnet -datadir=$HOME/wam/data createwallet "mine"
-./wam-cli -testnet -datadir=$HOME/wam/data -rpcwallet=mine backupwallet $HOME/wam/wallet-backup.dat
-./wam-cli -testnet -datadir=$HOME/wam/data -rpcwallet=mine getnewaddress
+./wamd -datadir=$HOME/wam/data -daemon
+./wam-cli -datadir=$HOME/wam/data createwallet "mine"
+./wam-cli -datadir=$HOME/wam/data -rpcwallet=mine backupwallet $HOME/wam/wallet-backup.dat
+./wam-cli -datadir=$HOME/wam/data -rpcwallet=mine getnewaddress
 ```
 
 and the miner, from where it unpacked:
@@ -317,52 +314,65 @@ afterwards.
 
 ## What you are mining
 
-Test coins. They are worth nothing, they will not become real coins, and the
-test chain is wiped whenever that is useful — it has been already. Mine here
-to find what breaks before 15 September, not to earn.
+Real coins on the live chain. Mainnet opened at 00:00 UTC on 15 September
+2026. A block pays 50 WAM: 47.50 to whoever found it and 2.50 to the
+treasury, by a consensus rule every node checks. There is no price, no
+exchange and nothing to sell them on, and there may never be. Mine because
+you want to hold the coin of a chain you can verify, not because you expect a
+market.
 
-## On 15 September, mainnet
+Coins from a block cannot be spent for 100 blocks, about three hours. That is
+consensus, not the pool.
 
-The same commands without `-testnet`:
+## Mining alone, which works here
 
-```
-./wamd -daemon
-./wam-cli createwallet "mine"
-./wam-cli -rpcwallet=mine getnewaddress
-./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS -t 4
-```
+Most guides tell you to join a pool and stop there. At this network size you
+do not have to, and the chain is better if some of you do not.
 
-Two things are **not** the same.
+A pool smooths your income: you are paid for the work you submit, a little at
+a time, whether or not your own machine finds anything. Alone, you are paid
+nothing until you find a block and then the whole 47.50 at once.
 
-**Your testnet address will not work.** Make a new wallet. Testnet derives on
-coin type 1 — SLIP-44 reserves it for every test chain, deliberately, so test
-keys can never be confused with real ones — and WAM mainnet uses 5718349. The
-prefixes differ too: `twam1` here, `wam1` there. The pool refuses a testnet
-address on mainnet, so nothing is lost; it simply will not work.
+How long that takes is arithmetic. If your machine is 1% of the network hash
+rate and a block comes every two minutes, you find one about every three
+hours. Measured on 2026-09-19, the network was near 356 kH/s, so:
 
-**Do not assume today's download is the launch binary.** A release between
-now and the 15th may change a consensus rule. v0.1.5 moved the mainnet
-treasury address, and a node left on v0.1.4 would reject every valid block on
-launch day and fork itself off the network at height 1 — silently, while
-appearing to run perfectly. Subscribe so you are told:
+| your machine | share | a block about every |
+|---|---|---|
+| 2,900 H/s (a typical laptop) | 0.8% | 4 hours |
+| 3,900 H/s | 1.1% | 3 hours |
+| 6,000 H/s | 1.7% | 2 hours |
 
-github.com/wam-coin-official/wam-coin → **Watch ▾** → **Custom** →
-**Releases** ✓
+Four miners are already doing this and have found 157 blocks between them.
+Read the live figures yourself at explorer.wamcoin.org rather than trusting
+this table, because the network moves and the table does not.
+
+**And it helps the chain more than joining us does.** Every solo miner is a
+separate finder; everybody in one pool is one finder, however many people are
+behind it. That is not an argument in our favour, and it is written here
+anyway.
+
+**How, exactly.** `wam-miner` speaks stratum and nothing else -- it cannot
+talk to a node directly -- so mining alone means running a pool of your own,
+for yourself. The pool software is in this repository, it runs against your
+own node on your own machine, and you point the miner at `localhost` instead
+of at us. `docs/POOL_OPERATOR.md` is the setup guide; it is written for
+somebody serving other people, and every step of it works the same when the
+only miner is you.
+
+That is what the miner in our Discord meant by "I'm running the pool
+locally". He has 3.9 kH/s and he is finding blocks.
 
 ## When it does not work
 
-**`dnsseed thread exit`, and nothing else happens.** You are on mainnet,
-which is one block until 15 September, so the node is correctly fully synced
-and stops looking for peers. Add `-testnet`.
-
 **`incorrect password attempt` in the log.** There is no password. The node
 writes `<datadir>/.cookie` at startup and clients read it, so `wam-cli` needs
-the same `-testnet` and the same `-datadir=` as the daemon. A leftover
-`wam.conf` carrying `rpcuser`/`rpcpassword` fights the cookie; delete those
-two lines.
+the same `-datadir=` as the daemon. A leftover `wam.conf` carrying
+`rpcuser`/`rpcpassword` fights the cookie; delete those two lines.
 
 **`accepted` stays at 0.** Usually the wrong address format — it must start
-with `twam1` on the test network.
+with `wam1`. An address beginning `twam1` belongs to the test chain and the
+pool refuses it.
 
 **No block ever found.** Normal. One machine among many finds one rarely,
 which is what the pool is for; your share of what the pool finds is paid to
@@ -376,7 +386,7 @@ Below that threshold your earnings sit in the pool's ledger and not in your
 wallet, so
 
 ```
-./wam-cli -testnet -rpcwallet=mine getbalance
+./wam-cli -rpcwallet=mine getbalance
 0.00000000
 ```
 
@@ -405,7 +415,7 @@ the mempool until a block carries it.
 `getbalance` is one number. `getbalances` is the truth:
 
 ```
-./wam-cli -testnet -rpcwallet=mine getbalances
+./wam-cli -rpcwallet=mine getbalances
 {
   "mine": {
     "trusted": 6.99973355,            confirmed, spendable now
@@ -425,13 +435,13 @@ channel before this project did.
 ## Back up the wallet
 
 ```
-./wam-cli -testnet -rpcwallet=mine backupwallet /path/you/choose/backup.dat
+./wam-cli -rpcwallet=mine backupwallet /path/you/choose/backup.dat
 ```
 
 It prints nothing on success. Check the file exists and has a size — that is
 the whole confirmation.
 
-The live wallet is at `~/.wam/testnet3/wallets/mine/wallet.dat`, and
+The live wallet is at `~/.wam/wallets/mine/wallet.dat`, and
 `listdescriptors true` prints the same keys in portable form. Treat that
 output like cash: never paste it anywhere, including to us.
 
@@ -444,10 +454,10 @@ to actually do it — onto a machine whose operating system he had reinstalled
 that morning. These are his steps, not ours.
 
 ```
-mkdir -p ~/.wam/testnet3/wallets/mine
-cp /path/to/your/backup.dat ~/.wam/testnet3/wallets/mine/wallet.dat
-./wam-cli -testnet loadwallet "mine"
-./wam-cli -testnet -rpcwallet=mine getbalance
+mkdir -p ~/.wam/wallets/mine
+cp /path/to/your/backup.dat ~/.wam/wallets/mine/wallet.dat
+./wam-cli loadwallet "mine"
+./wam-cli -rpcwallet=mine getbalance
 ```
 
 **The rename is the part that catches people.** Your backup may be called
@@ -463,7 +473,7 @@ if the balance reads zero when you know it should not, ask the node to look
 again:
 
 ```
-./wam-cli -testnet -rpcwallet=mine rescanblockchain
+./wam-cli -rpcwallet=mine rescanblockchain
 ```
 
 It reads the chain from the beginning and takes as long as it takes.

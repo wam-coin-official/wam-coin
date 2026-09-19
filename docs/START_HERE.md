@@ -125,14 +125,14 @@ it is the only thing standing between you and a file somebody else swapped in.
 ```bash
 tar -xzf wam-coin-v0.1.9-x86_64-linux-gnu.tar.gz
 cd wam-coin-v0.1.9/bin
-./wamd -testnet -printtoconsole
+./wamd -printtoconsole
 ```
 
 **Or `-daemon` instead of `-printtoconsole`, if you would rather it ran in the
 background.** `-printtoconsole` shows you the node working, which is how you
 notice something is wrong before a check tells you — but it dies when you
 close the terminal. `-daemon` survives that and shows you nothing. You can
-have both: run `-daemon`, then `tail -f ~/.wam/testnet3/debug.log` in any
+have both: run `-daemon`, then `tail -f ~/.wam/debug.log` in any
 terminal for the identical stream. The log file is written in all three cases.
 
 This choice used to be a line at the end of a long note further down, and the
@@ -192,7 +192,7 @@ nodes and asking them for the list. Leave it running.
 > it, complete and from the first line, to
 >
 > ```
-> ~/.wam/testnet3/debug.log
+> ~/.wam/debug.log
 > ```
 >
 > Quote from that file, never from the screen — in `-daemon` too, where the
@@ -201,7 +201,7 @@ nodes and asking them for the list. Leave it running.
 To watch it in another terminal:
 
 ```bash
-./wam-cli -testnet getblockcount
+./wam-cli getblockcount
 ```
 
 That prints how many blocks you have. It should climb until it matches what
@@ -237,7 +237,7 @@ That prints how many blocks you have. It should climb until it matches what
 > To see that it is working rather than guess, watch the **headers**:
 >
 > ```bash
-> ./wam-cli -testnet getblockchaininfo | grep -E '"blocks"|"headers"'
+> ./wam-cli getblockchaininfo | grep -E '"blocks"|"headers"'
 > ```
 >
 > Measured on a cold start, 7 September: `headers` reached 6,000 within eight
@@ -266,7 +266,8 @@ That prints how many blocks you have. It should climb until it matches what
 > are built when the first block needs checking, not when the node starts, so
 > a node you restart is quiet for a minute or two exactly like a new one.
 
-> **Why `-testnet`?** Because the real network has not launched yet. See
+> **No flag?** Right. These commands are for the live chain, which has been
+> running since 00:00 UTC on 15 September 2026. See
 > [section 7](#7-two-things-you-must-know).
 
 ---
@@ -277,20 +278,20 @@ An address is where WAM is sent, like an account number. It is free, you can
 make as many as you like, and you do not register it with anyone.
 
 ```bash
-./wam-cli -testnet createwallet "mine"
-./wam-cli -testnet -rpcwallet=mine getnewaddress
+./wam-cli createwallet "mine"
+./wam-cli -rpcwallet=mine getnewaddress
 ```
 
 > **Back it up before you do anything else.** One command, now, while there is
 > nothing in it to lose:
 >
 > ```
-> ./wam-cli -testnet -rpcwallet=mine backupwallet ~/wam-wallet-backup.dat
+> ./wam-cli -rpcwallet=mine backupwallet ~/wam-wallet-backup.dat
 > ```
 >
 > This page says the same thing again further down, and on 6 September that was
 > a hundred lines too late: somebody following it created a wallet, tidied his
-> directory an hour later, and deleted the only copy. On testnet that costs
+> directory an hour later, and deleted the only copy. On the test chain that cost
 > nothing. The habit is what is being built here, and the person who builds it
 > on 15 September has money in the file.
 
@@ -301,9 +302,9 @@ node stopped any other way, or started against a datadir that was cleared,
 comes back with none.
 
 ```
-./wam-cli -testnet listwallets           # what is open right now
-ls ~/.wam/testnet3/wallets/              # what exists on disk
-./wam-cli -testnet loadwallet "mine"     # open it again
+./wam-cli listwallets           # what is open right now
+ls ~/.wam/wallets/              # what exists on disk
+./wam-cli loadwallet "mine"     # open it again
 ```
 
 Nothing is lost either way — `createwallet` writes a file and deleting
@@ -315,10 +316,10 @@ and being told his wallet did not exist.
 it where the node looks, under the name the node expects:
 
 ```
-mkdir -p ~/.wam/testnet3/wallets/mine
-cp /path/to/your/backup.dat ~/.wam/testnet3/wallets/mine/wallet.dat
-./wam-cli -testnet loadwallet "mine"
-./wam-cli -testnet -rpcwallet=mine getbalance
+mkdir -p ~/.wam/wallets/mine
+cp /path/to/your/backup.dat ~/.wam/wallets/mine/wallet.dat
+./wam-cli loadwallet "mine"
+./wam-cli -rpcwallet=mine getbalance
 ```
 
 The rename is the part that catches people: your backup may be called
@@ -327,7 +328,7 @@ must carry the wallet's name. Get either wrong and the node reports a wallet
 that does not exist rather than a file that is misnamed.
 
 If the balance reads zero when you know it should not, the node has not looked
-at the older blocks yet — `./wam-cli -testnet -rpcwallet=mine
+at the older blocks yet — `./wam-cli -rpcwallet=mine
 rescanblockchain` reads the chain from the beginning, and `getwalletinfo`
 reports a `scanning` object until it is finished. A node still syncing from
 genesis, as a fresh install is, needs none of that: the blocks arrive with the
@@ -391,16 +392,16 @@ The address comes from step 4, and `wam-cli` lives in the *node* folder, not
 this one — so run the two from their own directories.
 
 ```bash
-./wam-miner -o stratum+tcp://pool.wamcoin.org:13333 -u YOUR_ADDRESS.rig1 -t 4
+./wam-miner -o stratum+tcp://pool.wamcoin.org:3333 -u YOUR_ADDRESS.rig1 -t 4
 ```
 
 Replace `YOUR_ADDRESS` with the address from step 4. Keep the `.rig1` — it is
 just a name for this machine, so you can tell your computers apart later.
 
-**13333 is the testnet port, and it changed on 11 September.** It used to be
-3333, which is the number mainnet publishes — and both pools cannot hold it,
-so the testnet one moved aside and 3333-3336 now stand empty until the 15th.
-If you were already mining on 3333, that is why it stopped.
+**3333 is the port.** It has been the live pool since mainnet opened at
+00:00 UTC on 15 September 2026. Before that the test pool used 13333, and
+13333 answers nothing now — if you were mining there and it stopped, this is
+why.
 
 `-t 4` is how many processor cores to use. Leave one or two free if you want
 the computer to stay usable.
@@ -450,15 +451,18 @@ to belong on the list.
 
 ## 7. Two things you must know
 
-**The real network has not launched.** It launches **15 September 2026**.
-Everything above connects you to the *test network*, which exists so people can
-practise and so faults are found before real money is involved.
+**These are real coins.** Mainnet opened at 00:00 UTC on 15 September 2026
+and everything above connects you to it. A block pays 50 WAM: 47.50 to whoever
+found it, 2.50 to the treasury, by a rule every node checks.
 
-**Test coins are worth nothing.** They cannot be sold, they will not become
-real coins, and the test network is wiped and restarted whenever that is
-useful — it has been already. Mine there to learn and to help, not to earn.
+**There is no price and no exchange.** Nothing can be sold and nothing may
+ever be worth anything. Mine because you want to hold the coin of a chain you
+can verify yourself, not because you are expecting a market.
 
-When mainnet launches, the same commands work without `-testnet`.
+A test network still runs for people developing against it, and this page does
+not cover it: until 19 September it taught the test chain and mentioned the
+real one at the bottom, so readers made a `twam1` address, pointed it at the
+live pool, and hashed for nothing.
 
 ---
 
@@ -540,7 +544,7 @@ any of that happens.
 You can also read it from the node itself at any time:
 
 ```
-wam-cli -testnet getnetworkinfo | grep -A3 warnings
+wam-cli getnetworkinfo | grep -A3 warnings
 ```
 
 ---
